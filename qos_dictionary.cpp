@@ -3,8 +3,8 @@
 #include <dds/DCPS/Marked_Default_Qos.h>
 #pragma warning(pop)
 
-#include "platformIndependent.h"
 #include "qos_dictionary.h"
+
 #include <iostream>
 #include <string>
 
