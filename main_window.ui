@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>DDSMonitorMainWindow</class>
+ <widget class="QMainWindow" name="DDSMonitorMainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>900</width>
+    <height>550</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>DDS Monitor</string>
+  </property>
+  <property name="windowIcon">
+   <iconset resource="ddsmon.qrc">
+    <normaloff>:/images/find.png</normaloff>:/images/find.png</iconset>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="verticalLayout_2">
+    <item>
+     <widget class="QSplitter" name="splitter">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <widget class="QTreeWidget" name="topicTree">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+         <horstretch>3</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="alternatingRowColors">
+        <bool>true</bool>
+       </property>
+       <attribute name="headerVisible">
+        <bool>false</bool>
+       </attribute>
+       <attribute name="headerStretchLastSection">
+        <bool>true</bool>
+       </attribute>
+       <column>
+        <property name="text">
+         <string notr="true">1</string>
+        </property>
+       </column>
+      </widget>
+      <widget class="QTabWidget" name="mainTabWidget">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+         <horstretch>7</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="tabsClosable">
+        <bool>true</bool>
+       </property>
+       <property name="movable">
+        <bool>true</bool>
+       </property>
+       <widget class="QWidget" name="blankTab">
+        <attribute name="title">
+         <string/>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout">
+         <item>
+          <widget class="QWidget" name="blankWidget" native="true"/>
+         </item>
+        </layout>
+       </widget>
+      </widget>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionNewTable">
+   <property name="icon">
+    <iconset resource="ddsmon.qrc">
+     <normaloff>:/images/stock_data-new-table.png</normaloff>:/images/stock_data-new-table.png</iconset>
+   </property>
+   <property name="text">
+    <string>New Table</string>
+   </property>
+  </action>
+  <action name="actionNewPlot">
+   <property name="icon">
+    <iconset resource="ddsmon.qrc">
+     <normaloff>:/images/monitor.png</normaloff>:/images/monitor.png</iconset>
+   </property>
+   <property name="text">
+    <string>New Plot</string>
+   </property>
+  </action>
+ </widget>
+ <resources>
+  <include location="ddsmon.qrc"/>
+ </resources>
+ <connections/>
+</ui>

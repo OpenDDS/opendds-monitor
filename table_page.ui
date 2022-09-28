@@ -1,0 +1,374 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>TablePageForm</class>
+ <widget class="QWidget" name="TablePageForm">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>775</width>
+    <height>500</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>DataSampleTable</string>
+  </property>
+  <layout class="QHBoxLayout" name="horizontalLayout">
+   <item>
+    <widget class="QTableWidget" name="historyTable">
+     <property name="maximumSize">
+      <size>
+       <width>120</width>
+       <height>16777215</height>
+      </size>
+     </property>
+     <property name="editTriggers">
+      <set>QAbstractItemView::NoEditTriggers</set>
+     </property>
+     <property name="alternatingRowColors">
+      <bool>true</bool>
+     </property>
+     <property name="selectionMode">
+      <enum>QAbstractItemView::SingleSelection</enum>
+     </property>
+     <property name="selectionBehavior">
+      <enum>QAbstractItemView::SelectItems</enum>
+     </property>
+     <attribute name="horizontalHeaderStretchLastSection">
+      <bool>true</bool>
+     </attribute>
+     <attribute name="verticalHeaderVisible">
+      <bool>false</bool>
+     </attribute>
+     <attribute name="verticalHeaderDefaultSectionSize">
+      <number>19</number>
+     </attribute>
+     <column>
+      <property name="text">
+       <string>History</string>
+      </property>
+     </column>
+    </widget>
+   </item>
+   <item>
+    <widget class="QTableView" name="topicTableView">
+     <property name="editTriggers">
+      <set>QAbstractItemView::AllEditTriggers</set>
+     </property>
+     <property name="alternatingRowColors">
+      <bool>true</bool>
+     </property>
+     <property name="selectionMode">
+      <enum>QAbstractItemView::ExtendedSelection</enum>
+     </property>
+     <property name="selectionBehavior">
+      <enum>QAbstractItemView::SelectRows</enum>
+     </property>
+     <attribute name="horizontalHeaderDefaultSectionSize">
+      <number>150</number>
+     </attribute>
+     <attribute name="horizontalHeaderStretchLastSection">
+      <bool>true</bool>
+     </attribute>
+     <attribute name="verticalHeaderVisible">
+      <bool>false</bool>
+     </attribute>
+     <attribute name="verticalHeaderDefaultSectionSize">
+      <number>19</number>
+     </attribute>
+    </widget>
+   </item>
+   <item>
+    <layout class="QVBoxLayout" name="verticalLayout">
+     <item>
+      <widget class="QPushButton" name="clearSamplesButton">
+       <property name="maximumSize">
+        <size>
+         <width>35</width>
+         <height>35</height>
+        </size>
+       </property>
+       <property name="toolTip">
+        <string>Clear sample history</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="ddsmon.qrc">
+         <normaloff>:/images/edit-clear.png</normaloff>:/images/edit-clear.png</iconset>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="filterButton">
+       <property name="maximumSize">
+        <size>
+         <width>35</width>
+         <height>35</height>
+        </size>
+       </property>
+       <property name="toolTip">
+        <string>Set filter</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="ddsmon.qrc">
+         <normaloff>:/images/filter.png</normaloff>:/images/filter.png</iconset>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="useLatestButton">
+       <property name="maximumSize">
+        <size>
+         <width>35</width>
+         <height>35</height>
+        </size>
+       </property>
+       <property name="toolTip">
+        <string>Always use the latest sample</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="ddsmon.qrc">
+         <normaloff>:/images/prevfuzzy.png</normaloff>:/images/prevfuzzy.png</iconset>
+       </property>
+       <property name="checkable">
+        <bool>true</bool>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="freezeButton">
+       <property name="maximumSize">
+        <size>
+         <width>35</width>
+         <height>35</height>
+        </size>
+       </property>
+       <property name="toolTip">
+        <string>Freeze updates</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="ddsmon.qrc">
+         <normaloff>:/images/unlock.png</normaloff>:/images/unlock.png</iconset>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="unfreezeButton">
+       <property name="maximumSize">
+        <size>
+         <width>35</width>
+         <height>35</height>
+        </size>
+       </property>
+       <property name="toolTip">
+        <string>Unfreeze updates</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="ddsmon.qrc">
+         <normaloff>:/images/lock.png</normaloff>:/images/lock.png</iconset>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="iniButton">
+       <property name="maximumSize">
+        <size>
+         <width>35</width>
+         <height>35</height>
+        </size>
+       </property>
+       <property name="toolTip">
+        <string>Export data to an INI file</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="ddsmon.qrc">
+         <normaloff>:/images/exportdoc.png</normaloff>:/images/exportdoc.png</iconset>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="revertButton">
+       <property name="maximumSize">
+        <size>
+         <width>35</width>
+         <height>35</height>
+        </size>
+       </property>
+       <property name="toolTip">
+        <string>Revert changes</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="ddsmon.qrc">
+         <normaloff>:/images/revert.png</normaloff>:/images/revert.png</iconset>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="newPlotButton">
+       <property name="maximumSize">
+        <size>
+         <width>35</width>
+         <height>35</height>
+        </size>
+       </property>
+       <property name="toolTip">
+        <string>Add a new plot page</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="ddsmon.qrc">
+         <normaloff>:/images/monitor_new.png</normaloff>:/images/monitor_new.png</iconset>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="attachPlotButton">
+       <property name="maximumSize">
+        <size>
+         <width>35</width>
+         <height>35</height>
+        </size>
+       </property>
+       <property name="toolTip">
+        <string>Add selection to an existing plot</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="ddsmon.qrc">
+         <normaloff>:/images/monitor_attach.png</normaloff>:/images/monitor_attach.png</iconset>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="recordButton">
+       <property name="maximumSize">
+        <size>
+         <width>35</width>
+         <height>35</height>
+        </size>
+       </property>
+       <property name="toolTip">
+        <string>Start recording</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="ddsmon.qrc">
+         <normaloff>:/images/media-record.png</normaloff>:/images/media-record.png</iconset>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <layout class="QGridLayout" name="gridLayout">
+       <item row="0" column="0">
+        <widget class="QLabel" name="matchedSubTitleLabel">
+         <property name="toolTip">
+          <string>The number of matched readers for this topic</string>
+         </property>
+         <property name="text">
+          <string>R:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QLabel" name="matchedSubLabel">
+         <property name="toolTip">
+          <string>The number of matched readers for this topic</string>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="matchedPubTitleLabel">
+         <property name="toolTip">
+          <string>The number of matched writers for this topic</string>
+         </property>
+         <property name="text">
+          <string>W:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QLabel" name="matchedPubLabel">
+         <property name="toolTip">
+          <string>The number of matched writers for this topic</string>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <spacer name="verticalSpacer">
+       <property name="orientation">
+        <enum>Qt::Vertical</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>20</width>
+         <height>158</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="publishButton">
+       <property name="maximumSize">
+        <size>
+         <width>35</width>
+         <height>35</height>
+        </size>
+       </property>
+       <property name="toolTip">
+        <string>Publish sample</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="ddsmon.qrc">
+         <normaloff>:/images/exports.png</normaloff>:/images/exports.png</iconset>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources>
+  <include location="ddsmon.qrc"/>
+ </resources>
+ <connections/>
+</ui>

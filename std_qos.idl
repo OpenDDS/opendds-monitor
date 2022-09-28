@@ -1,0 +1,24 @@
+#ifndef STD_QOS_H
+#define STD_QOS_H
+
+module STD_QOS
+{
+    enum QosType
+    {
+        /// Guarantees delivery of the latest published sample. Samples may be
+        /// overwritten, lost samples are retransmitted, and late-joining
+        /// participants will receive previous samples. This is the default QoS.
+        LATEST_RELIABLE_TRANSIENT,
+        /// Guarantees delivery of the latest published sample.
+        /// Samples may be overwritten and lost samples are retransmitted.
+        LATEST_RELIABLE,
+        /// Guarantees delivery of every published sample.
+        /// Samples will not be overwritten and lost samples are retransmitted.
+        STRICT_RELIABLE,
+        /// No effort or resources are spent to track if samples are received.
+        /// Minimal resources are used and data samples may be lost. This
+        /// setting is recommended for periodic data.
+        BEST_EFFORT
+    };
+};
+#endif // STD_QOS_H
