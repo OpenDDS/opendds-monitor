@@ -53,7 +53,6 @@ set(HEADER
     dds_data.h
     dds_listeners.h
     dds_logging.h
-    dds_manager_defs.h
     dds_manager.h
     dds_manager.hpp
     dds_simple.h
@@ -141,7 +140,7 @@ target_link_libraries(monitor
     OpenDDS::Rtps
     OpenDDS::Rtps_Udp
     OpenDDS::Tcp
-    qwt-qt5
+    ${QWT_LIBRARY}
     Qt5::PrintSupport
     Qt5::Widgets
     Qt5::Core

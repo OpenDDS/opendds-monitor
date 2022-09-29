@@ -9,6 +9,7 @@
 
 // Check for feature test macro for <experimental/filesystem>
 #   elif defined(__cpp_lib_experimental_filesystem)
+#       define _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
 #       define INCLUDE_STD_FILESYSTEM_EXPERIMENTAL 1
 
 // We can't check if headers exist...

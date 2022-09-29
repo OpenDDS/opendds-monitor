@@ -15,8 +15,6 @@
 #include <future>
 #include <functional>
 
-#include "dds_manager_defs.h"
-
 //This implementation was taken from the answer to stackoverflow question 16883817
 struct GenericCallback {
     virtual ~GenericCallback() { }
@@ -30,7 +28,7 @@ struct Callback : GenericCallback {
 
 typedef std::multimap<std::type_index, std::shared_ptr<GenericCallback> > Listeners;
 
-class DLL_PUBLIC EmitterBase
+class EmitterBase
 {
 public:
 

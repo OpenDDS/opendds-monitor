@@ -19,7 +19,6 @@
 #include "dds_callback.h"
 #include "dds_listeners.h"
 #include "dds_logging.h"
-#include "dds_manager_defs.h"
 #include "dds_listeners.h"
 #include "participant_monitor.h"
 
@@ -55,7 +54,7 @@
  * - Write new data samples with the writeSample method.
  */
 
-class DLL_PUBLIC DDSManager
+class DDSManager
 {
 public:
 
@@ -449,7 +448,7 @@ private:
     /**
     * @brief Stores all data objects for a topic.
     */
-    class DLL_PUBLIC TopicGroup
+    class TopicGroup
     {
         public:
 
@@ -549,7 +548,7 @@ private:
  * @param[in] enumValue The target enum ordinal value.
  * @return The string for a target enum value or empty if an error was found.
  */
-std::string DLL_PUBLIC ddsEnumToString(const CORBA::TypeCode* enumTypeCode,
+std::string ddsEnumToString(const CORBA::TypeCode* enumTypeCode,
                                        const unsigned int& enumValue);
 
 /**

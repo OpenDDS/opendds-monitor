@@ -38,7 +38,7 @@ LogPage::~LogPage()
 
 void LogPage::timerEvent(QTimerEvent* event)
 {
-    std::lock_guard lk(newMessageMutex);
+    std::lock_guard<std::mutex> lk(newMessageMutex);
     for (const auto& message : newMessages) {
         logEdit->append(message.c_str());
     }
@@ -48,7 +48,7 @@ void LogPage::timerEvent(QTimerEvent* event)
 
 void LogPage::AddMessage(const std::string& str)
 {
-    std::lock_guard lk(newMessageMutex);
+    std::lock_guard<std::mutex> lk(newMessageMutex);
     newMessages.push_back(str);
 }
 
@@ -126,7 +126,7 @@ LogPage::LogStream::~LogStream()
 //------------------------------------------------------------------------------
 std::streambuf::int_type LogPage::LogStream::overflow(int_type v)
 {
-    std::lock_guard lk(writeMutex);
+    std::lock_guard<std::mutex> lk(writeMutex);
 
     if (v == '\n')
     {
@@ -145,7 +145,7 @@ std::streambuf::int_type LogPage::LogStream::overflow(int_type v)
 //------------------------------------------------------------------------------
 std::streamsize LogPage::LogStream::xsputn(const char* p, std::streamsize n)
 {
-    std::lock_guard lk(writeMutex);
+    std::lock_guard<std::mutex> lk(writeMutex);
     m_string.append(p, p + n);
     size_t pos = 0;
 
