@@ -11,6 +11,7 @@
 #include <dds/DCPS/transport/rtps_udp/RtpsUdpInst_rch.h>
 #include <dds/DCPS/Service_Participant.h>
 #include <dds/DCPS/RTPS/RtpsDiscovery.h>
+#include <dds/DCPS/ServiceEventDispatcher.h>
 #pragma warning(pop)
 
 #include <iostream>
@@ -19,7 +20,6 @@
 #include <cstdlib>
 #include <future>
 
-#include "ThreadPool.h"
 #include "platformIndependent.h"
 #include "std_qosC.h"
 
@@ -43,9 +43,8 @@ DDSManager::DDSManager(std::function<void(LogMessageType mt, const std::string& 
     }
 
     //Register to get ace messages
-
-    m_threadPool = std::make_shared<ThreadPool>(threadPoolSize);
     ACE::init();
+    m_dispatcher = OpenDDS::DCPS::make_rch<OpenDDS::DCPS::ServiceEventDispatcher>(threadPoolSize);
     //m_thisCount++;
 }
 
@@ -125,7 +124,8 @@ DDSManager::~DDSManager()
 
     m_domainParticipant = nullptr;
 
-    m_threadPool.reset();  //Make sure the thread pool is stopped before destroying anything else
+    m_dispatcher->shutdown();
+    m_dispatcher.reset();
 
 } // End DDSManager::~DDSManager
 

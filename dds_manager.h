@@ -4,6 +4,7 @@
 #pragma warning(push, 0)  //No DDS warnings
 #include <dds/DdsDcpsCoreC.h>
 #include <dds/DdsDcpsDomainC.h>
+#include <dds/DCPS/EventDispatcher.h>
 #pragma warning(pop)
 
 #include <vector>
@@ -24,8 +25,6 @@
 
 //User must supply this by compiling std_qos.idl.
 #include "std_qosC.h"
-
-class ThreadPool;
 
 /**
  * @brief Main interface into the DDS global data space.
@@ -495,7 +494,7 @@ private:
         std::map<const std::string, std::shared_ptr<EmitterBase>> emitters;
     };
 
-    std::shared_ptr<ThreadPool> m_threadPool;
+    OpenDDS::DCPS::RcHandle<OpenDDS::DCPS::EventDispatcher> m_dispatcher;
 
     std::string ddsIP;
 

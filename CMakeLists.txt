@@ -74,7 +74,6 @@ set(HEADER
     recorder_dialog.h
     subscription_monitor.h
     table_page.h
-    ThreadPool.h
     topic_monitor.h
     topic_replayer.h
     topic_table_model.h

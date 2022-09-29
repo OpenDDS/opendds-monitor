@@ -556,7 +556,7 @@ bool DDSManager::addCallback(const std::string& topicName,
     }
     else
     {
-        emitter = new Emitter<TopicType>(reader, m_threadPool);
+        emitter = new Emitter<TopicType>(reader, m_dispatcher);
         topicGroup->emitters.emplace(readerName, emitter);
     }
     emitter->addCallback(func);

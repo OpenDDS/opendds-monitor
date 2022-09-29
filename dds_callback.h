@@ -4,6 +4,7 @@
 #pragma warning(push, 0)  //No DDS warnings
 #include <dds/DCPS/TypeSupportImpl.h>
 #include <dds/DCPS/WaitSet.h>
+#include <dds/DCPS/EventDispatcher.h>
 #pragma warning(pop)
 
 #include <iostream>
@@ -15,8 +16,6 @@
 #include <functional>
 
 #include "dds_manager_defs.h"
-
-class ThreadPool;
 
 //This implementation was taken from the answer to stackoverflow question 16883817
 struct GenericCallback {
@@ -36,7 +35,7 @@ class DLL_PUBLIC EmitterBase
 public:
 
     /// Default constructor
-    EmitterBase(std::weak_ptr<ThreadPool> tp) : m_running(false), m_threadPool(tp)
+    EmitterBase(OpenDDS::DCPS::RcHandle<OpenDDS::DCPS::EventDispatcher> ed) : m_running(false), m_dispatcher(ed)
     {}
 
     virtual ~EmitterBase();
@@ -102,7 +101,7 @@ protected:
 
     bool m_asyncEmitter = false;
 
-    std::weak_ptr<ThreadPool> m_threadPool;
+    OpenDDS::DCPS::WeakRcHandle<OpenDDS::DCPS::EventDispatcher> m_dispatcher;
 
     //std::future<void> fut;
 };
@@ -113,8 +112,8 @@ class Emitter : public EmitterBase
 {
 public:
 
-    Emitter(DDS::DataReader_var const reader, std::weak_ptr<ThreadPool> tp) :
-            m_reader(reader), EmitterBase(tp)
+    Emitter(DDS::DataReader_var const reader, OpenDDS::DCPS::RcHandle<OpenDDS::DCPS::EventDispatcher> ed) :
+            m_reader(reader), EmitterBase(ed)
     {
         if (!m_reader)
         {
