@@ -65,10 +65,10 @@ jobs:
         if: runner.os == 'Linux'
         run: |-
           sudo apt-get update
-          sudo apt-get -y install libssl-dev libxerces-c-dev libqwt-qt5-dev
+          sudo apt-get -y install libssl-dev libxerces-c-dev qtbase5-dev libqwt-qt5-dev
       - name: 'Install xerces, qt5, and qwt (macOS)'
         if: runner.os == 'macOS'
-        run: |
+        run: |-
           brew install xerces-c qt5 qwt
       - name: 'Install openssl, xerces, qt5, and qwt (Windows)'
         if: runner.os == 'Windows'
@@ -77,13 +77,6 @@ jobs:
           vcpkgGitCommitId: b86c0c35b88e2bf3557ff49dc831689c2f085090
           vcpkgArguments: --recurse openssl xerces-c qt5 qwt
           vcpkgTriplet: x64-windows
-
-      # Debugging
-      - name: 'Debugging(Windows)'
-        if: runner.os == 'Windows'
-        shell: cmd
-        run: |-
-          dir D:\a\opendds-monitor\opendds-monitor\vcpkg\installed\x64-windows
 
       # Set Up Some Necessary / Helpful Build Tools
       - name: 'Set Up MSVC Environment'
@@ -111,6 +104,14 @@ jobs:
             CONFIG_OPTIONS+=" --xerces3=/usr/local/Cellar/xerces-c/3.2.3 --openssl=/usr/local/opt/openssl@1.1"
           fi
           echo "CONFIG_OPTIONS=$CONFIG_OPTIONS" >> $GITHUB_ENV
+          export COMPILER_VERSION=$(c++ --version 2>&1 | head -n 1)
+          echo "COMPILER_VERSION=$COMPILER_VERSION" >> $GITHUB_ENV
+          echo "OBJ_EXT=\\.o" >> $GITHUB_ENV
+          TAR_EXE="tar"
+          if [ '${{ runner.os }}' == 'macOS' ]; then
+            TAR_EXE="gtar"
+          fi
+          echo "TAR_EXE=$TAR_EXE" >> $GITHUB_ENV
       - name: 'Set environment variables (Windows)'
         if: runner.os == 'Windows'
         shell: bash
@@ -121,16 +122,38 @@ jobs:
           echo "MPC_ROOT=$GITHUB_WORKSPACE\\MPC" >> $GITHUB_ENV
           CONFIG_OPTIONS+=" --no-tests --ipv6 --security --xerces3=\"$VCPKG_ROOT\\installed\\x64-windows\" --openssl=\"$VCPKG_ROOT\\installed\\x64-windows\""
           echo "CONFIG_OPTIONS=$CONFIG_OPTIONS" >> $GITHUB_ENV
+          export COMPILER_VERSION=$("C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -property catalog_productDisplayVersion)
+          echo "COMPILER_VERSION=$COMPILER_VERSION" >> $GITHUB_ENV
+          echo "OBJ_EXT=\\.obj" >> $GITHUB_ENV
+          TAR_EXE="tar"
+          echo "TAR_EXE=$TAR_EXE" >> $GITHUB_ENV
+      - name: 'Set environment variables (Common)'
+        shell: bash
+        run: |-
+          cd ACE_TAO
+          export ACE_COMMIT=$(git rev-parse HEAD)
+          echo "ACE_COMMIT=$ACE_COMMIT" >> $GITHUB_ENV
+          cd ../OpenDDS
+          export DDS_COMMIT=$(git rev-parse HEAD)
+          echo "DDS_COMMIT=$DDS_COMMIT" >> $GITHUB_ENV
+
+      # Check Build Cache
+      - name: 'Check Build Cache'
+        id: cache-build
+        uses: actions/cache@v3
+        with:
+          path: ${{ github.job }}.tar.xz
+          key: c01_${{ github.job }}_${{ env.COMPILER_VERSION }}_${{ env.ACE_COMMIT }}_${{ env.DDS_COMMIT }}
 
       # Configure OpenDDS
       - name: 'Configure & Build OpenDDS (Linux / macOS)'
-        if: runner.os == 'Linux' || runner.os == 'macOS'
+        if: steps.cache-build.outputs.cache-hit != 'true' && (runner.os == 'Linux' || runner.os == 'macOS')
         shell: bash
         run: |-
           cd OpenDDS
           ./configure ${{ env.CONFIG_OPTIONS }}
       - name: 'Configure OpenDDS (Windows)'
-        if: runner.os == 'Windows'
+        if: steps.cache-build.outputs.cache-hit != 'true' && runner.os == 'Windows'
         shell: cmd
         run: |-
           cd OpenDDS
@@ -138,19 +161,39 @@ jobs:
 
       # Build OpenDDS
       - name: 'Build OpenDDS (Linux / macOS)'
-        if: runner.os == 'Linux' || runner.os == 'macOS'
+        if: steps.cache-build.outputs.cache-hit != 'true' && (runner.os == 'Linux' || runner.os == 'macOS')
         shell: bash
         run: |-
           cd OpenDDS
           . setenv.sh
           make -j3
       - name: 'Build OpenDDS (Windows)'
-        if: runner.os == 'Windows'
+        if: steps.cache-build.outputs.cache-hit != 'true' && runner.os == 'Windows'
         shell: cmd
         run: |-
           cd OpenDDS
           call setenv.cmd
           msbuild -p:Configuration=Debug,Platform=x64 -m DDS_TAOv2.sln
+
+      # Create Build Cache
+      - name: 'Create Build Cache (Linux / macOS)'
+        if: steps.cache-build.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          cd ACE_TAO
+          find . -iname "*$OBJ_EXT" | xargs rm
+          $TAR_EXE cvf ../${{ github.job }}.tar ACE/ace/config.h
+          git clean -xdfn | cut -d ' ' -f 3- | xargs $TAR_EXE uvf ../${{ github.job }}.tar
+          cd ../OpenDDS
+          git clean -xdfn | cut -d ' ' -f 3- | xargs $TAR_EXE uvf ../${{ github.job }}.tar
+          xz -3 ../${{ github.job }}.tar
+
+      # Create Build Cache
+      - name: 'Extract Build Cache (Linux / macOS)'
+        if: steps.cache-build.outputs.cache-hit == 'true'
+        shell: bash
+        run: |
+          tar xvfJ ${{ github.job }}.tar
 
       # Build opendds-monitor
       - name: 'Build opendds-monitor (Linux / macOS)'
