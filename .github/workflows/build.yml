@@ -20,8 +20,9 @@ jobs:
       fail-fast: false
       matrix:
         opendds_branch:
-          - master
-          - latest-release
+          # - master
+          # - latest-release
+          - fix_macos_ipv6_issue
         runner:
           - windows-2022
           - windows-2019
@@ -70,7 +71,7 @@ jobs:
       - name: 'Checkout OpenDDS'
         uses: actions/checkout@v3
         with:
-          repository: objectcomputing/OpenDDS
+          repository: simpsont-oci/OpenDDS
           ref: ${{ matrix.opendds_branch }}
           path: OpenDDS
           fetch-depth: 1
