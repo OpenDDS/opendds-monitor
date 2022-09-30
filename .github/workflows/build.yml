@@ -136,14 +136,16 @@ jobs:
           cd ../OpenDDS
           export DDS_COMMIT=$(git rev-parse HEAD)
           echo "DDS_COMMIT=$DDS_COMMIT" >> $GITHUB_ENV
+          export MATRIX_MD5=$(echo "${{ matrix }}" | md5sum | cut -d ' ' -f 1)
+          echo "MATRIX_MD5=$MATRIX_MD5" >> $GITHUB_ENV
 
       # Check Build Cache
       - name: 'Check Build Cache'
         id: cache-build
         uses: actions/cache@v3
         with:
-          path: ${{ github.job }}.tar.xz
-          key: c01_${{ github.job }}_${{ env.COMPILER_VERSION }}_${{ env.ACE_COMMIT }}_${{ env.DDS_COMMIT }}
+          path: ${{ env.MATRIX_MD5 }}.tar.xz
+          key: c01_${{ env.MATRIX_MD5 }}_${{ env.COMPILER_VERSION }}_${{ env.ACE_COMMIT }}_${{ env.DDS_COMMIT }}
 
       # Configure OpenDDS
       - name: 'Configure & Build OpenDDS (Linux / macOS)'
@@ -182,18 +184,18 @@ jobs:
         run: |
           cd ACE_TAO
           find . -iname "*$OBJ_EXT" | xargs rm
-          $TAR_EXE cvf ../${{ github.job }}.tar ACE/ace/config.h
-          git clean -xdfn | cut -d ' ' -f 3- | xargs $TAR_EXE uvf ../${{ github.job }}.tar
+          $TAR_EXE cvf ../${{ env.MATRIX_MD5 }}.tar ACE/ace/config.h
+          git clean -xdfn | cut -d ' ' -f 3- | xargs $TAR_EXE uvf ../${{ env.MATRIX_MD5 }}.tar
           cd ../OpenDDS
-          git clean -xdfn | cut -d ' ' -f 3- | xargs $TAR_EXE uvf ../${{ github.job }}.tar
-          xz -3 ../${{ github.job }}.tar
+          git clean -xdfn | cut -d ' ' -f 3- | xargs $TAR_EXE uvf ../${{ env.MATRIX_MD5 }}.tar
+          xz -3 ../${{ env.MATRIX_MD5 }}.tar
 
-      # Create Build Cache
-      - name: 'Extract Build Cache (Linux / macOS)'
+      # Extract Build Cache
+      - name: 'Extract Build Cache'
         if: steps.cache-build.outputs.cache-hit == 'true'
         shell: bash
         run: |
-          tar xvfJ ${{ github.job }}.tar
+          tar xvfJ ${{ env.MATRIX_MD5 }}.tar.xz
 
       # Build opendds-monitor
       - name: 'Build opendds-monitor (Linux / macOS)'
