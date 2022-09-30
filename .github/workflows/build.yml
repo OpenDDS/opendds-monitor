@@ -30,7 +30,9 @@ jobs:
           - ubuntu-20.04
           - macos-12
           - macos-11
+
     runs-on: ${{ matrix.runner }}
+
     steps:
       # Pull Down Pre-Built Dependencies
       - name: 'Install ssl, xerces, qt5, and qwt (Linux)'
@@ -126,6 +128,9 @@ jobs:
         shell: cmd
         run: |-
           echo "CONFIG_OPTIONS = '${{ env.CONFIG_OPTIONS }}'"
+          dir D:\a\opendds-monitor\opendds-monitor\vcpkg\installed\x64-windows
+          echo "Hey"
+          dir D:\a\opendds-monitor\opendds-monitor\vcpkg\installed\x64-windows\include\openssl
           cd OpenDDS
           configure ${{ env.CONFIG_OPTIONS }}
 
