@@ -84,8 +84,6 @@ jobs:
         shell: cmd
         run: |-
           dir D:\a\opendds-monitor\opendds-monitor\vcpkg\installed\x64-windows
-          echo "Hey"
-          dir D:\a\opendds-monitor\opendds-monitor\vcpkg\installed\x64-windows\include\openssl
 
       # Set Up Some Necessary / Helpful Build Tools
       - name: 'Set Up MSVC Environment'
@@ -129,17 +127,12 @@ jobs:
         if: runner.os == 'Linux' || runner.os == 'macOS'
         shell: bash
         run: |-
-          echo "CONFIG_OPTIONS = '${{ env.CONFIG_OPTIONS }}'"
           cd OpenDDS
           ./configure ${{ env.CONFIG_OPTIONS }}
       - name: 'Configure OpenDDS (Windows)'
         if: runner.os == 'Windows'
         shell: cmd
         run: |-
-          echo "CONFIG_OPTIONS = '${{ env.CONFIG_OPTIONS }}'"
-          dir D:\\a\\opendds-monitor\\opendds-monitor\\vcpkg\\installed\\x64-windows
-          echo "Hey"
-          dir D:\\a\\opendds-monitor\\opendds-monitor\\vcpkg\\installed\\x64-windows\\include\\openssl
           cd OpenDDS
           configure ${{ env.CONFIG_OPTIONS }}
 
@@ -158,4 +151,28 @@ jobs:
           cd OpenDDS
           call setenv.cmd
           msbuild -p:Configuration=Debug,Platform=x64 -m DDS_TAOv2.sln
+
+      # Build opendds-monitor
+      - name: 'Build opendds-monitor (Linux / macOS)'
+        if: runner.os == 'Linux' || runner.os == 'macOS'
+        shell: bash
+        run: |-
+          cd OpenDDS
+          . setenv.sh
+          cd ..
+          mkdir build
+          cd build
+          cmake ..
+          make
+      - name: 'Build opendds-monitor (Windows)'
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |-
+          cd OpenDDS
+          call setenv.cmd
+          cd ..
+          mkdir build
+          cd build
+          cmake -DCMAKE_PREFIX_PATH=%VCPKG_ROOT%\installed\x64-windows ..
+          msbuild -p:Configuration=Debug,Platform=x64 -m opendds-monitor.sln
 
