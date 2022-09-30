@@ -145,7 +145,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ env.MATRIX_MD5 }}.tar.xz
-          key: c01_${{ env.MATRIX_MD5 }}_${{ env.COMPILER_VERSION }}_${{ env.ACE_COMMIT }}_${{ env.DDS_COMMIT }}
+          key: c02_${{ env.MATRIX_MD5 }}_${{ env.COMPILER_VERSION }}_${{ env.ACE_COMMIT }}_${{ env.DDS_COMMIT }}
 
       # Configure OpenDDS
       - name: 'Configure & Build OpenDDS (Linux / macOS)'
@@ -178,17 +178,22 @@ jobs:
           msbuild -p:Configuration=Debug,Platform=x64 -m DDS_TAOv2.sln
 
       # Create Build Cache
-      - name: 'Create Build Cache (Linux / macOS)'
+      - name: 'Create Build Cache'
         if: steps.cache-build.outputs.cache-hit != 'true'
         shell: bash
         run: |
           cd ACE_TAO
           find . -iname "*$OBJ_EXT" | xargs rm
-          $TAR_EXE cvf ../${{ env.MATRIX_MD5 }}.tar ACE/ace/config.h
-          git clean -xdfn | cut -d ' ' -f 3- | xargs $TAR_EXE uvf ../${{ env.MATRIX_MD5 }}.tar
-          cd ../OpenDDS
-          git clean -xdfn | cut -d ' ' -f 3- | xargs $TAR_EXE uvf ../${{ env.MATRIX_MD5 }}.tar
-          xz -3 ../${{ env.MATRIX_MD5 }}.tar
+          git clean -xdfn | cut -d ' ' -f 3- | sed 's/^/ACE_TAO\//g' | tee ../ACE_TAO_files.txt
+          cd ..
+          $TAR_EXE cvf ${{ env.MATRIX_MD5 }}.tar ACE_TAO/ACE/ace/config.h
+          cat ACE_TAO_files.txt | xargs $TAR_EXE uvf ${{ env.MATRIX_MD5 }}.tar
+          cd OpenDDS
+          find . -iname "*$OBJ_EXT" | xargs rm
+          git clean -xdfn | cut -d ' ' -f 3- | sed 's/^/OpenDDS\//g' | tee ../OpenDDS_files.txt
+          cd ..
+          cat OpenDDS_files.txt | xargs $TAR_EXE uvf ${{ env.MATRIX_MD5 }}.tar
+          xz -3 ${{ env.MATRIX_MD5 }}.tar
 
       # Extract Build Cache
       - name: 'Extract Build Cache'
