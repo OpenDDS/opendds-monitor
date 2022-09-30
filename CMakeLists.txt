@@ -23,7 +23,6 @@ endif()
 
 find_package(Qt5 REQUIRED COMPONENTS Core Widgets Gui PrintSupport Svg OpenGL OPTIONAL_COMPONENTS ${qt_optional_components})
 
-# Optional for graphs... we can delete this, really.
 find_package(Qwt MODULE REQUIRED)
 
 if (NOT ${Qt5Core_FOUND})
@@ -134,6 +133,8 @@ add_executable(monitor
     ${MOC_SOURCE}
     ${UI_SOURCE}
 )
+
+target_compile_features(monitor PRIVATE cxx_std_17)
 
 target_link_libraries(monitor
     OpenDDS::Dcps
