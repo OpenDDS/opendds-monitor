@@ -128,9 +128,9 @@ jobs:
         shell: cmd
         run: |-
           echo "CONFIG_OPTIONS = '${{ env.CONFIG_OPTIONS }}'"
-          dir D:\a\opendds-monitor\opendds-monitor\vcpkg\installed\x64-windows
+          dir D:\\a\\opendds-monitor\\opendds-monitor\\vcpkg\\installed\\x64-windows
           echo "Hey"
-          dir D:\a\opendds-monitor\opendds-monitor\vcpkg\installed\x64-windows\include\openssl
+          dir D:\\a\\opendds-monitor\\opendds-monitor\\vcpkg\\installed\\x64-windows\\include\\openssl
           cd OpenDDS
           configure ${{ env.CONFIG_OPTIONS }}
 
