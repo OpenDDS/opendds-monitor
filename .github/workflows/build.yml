@@ -61,7 +61,7 @@ jobs:
           fetch-depth: 1
 
       # Pull Down Pre-Built Dependencies
-      - name: 'Install ssl, xerces, qt5, and qwt (Linux)'
+      - name: 'Install openssl, xerces, qt5, and qwt (Linux)'
         if: runner.os == 'Linux'
         run: |-
           sudo apt-get update
@@ -69,7 +69,7 @@ jobs:
       - name: 'Install xerces, qt5, and qwt (macOS)'
         if: runner.os == 'macOS'
         run: |-
-          brew install xerces-c qt5 qwt
+          brew install xerces-c qt5 qwt-qt5
       - name: 'Install openssl, xerces, qt5, and qwt (Windows)'
         if: runner.os == 'Windows'
         uses: lukka/run-vcpkg@v7
