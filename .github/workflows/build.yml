@@ -65,7 +65,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |-
           sudo apt-get update
-          sudo apt-get -y install libssl-dev libxerces-c-dev qtbase5-dev libqwt-qt5-dev
+          sudo apt-get -y install libssl-dev libxerces-c-dev qtbase5-dev libqt5svg5-dev libqwt-qt5-dev
       - name: 'Install xerces, qt5, and qwt (macOS)'
         if: runner.os == 'macOS'
         run: |-
@@ -207,7 +207,7 @@ jobs:
           cd build
           CMAKE_ARGS=""
           if [ '${{ runner.os }}' == 'macOS' ]; then
-            CMAKE_ARGS+=" -DQt5_DIR=$(brew -- prefix qt5)/lib/cmake/Qt5"
+            CMAKE_ARGS+=" -DQt5_DIR=$(brew --prefix qt5)/lib/cmake/Qt5"
           fi
           cmake $CMAKE_ARGS ..
           make
