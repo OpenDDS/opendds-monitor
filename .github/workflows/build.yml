@@ -83,9 +83,9 @@ jobs:
         if: runner.os == 'Windows'
         shell: cmd
         run: |-
-          dir D:\\a\\opendds-monitor\\opendds-monitor\\vcpkg\\installed\\x64-windows
+          dir D:\a\opendds-monitor\opendds-monitor\vcpkg\installed\x64-windows
           echo "Hey"
-          dir D:\\a\\opendds-monitor\\opendds-monitor\\vcpkg\\installed\\x64-windows\\include\\openssl
+          dir D:\a\opendds-monitor\opendds-monitor\vcpkg\installed\x64-windows\include\openssl
 
       # Set Up Some Necessary / Helpful Build Tools
       - name: 'Set Up MSVC Environment'
