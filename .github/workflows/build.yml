@@ -205,7 +205,11 @@ jobs:
           cd ..
           mkdir build
           cd build
-          cmake ..
+          CMAKE_ARGS=""
+          if [ '${{ runner.os }}' == 'macOS' ]; then
+            CMAKE_ARGS+=" -DQt5_DIR=$(brew -- prefix qt5)/lib/cmake/Qt5"
+          fi
+          cmake $CMAKE_ARGS ..
           make
       - name: 'Build opendds-monitor (Windows)'
         if: runner.os == 'Windows'
