@@ -34,24 +34,6 @@ jobs:
     runs-on: ${{ matrix.runner }}
 
     steps:
-      # Pull Down Pre-Built Dependencies
-      - name: 'Install ssl, xerces, qt5, and qwt (Linux)'
-        if: runner.os == 'Linux'
-        run: |-
-          sudo apt-get update
-          sudo apt-get -y install libssl-dev libxerces-c-dev libqwt-qt5-dev
-      - name: 'Install xerces, qt5, and qwt (macOS)'
-        if: runner.os == 'macOS'
-        run: |
-          brew install xerces-c qt5 qwt
-      - name: 'Install openssl, xerces, qt5, and qwt (Windows)'
-        if: runner.os == 'Windows'
-        uses: lukka/run-vcpkg@v7
-        with:
-          vcpkgGitCommitId: b86c0c35b88e2bf3557ff49dc831689c2f085090
-          vcpkgArguments: --recurse openssl xerces-c qt5 qwt
-          vcpkgTriplet: x64-windows
-
       # Check out opendds-monitor
       - name: 'Checkout opendds-monitor'
         uses: actions/checkout@v3
@@ -77,6 +59,33 @@ jobs:
           ref: ${{ matrix.opendds_branch }}
           path: OpenDDS
           fetch-depth: 1
+
+      # Pull Down Pre-Built Dependencies
+      - name: 'Install ssl, xerces, qt5, and qwt (Linux)'
+        if: runner.os == 'Linux'
+        run: |-
+          sudo apt-get update
+          sudo apt-get -y install libssl-dev libxerces-c-dev libqwt-qt5-dev
+      - name: 'Install xerces, qt5, and qwt (macOS)'
+        if: runner.os == 'macOS'
+        run: |
+          brew install xerces-c qt5 qwt
+      - name: 'Install openssl, xerces, qt5, and qwt (Windows)'
+        if: runner.os == 'Windows'
+        uses: lukka/run-vcpkg@v7
+        with:
+          vcpkgGitCommitId: b86c0c35b88e2bf3557ff49dc831689c2f085090
+          vcpkgArguments: --recurse openssl xerces-c qt5 qwt
+          vcpkgTriplet: x64-windows
+
+      # Debugging
+      - name: 'Debugging(Windows)'
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |-
+          dir D:\\a\\opendds-monitor\\opendds-monitor\\vcpkg\\installed\\x64-windows
+          echo "Hey"
+          dir D:\\a\\opendds-monitor\\opendds-monitor\\vcpkg\\installed\\x64-windows\\include\\openssl
 
       # Set Up Some Necessary / Helpful Build Tools
       - name: 'Set Up MSVC Environment'
