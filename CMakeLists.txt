@@ -21,14 +21,16 @@ else()
     set(qt_optional_components DBus)
 endif()
 
+set(QT5_FIND_QUIETLY FALSE)
 find_package(Qt5 REQUIRED COMPONENTS Core Widgets Gui PrintSupport Svg OpenGL OPTIONAL_COMPONENTS ${qt_optional_components})
-
-find_package(Qwt MODULE REQUIRED)
 
 if (NOT ${Qt5Core_FOUND})
     message(STATUS "Skipping ${PROJECT_NAME} project: Qt5 not found")
     return()
 endif (NOT ${Qt5Core_FOUND})
+
+set(QWT_FIND_QUIETLY FALSE)
+find_package(Qwt MODULE REQUIRED)
 
 if (NOT ${Qwt_FOUND})
     message(STATUS "Skipping ${PROJECT_NAME} project: Qwt not found")

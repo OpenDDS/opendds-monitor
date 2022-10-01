@@ -70,6 +70,7 @@ jobs:
         if: runner.os == 'macOS'
         run: |-
           brew install xerces-c qt5 qwt-qt5
+          find /usr/local/opt -type d -iname "q*"
       - name: 'Install openssl, xerces, qt5, and qwt (Windows)'
         if: runner.os == 'Windows'
         uses: lukka/run-vcpkg@v7
