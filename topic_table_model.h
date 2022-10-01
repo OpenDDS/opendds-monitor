@@ -10,6 +10,8 @@
 #include <QHeaderView>
 #include <QTableView>
 
+#include <memory>
+
 class OpenDynamicData;
 
 

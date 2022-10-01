@@ -12,6 +12,8 @@
 
 #include <QString>
 
+#include <memory>
+
 /**
  * @brief Topic monitor for receiving raw DDS data samples.
  */
