@@ -5,6 +5,7 @@
 #include "std_qosC.h"
 #include <typeinfo>
 #include <map>
+#include <memory>
 #include <mutex>
 #include <unordered_set>
 #include <future>

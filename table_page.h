@@ -8,12 +8,12 @@
 #include <QStringList>
 #include <QString>
 #include <QTimer>
+
 #include <memory>
 
 class TopicTableModel;
 class TopicReplayer;
 class TopicMonitor;
-
 
 /**
  * @brief The DDS topic page class.

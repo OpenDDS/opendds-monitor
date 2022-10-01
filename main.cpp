@@ -1,6 +1,8 @@
 #include <QApplication>
+
 #include "main_window.h"
 
+#include <memory>
 
 /**
  * @brief Main function for the DDS Monitor application.

@@ -7,12 +7,13 @@
 #include <QMainWindow>
 #include <QString>
 
+#include <memory>
+
 class DDSManager;
 class PublicationMonitor;
 class SubscriptionMonitor;
 class ParticipantPage;
 class LogPage;
-
 
 /**
  * @brief The main dialog for the DDS Monitor application.

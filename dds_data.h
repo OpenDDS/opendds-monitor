@@ -17,6 +17,8 @@
 #include <QMutex>
 #include <QList>
 #include <QMap>
+
+#include <memory>
 #include <string>
 
 
