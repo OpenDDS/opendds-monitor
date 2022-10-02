@@ -20,9 +20,8 @@ jobs:
       fail-fast: false
       matrix:
         opendds_branch:
-          # - master
+          - master
           # - latest-release
-          - fix_macos_ipv6_issue
         runner:
           - windows-2022
           - windows-2019
@@ -70,7 +69,6 @@ jobs:
         if: runner.os == 'macOS'
         run: |-
           brew install xerces-c qt5 qwt-qt5
-          find -L /usr/local/opt -type d -iname "q*"
       - name: 'Install openssl, xerces, qt5, and qwt (Windows)'
         if: runner.os == 'Windows'
         uses: lukka/run-vcpkg@v7
@@ -100,7 +98,7 @@ jobs:
           echo "DDS_ROOT=$GITHUB_WORKSPACE/OpenDDS" >> $GITHUB_ENV
           echo "MPC_ROOT=$GITHUB_WORKSPACE/MPC" >> $GITHUB_ENV
           echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/ACE_TAO/ACE/lib:$GITHUB_WORKSPACE/OpenDDS/lib" >> $GITHUB_ENV
-          CONFIG_OPTIONS+=" --no-tests --ipv6 --security"
+          CONFIG_OPTIONS+=" --no-tests --std=c++17 --ipv6 --security"
           if [ '${{ runner.os }}' == 'macOS' ]; then
             CONFIG_OPTIONS+=" --xerces3=/usr/local/Cellar/xerces-c/3.2.3 --openssl=/usr/local/opt/openssl@1.1"
           fi
@@ -121,7 +119,7 @@ jobs:
           echo "TAO_ROOT=$GITHUB_WORKSPACE\\ACE_TAO\\TAO" >> $GITHUB_ENV
           echo "DDS_ROOT=$GITHUB_WORKSPACE\\OpenDDS" >> $GITHUB_ENV
           echo "MPC_ROOT=$GITHUB_WORKSPACE\\MPC" >> $GITHUB_ENV
-          CONFIG_OPTIONS+=" --no-tests --ipv6 --security --xerces3=\"$VCPKG_ROOT\\installed\\x64-windows\" --openssl=\"$VCPKG_ROOT\\installed\\x64-windows\""
+          CONFIG_OPTIONS+=" --no-tests --std=c++17 --ipv6 --security --xerces3=\"$VCPKG_ROOT\\installed\\x64-windows\" --openssl=\"$VCPKG_ROOT\\installed\\x64-windows\""
           echo "CONFIG_OPTIONS=$CONFIG_OPTIONS" >> $GITHUB_ENV
           export COMPILER_VERSION=$("C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -property catalog_productDisplayVersion)
           echo "COMPILER_VERSION=$COMPILER_VERSION" >> $GITHUB_ENV
@@ -139,6 +137,10 @@ jobs:
           echo "DDS_COMMIT=$DDS_COMMIT" >> $GITHUB_ENV
           export MATRIX_MD5=$(echo "${{ matrix }}" | md5sum | cut -d ' ' -f 1)
           echo "MATRIX_MD5=$MATRIX_MD5" >> $GITHUB_ENV
+          export COMPILER_MD5=$(echo "$COMPILER_VERSION" | md5sum | cut -d ' ' -f 1)
+          echo "COMPILER_MD5=$COMPILER_MD5" >> $GITHUB_ENV
+          export CONFIG_MD5=$(echo "$CONFIG_VERSION" | md5sum | cut -d ' ' -f 1)
+          echo "CONFIG_MD5=$CONFIG_MD5" >> $GITHUB_ENV
 
       # Check Build Cache
       - name: 'Check Build Cache'
@@ -146,7 +148,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ env.MATRIX_MD5 }}.tar.xz
-          key: c02_${{ env.MATRIX_MD5 }}_${{ env.COMPILER_VERSION }}_${{ env.ACE_COMMIT }}_${{ env.DDS_COMMIT }}
+          key: c01_${{ env.MATRIX_MD5 }}_${{ env.COMPILER_MD5 }}_${{ env.ACE_COMMIT }}_${{ env.DDS_COMMIT }}_${{ env.CONFIG_MD5 }}
 
       # Configure OpenDDS
       - name: 'Configure & Build OpenDDS (Linux / macOS)'
@@ -215,7 +217,7 @@ jobs:
           cd build
           CMAKE_ARGS=""
           if [ '${{ runner.os }}' == 'macOS' ]; then
-            CMAKE_ARGS+=" --trace-source=FindQwt.cmake -DQt5_DIR=$(brew --prefix qt5)/lib/cmake/Qt5"
+            CMAKE_ARGS+=" -DQt5_DIR=$(brew --prefix qt5)/lib/cmake/Qt5"
           fi
           cmake $CMAKE_ARGS ..
           make
