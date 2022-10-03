@@ -406,9 +406,9 @@ void TopicTableModel::parseData(const std::shared_ptr<OpenDynamicData> data)
         case CORBA::tk_enum:
         {
             // Make sure the int value is valid
-            const uint32_t enumValue = child->getValue<uint32_t>();
+            const CORBA::ULong enumValue = child->getValue<CORBA::ULong>();
             const CORBA::TypeCode* enumTypeCode = child->getTypeCode();
-            const size_t enumMemberCount = enumTypeCode->member_count();
+            const CORBA::ULong enumMemberCount = enumTypeCode->member_count();
             if (enumValue >= enumMemberCount)
             {
                 dataRow->value = "INVALID";
@@ -423,7 +423,7 @@ void TopicTableModel::parseData(const std::shared_ptr<OpenDynamicData> data)
 
             // Install the new delegate
             ComboDelegate *enumDelegate = new ComboDelegate(this);
-            for (size_t enumIndex = 0; enumIndex < enumMemberCount; enumIndex++)
+            for (CORBA::ULong enumIndex = 0; enumIndex < enumMemberCount; enumIndex++)
             {
                 QString stringValue = enumTypeCode->member_name(enumIndex);
                 if (!stringValue.isEmpty())
