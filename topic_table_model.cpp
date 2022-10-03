@@ -116,7 +116,7 @@ const std::shared_ptr<OpenDynamicData> TopicTableModel::commitSample()
 //------------------------------------------------------------------------------
 int TopicTableModel::rowCount(const QModelIndex &) const
 {
-    return m_data.size();
+    return static_cast<int>(m_data.size());
 }
 
 
@@ -314,7 +314,7 @@ void TopicTableModel::parseData(const std::shared_ptr<OpenDynamicData> data)
 
 
         // Update the current editor delegate
-        const int thisRow = m_data.size();
+        const int thisRow = static_cast<int>(m_data.size());
         if (m_tableView->itemDelegateForRow(thisRow))
         {
             delete m_tableView->itemDelegateForRow(thisRow);

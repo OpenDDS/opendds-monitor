@@ -73,8 +73,8 @@ void ParticipantMonitor::on_data_available(DDS::DataReader_ptr reader)
         DDS::ANY_INSTANCE_STATE);
 
     // Iterate through all received samples
-    unsigned long msgListSize = msgList.length();
-    for (unsigned long i = 0; i < msgListSize; i++)
+    CORBA::ULong msgListSize = msgList.length();
+    for (CORBA::ULong i = 0; i < msgListSize; i++)
     {
         const OpenDDS::DCPS::ParticipantLocationBuiltinTopicData& sampleData = msgList[i];
         const DDS::SampleInfo& sampleInfo = infoSeq[i];

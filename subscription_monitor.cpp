@@ -71,7 +71,7 @@ void SubscriptionMonitor::on_data_available(DDS::DataReader_ptr reader)
         DDS::ALIVE_INSTANCE_STATE);
 
     // Iterate through all received samples
-    for (size_t i = 0; i < msgList.length(); i++)
+    for (CORBA::ULong i = 0; i < msgList.length(); i++)
     {
         const DDS::SubscriptionBuiltinTopicData& sampleData = msgList[i];
         const DDS::SampleInfo& sampleInfo = infoSeq[i];
