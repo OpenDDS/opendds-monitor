@@ -384,7 +384,7 @@ void TopicInfo::addPartitions(const DDS::PartitionQosPolicy& partitionQos)
 
     // Add any new partitions to the partition list for this topic
     DDS::StringSeq partitionNames = partitionQos.name;
-    for (size_t i = 0; i < partitionNames.length(); i++)
+    for (CORBA::ULong i = 0; i < partitionNames.length(); i++)
     {
         const char* partitionStringC = partitionNames[i];
         QString partitionString = partitionStringC; 
