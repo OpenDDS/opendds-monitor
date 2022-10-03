@@ -107,10 +107,13 @@ jobs:
           echo "COMPILER_VERSION=$COMPILER_VERSION" >> $GITHUB_ENV
           echo "OBJ_EXT=\\.o" >> $GITHUB_ENV
           TAR_EXE="tar"
+          MD5_EXE="md5sum"
           if [ '${{ runner.os }}' == 'macOS' ]; then
             TAR_EXE="gtar"
+            MD5_EXE="md5 -r"
           fi
           echo "TAR_EXE=$TAR_EXE" >> $GITHUB_ENV
+          echo "MD5_EXE=$MD5_EXE" >> $GITHUB_ENV
       - name: 'Set environment variables (Windows)'
         if: runner.os == 'Windows'
         shell: bash
@@ -125,7 +128,9 @@ jobs:
           echo "COMPILER_VERSION=$COMPILER_VERSION" >> $GITHUB_ENV
           echo "OBJ_EXT=\\.obj" >> $GITHUB_ENV
           TAR_EXE="tar"
+          MD5_EXE="md5sum"
           echo "TAR_EXE=$TAR_EXE" >> $GITHUB_ENV
+          echo "MD5_EXE=$MD5_EXE" >> $GITHUB_ENV
       - name: 'Set environment variables (Common)'
         shell: bash
         run: |-
@@ -135,11 +140,11 @@ jobs:
           cd ../OpenDDS
           export DDS_COMMIT=$(git rev-parse HEAD)
           echo "DDS_COMMIT=$DDS_COMMIT" >> $GITHUB_ENV
-          export MATRIX_MD5=$(echo "${{ matrix }}" | md5sum | cut -d ' ' -f 1)
+          export MATRIX_MD5=$(echo "${{ matrix }}" | ${{ env.MD5_EXE }} | cut -d ' ' -f 1)
           echo "MATRIX_MD5=$MATRIX_MD5" >> $GITHUB_ENV
-          export COMPILER_MD5=$(echo "$COMPILER_VERSION" | md5sum | cut -d ' ' -f 1)
+          export COMPILER_MD5=$(echo "$COMPILER_VERSION" | ${{ env.MD5_EXE }} | cut -d ' ' -f 1)
           echo "COMPILER_MD5=$COMPILER_MD5" >> $GITHUB_ENV
-          export CONFIG_MD5=$(echo "$CONFIG_VERSION" | md5sum | cut -d ' ' -f 1)
+          export CONFIG_MD5=$(echo "$CONFIG_VERSION" | ${{ env.MD5_EXE }} | cut -d ' ' -f 1)
           echo "CONFIG_MD5=$CONFIG_MD5" >> $GITHUB_ENV
 
       # Check Build Cache
