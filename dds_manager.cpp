@@ -1341,11 +1341,6 @@ DDS::DataReader_var DDSManager::getReader(const std::string& topicName,
 
     auto iter = m_topics.find(topicName);
 
-    if (&m_topics == nullptr)
-    {
-        return nullptr;
-    }
-
     if (iter == m_topics.end())
     {
         return nullptr;

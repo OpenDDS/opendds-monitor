@@ -184,7 +184,7 @@ public:
     bool hasKey;
 
     /// Type code length
-    uint32_t typeCodeLength;
+    size_t typeCodeLength;
     
     /// Pointer to the type code information object. Set from user_data in the Topic Qos.
     const CORBA::TypeCode* typeCode;
