@@ -593,10 +593,10 @@ bool TopicTableModel::populateSample(std::shared_ptr<OpenDynamicData> const samp
     {
         const QString enumStringValue = dataInfo->value.toString();
         const CORBA::TypeCode* enumTypeCode = memberData->getTypeCode();
-        const size_t enumMemberCount = enumTypeCode->member_count();
+        const CORBA::ULong enumMemberCount = enumTypeCode->member_count();
 
         // Find the enum int value of this enum string
-        for (size_t enumIndex = 0; enumIndex < enumMemberCount; enumIndex++)
+        for (CORBA::ULong enumIndex = 0; enumIndex < enumMemberCount; enumIndex++)
         {
             QString searchValue = enumTypeCode->member_name(enumIndex);
             if (searchValue == enumStringValue)
