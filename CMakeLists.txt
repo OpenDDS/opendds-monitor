@@ -54,7 +54,6 @@ set(HEADER
   dds_logging.h
   dds_manager.h
   dds_manager.hpp
-  dds_simple.h
   dynamic_meta_struct.h
   editor_delegates.h
   filesystem.hpp
@@ -159,9 +158,5 @@ target_include_directories(monitor PRIVATE
   ${QWT_INCLUDE_DIR}
   ${CMAKE_BINARY_DIR}
 )
-
-foreach(file opendds.ini)
-  configure_file(${CMAKE_SOURCE_DIR}/${file} ${CMAKE_BINARY_DIR}/${file} COPYONLY)
-endforeach()
 
 OPENDDS_TARGET_SOURCES(monitor std_qos.idl)

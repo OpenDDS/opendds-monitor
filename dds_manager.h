@@ -504,13 +504,13 @@ private:
     */
     std::map<const std::string, std::shared_ptr<TopicGroup> > m_topics;
 
-    /// The DDS domain participation object for this manager.
+    /// The DDS domain participant object for this manager.
     DDS::DomainParticipant_var m_domainParticipant;
 
     int m_domainID;
 
-	bool m_autoConfig;
-	bool m_iniCustomization;
+    bool m_autoConfig;
+    bool m_iniCustomization;
 
     std::string m_config;
 
