@@ -160,4 +160,8 @@ target_include_directories(monitor PRIVATE
   ${CMAKE_BINARY_DIR}
 )
 
+foreach(file opendds.ini)
+  configure_file(${CMAKE_SOURCE_DIR}/${file} ${CMAKE_BINARY_DIR}/${file} COPYONLY)
+endforeach()
+
 OPENDDS_TARGET_SOURCES(monitor std_qos.idl)
