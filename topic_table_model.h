@@ -132,7 +132,7 @@ signals:
     /**
      * @brief Sends a notification that the user modified data.
      */
-    void dataChanged();
+    void dataHasChanged();
 
 private:
 

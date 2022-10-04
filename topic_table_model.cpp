@@ -273,7 +273,7 @@ bool TopicTableModel::setData(const QModelIndex &index,
         return false;
     }
 
-    emit dataChanged();
+    emit dataHasChanged();
     return true;
 
 } // End TopicTableModel::setData

@@ -283,7 +283,7 @@ bool OpenDynamicData::operator==(const OpenDynamicData& other)
 //------------------------------------------------------------------------------
 void OpenDynamicData::dump() const
 {
-    for (const auto child : m_children)
+    for (const auto& child : m_children)
     {
         if (child->getKind() == CORBA::tk_sequence ||
             child->getKind() == CORBA::tk_array ||
@@ -376,7 +376,7 @@ bool OpenDynamicData::operator>>(OpenDDS::DCPS::Serializer& stream) const
 {
     //std::cout << "DEBUG OpenDynamicData::operator>>" << endl;
     bool pass = true;
-    for (const std::shared_ptr<OpenDynamicData> child : m_children)
+    for (const std::shared_ptr<OpenDynamicData>& child : m_children)
     {
         switch (child->getKind())
         {
@@ -763,7 +763,7 @@ size_t OpenDynamicData::getEncapsulationLength()
         case CORBA::tk_struct:
             {
                 size_t sum=0;
-                for(const auto child : m_children)
+                for(const auto& child : m_children)
                 {
                     sum += child->getEncapsulationLength();
                 }

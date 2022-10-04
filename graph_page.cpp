@@ -768,7 +768,7 @@ void GraphPage::on_ejectButton_clicked()
     ejectButton->hide();
     attachButton->show();
 
-    emit(detachWidget(this->parentWidget()));
+    emit detachWidget(this->parentWidget());
 }
 
 
@@ -778,7 +778,7 @@ void GraphPage::on_attachButton_clicked()
     attachButton->hide();
     ejectButton->show();
 
-    emit(attachWidget(this->parentWidget()));
+    emit attachWidget(this->parentWidget());
 }
 
 
