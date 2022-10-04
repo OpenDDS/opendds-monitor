@@ -54,7 +54,6 @@ set(HEADER
   dds_logging.h
   dds_manager.h
   dds_manager.hpp
-  dds_simple.h
   dynamic_meta_struct.h
   editor_delegates.h
   filesystem.hpp

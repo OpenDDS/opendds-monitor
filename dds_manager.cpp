@@ -27,7 +27,7 @@ std::map<int, int> g_transportInstances;
 
 //------------------------------------------------------------------------------
 DDSManager::DDSManager(std::function<void(LogMessageType mt, const std::string& message)> messageHandler, int threadPoolSize) :
-    m_domainParticipant(nullptr), m_autoConfig(false), m_iniCustomization(false), 
+    m_domainParticipant(nullptr), m_autoConfig(false), m_iniCustomization(false),
     m_messageHandler(messageHandler)
 {
 
@@ -102,10 +102,10 @@ DDSManager::~DDSManager()
     DDS::ReturnCode_t status = DDS::RETCODE_OK;
 
     cleanUpTopicsForOneManager();
-	//if(!allClear)
-	//{
-	//	std::cout << "cleanUpTopicsForOneManager() returned false." << std::endl;
-	//}
+    //if(!allClear)
+    //{
+    //    std::cout << "cleanUpTopicsForOneManager() returned false." << std::endl;
+    //}
 
     m_messageHandler(LogMessageType::DDS_INFO, "Deleting DDSManagerImpl");
 
@@ -157,6 +157,11 @@ bool DDSManager::joinDomain(const int& domainID, const std::string& config, std:
         // Use the current directory of the executable as the default
         auto ddsConfigPath = pi::GetExecutableDirectory();
         ddsConfigPath /= "opendds.ini";
+        if (!std::filesystem::exists(ddsConfigPath)) {
+          ddsConfigPath = pi::GetExecutableDirectory();
+          ddsConfigPath /= "..";
+          ddsConfigPath /= "opendds.ini";
+        }
         dds_config_file_str = ddsConfigPath.string();
     }
 
@@ -166,14 +171,14 @@ bool DDSManager::joinDomain(const int& domainID, const std::string& config, std:
 
     // Make sure we're able to open the config file
 
-	ACE_Configuration_Heap heap;
-	if( 0 != heap.open()) {
-		std::cerr << "Unable to open() configuration heap" << std::endl;
-		exit(1);
-	}
+    ACE_Configuration_Heap heap;
+    if (0 != heap.open()) {
+        std::cerr << "Unable to open() configuration heap" << std::endl;
+        exit(1);
+    }
 
-	ACE_Ini_ImpExp import( heap);
-	if( 0 != import.import_config( dds_config_file_str.c_str())) {
+    ACE_Ini_ImpExp import( heap);
+    if (0 != import.import_config( dds_config_file_str.c_str())) {
         std::cerr << "Unable to open " << dds_config_file_str.c_str()<< ". "
                   << "Specify the correct path in DDSManager::joinDomain, "
                   << "set the 'DDS_CONFIG_FILE' environment variable, or "
@@ -184,42 +189,42 @@ bool DDSManager::joinDomain(const int& domainID, const std::string& config, std:
         // Allow some time for the user to see the message before exit
         std::this_thread::sleep_for(std::chrono::seconds(5));
         exit(1);
-	}
+    }
 
-	// Process common (no section) data here.
-	const ACE_Configuration_Section_Key& root = heap.root_section();
+    // Process common (no section) data here.
+    const ACE_Configuration_Section_Key& root = heap.root_section();
     ACE_Configuration_Section_Key sect;
 
     if (heap.open_section(root, ACE_TEXT("common"), 0, sect) != 0) {
         m_messageHandler(LogMessageType::DDS_INFO, "Failed to open [common] section of opendds.ini");
     }
 
-	ACE_TString globalTransportString;
-	const ACE_TCHAR* CUSTOMIZATION_SECTION_NAME = ACE_TEXT("Customization");
-	const ACE_TCHAR* GLOBAL_TRANSPORT_KEY_NAME = ACE_TEXT("DCPSGlobalTransportConfig");
-	const ACE_TCHAR* AUTO_CONFIG_SECTION_NAME = ACE_TEXT("auto_config_transport_options");
-	const ACE_TCHAR* nak_depth_section = ACE_TEXT("nak_depth");
-	const ACE_TCHAR* nak_response_delay_section = ACE_TEXT("nak_response_delay");
-	const ACE_TCHAR* optimum_packet_size_section = ACE_TEXT("optimum_packet_size");
-	const ACE_TCHAR* queue_initial_pools_section = ACE_TEXT("queue_initial_pools");
-	const ACE_TCHAR* queue_messages_per_pool_section = ACE_TEXT("queue_messages_per_pool");
-	const ACE_TCHAR* rcv_buffer_size_section = ACE_TEXT("rcv_buffer_size");
-	const ACE_TCHAR* send_buffer_size_section = ACE_TEXT("send_buffer_size");
-	const ACE_TCHAR* thread_per_connection_section = ACE_TEXT("thread_per_connection");
-	const ACE_TCHAR* ttl_section = ACE_TEXT("ttl");
+    ACE_TString globalTransportString;
+    const ACE_TCHAR* CUSTOMIZATION_SECTION_NAME = ACE_TEXT("Customization");
+    const ACE_TCHAR* GLOBAL_TRANSPORT_KEY_NAME = ACE_TEXT("DCPSGlobalTransportConfig");
+    const ACE_TCHAR* AUTO_CONFIG_SECTION_NAME = ACE_TEXT("auto_config_transport_options");
+    const ACE_TCHAR* nak_depth_section = ACE_TEXT("nak_depth");
+    const ACE_TCHAR* nak_response_delay_section = ACE_TEXT("nak_response_delay");
+    const ACE_TCHAR* optimum_packet_size_section = ACE_TEXT("optimum_packet_size");
+    const ACE_TCHAR* queue_initial_pools_section = ACE_TEXT("queue_initial_pools");
+    const ACE_TCHAR* queue_messages_per_pool_section = ACE_TEXT("queue_messages_per_pool");
+    const ACE_TCHAR* rcv_buffer_size_section = ACE_TEXT("rcv_buffer_size");
+    const ACE_TCHAR* send_buffer_size_section = ACE_TEXT("send_buffer_size");
+    const ACE_TCHAR* thread_per_connection_section = ACE_TEXT("thread_per_connection");
+    const ACE_TCHAR* ttl_section = ACE_TEXT("ttl");
 
 
-	ACE_Configuration_Section_Key customizationKey;
-	if( 0 == heap.open_section( root, CUSTOMIZATION_SECTION_NAME, 0, customizationKey)) 
-	{
+    ACE_Configuration_Section_Key customizationKey;
+    if (0 == heap.open_section( root, CUSTOMIZATION_SECTION_NAME, 0, customizationKey))
+    {
         m_messageHandler(LogMessageType::DDS_INFO, "Customization section found, setting INI Customization to true.");
-		m_iniCustomization = true;
-	}
-    else if( -1 == heap.get_string_value( sect, GLOBAL_TRANSPORT_KEY_NAME, globalTransportString)) 
-	{
+        m_iniCustomization = true;
+    }
+    else if (-1 == heap.get_string_value( sect, GLOBAL_TRANSPORT_KEY_NAME, globalTransportString))
+    {
         m_messageHandler(LogMessageType::DDS_INFO, "No global transport found, setting autoConfig");
-		m_autoConfig = true;
-	}
+        m_autoConfig = true;
+    }
 
 
     // Force loading the opendds.ini configuration file
@@ -298,11 +303,11 @@ bool DDSManager::joinDomain(const int& domainID, const std::string& config, std:
         m_monitor = std::make_unique<ParticipantMonitor>(m_domainParticipant, onAdd, onRemove);
     }
 
-	if((m_iniCustomization))
-	{
-		//if we aren't using fancy auto config logic, we are done.
-		return true;
-	}
+    if ((m_iniCustomization))
+    {
+        //if we aren't using fancy auto config logic, we are done.
+        return true;
+    }
 
     OpenDDS::DCPS::TransportRegistry* transportReg = TheTransportRegistry;
 
@@ -323,7 +328,7 @@ bool DDSManager::joinDomain(const int& domainID, const std::string& config, std:
     }
 
     // If the user set a config section of the INI file, use it and we're done
-	//NOTE:: This will not implement the RTPS domain segregation logic (for transport only)
+    //NOTE:: This will not implement the RTPS domain segregation logic (for transport only)
     if (!config.empty())
     {
 
@@ -369,125 +374,125 @@ bool DDSManager::joinDomain(const int& domainID, const std::string& config, std:
 
     //OpenDDS::DCPS::TransportConfig_rch newConfig = transportReg->create_config(transportName);
     //newConfig->instances_.push_back(newTransport);
-    
-	// Set the correct port and multicast address to match the RTPS
-	// standard. See 9.6.1.3 in the RTPS 2.2 protocol specification.
-	const uint16_t PB = 7400;
-	const uint16_t DG = 250;
-	const uint16_t PG = 2;
-	const uint16_t D0 = 0;
-	const uint16_t D1 = 10;
-	const uint16_t D2 = 1;
-	const uint16_t D3 = 111;
-	uint16_t rtpsPort = PB + DG * static_cast<uint16_t>(domainID) + D2;
-	//if(!newRtpsTransport->use_multicast_)
-	//{
-	//	rtpsPort = PB + DG * domainID + D3 + PG * participantId; //what is participant ID? We seem to be doing this with configs instead.
-	//}
 
-	OpenDDS::DCPS::TransportConfig_rch newConfig = transportReg->create_config(configName);
-	if(m_autoConfig)
-	{
-	    // Loop through all the default transports and add them into a new config
-	    const std::string transportName =
-	        "rtps_udp-" + std::to_string(domainID) + "-" + std::to_string(g_transportInstances[domainID]);
+    // Set the correct port and multicast address to match the RTPS
+    // standard. See 9.6.1.3 in the RTPS 2.2 protocol specification.
+    const uint16_t PB = 7400;
+    const uint16_t DG = 250;
+    const uint16_t PG = 2;
+    const uint16_t D0 = 0;
+    const uint16_t D1 = 10;
+    const uint16_t D2 = 1;
+    const uint16_t D3 = 111;
+    uint16_t rtpsPort = PB + DG * static_cast<uint16_t>(domainID) + D2;
+    //if(!newRtpsTransport->use_multicast_)
+    //{
+    //    rtpsPort = PB + DG * domainID + D3 + PG * participantId; //what is participant ID? We seem to be doing this with configs instead.
+    //}
+
+    OpenDDS::DCPS::TransportConfig_rch newConfig = transportReg->create_config(configName);
+    if (m_autoConfig)
+    {
+        // Loop through all the default transports and add them into a new config
+        const std::string transportName =
+            "rtps_udp-" + std::to_string(domainID) + "-" + std::to_string(g_transportInstances[domainID]);
 
         sstr.str(std::string());
         sstr << "Creating a transport named " << transportName;
         m_messageHandler(LogMessageType::DDS_INFO, sstr.str());
-	
-	    OpenDDS::DCPS::TransportInst_rch newTransport =
-	        transportReg->create_inst(transportName, "rtps_udp");
-	
-	    OpenDDS::DCPS::RtpsUdpInst_rch newRtpsTransport =
-	        OpenDDS::DCPS::static_rchandle_cast
-	        <OpenDDS::DCPS::RtpsUdpInst>(newTransport);
-	
 
-		//BEGIN CONFIG PARSING
-		// Find all of the [auto_config_transport_options] section.
-		ACE_Configuration_Section_Key autoconfigKey;
-		if( 0 == heap.open_section( root, AUTO_CONFIG_SECTION_NAME, 0, autoconfigKey)) 
-		{
+        OpenDDS::DCPS::TransportInst_rch newTransport =
+            transportReg->create_inst(transportName, "rtps_udp");
+
+        OpenDDS::DCPS::RtpsUdpInst_rch newRtpsTransport =
+            OpenDDS::DCPS::static_rchandle_cast
+            <OpenDDS::DCPS::RtpsUdpInst>(newTransport);
+
+
+        //BEGIN CONFIG PARSING
+        // Find all of the [auto_config_transport_options] section.
+        ACE_Configuration_Section_Key autoconfigKey;
+        if (0 == heap.open_section( root, AUTO_CONFIG_SECTION_NAME, 0, autoconfigKey))
+        {
             m_messageHandler(LogMessageType::DDS_INFO, "Found autoconfig section");
-		}
-	    ACE_TString argValString;
-	    if( 0 == heap.get_string_value( autoconfigKey, nak_depth_section, argValString)) 
-		{
+        }
+        ACE_TString argValString;
+        if (0 == heap.get_string_value( autoconfigKey, nak_depth_section, argValString))
+        {
             sstr.str(std::string());
             sstr << "Found nak_depth: " << argValString;
             m_messageHandler(LogMessageType::DDS_INFO, sstr.str());
-			newRtpsTransport->nak_depth_ = ACE_OS::atoi( argValString.c_str());
-	    }
-		if( 0 == heap.get_string_value( autoconfigKey, nak_response_delay_section, argValString))
-	    {
+            newRtpsTransport->nak_depth_ = ACE_OS::atoi( argValString.c_str());
+        }
+        if (0 == heap.get_string_value( autoconfigKey, nak_response_delay_section, argValString))
+        {
             sstr.str(std::string());
             sstr << "Found nak_response_delay: " <<  argValString << std::endl;
             m_messageHandler(LogMessageType::DDS_INFO, sstr.str());
-	        newRtpsTransport->nak_response_delay_ = ACE_OS::atoi( argValString.c_str());
-	    }
-		if( 0 == heap.get_string_value( autoconfigKey, nak_depth_section, argValString))
-	    {
+            newRtpsTransport->nak_response_delay_ = ACE_OS::atoi( argValString.c_str());
+        }
+        if (0 == heap.get_string_value( autoconfigKey, nak_depth_section, argValString))
+        {
             sstr.str(std::string());
             sstr << "Found nak_depth: " <<  argValString << std::endl;
             m_messageHandler(LogMessageType::DDS_INFO, sstr.str());
-	        newRtpsTransport->nak_depth_ = ACE_OS::atoi( argValString.c_str());
-	    }
-		if( 0 == heap.get_string_value( autoconfigKey, optimum_packet_size_section, argValString))
-	    {
+            newRtpsTransport->nak_depth_ = ACE_OS::atoi( argValString.c_str());
+        }
+        if (0 == heap.get_string_value( autoconfigKey, optimum_packet_size_section, argValString))
+        {
             sstr.str(std::string());
             sstr << "Found optimum packet size: " <<  argValString << std::endl;
             m_messageHandler(LogMessageType::DDS_INFO, sstr.str());
-	        newRtpsTransport->optimum_packet_size_ = ACE_OS::atoi( argValString.c_str());
-	    }
-		if( 0 == heap.get_string_value( autoconfigKey, queue_initial_pools_section, argValString))
-	    {
+            newRtpsTransport->optimum_packet_size_ = ACE_OS::atoi( argValString.c_str());
+        }
+        if (0 == heap.get_string_value( autoconfigKey, queue_initial_pools_section, argValString))
+        {
             sstr.str(std::string());
             sstr << "Found queue_initial_pools: " <<  argValString << std::endl;
             m_messageHandler(LogMessageType::DDS_INFO, sstr.str());
-	        newRtpsTransport->queue_initial_pools_ = ACE_OS::atoi( argValString.c_str());
-	    }
-		if( 0 == heap.get_string_value( autoconfigKey, queue_messages_per_pool_section, argValString))
-	    {
+            newRtpsTransport->queue_initial_pools_ = ACE_OS::atoi( argValString.c_str());
+        }
+        if (0 == heap.get_string_value( autoconfigKey, queue_messages_per_pool_section, argValString))
+        {
             sstr.str(std::string());
             sstr << "Found queue_messages_per_pool: " <<  argValString << std::endl;
             m_messageHandler(LogMessageType::DDS_INFO, sstr.str());
-	        newRtpsTransport->queue_messages_per_pool_ = ACE_OS::atoi( argValString.c_str());
-	    }
-		if( 0 == heap.get_string_value( autoconfigKey, rcv_buffer_size_section, argValString))
-	    {
+            newRtpsTransport->queue_messages_per_pool_ = ACE_OS::atoi( argValString.c_str());
+        }
+        if (0 == heap.get_string_value( autoconfigKey, rcv_buffer_size_section, argValString))
+        {
             sstr.str(std::string());
             sstr << "Found rcv_buffer_size: " <<  argValString << std::endl;
             m_messageHandler(LogMessageType::DDS_INFO, sstr.str());
-	        newRtpsTransport->rcv_buffer_size_ = ACE_OS::atoi( argValString.c_str());
-	    }
-		if( 0 == heap.get_string_value( autoconfigKey, send_buffer_size_section, argValString))
-	    {
+            newRtpsTransport->rcv_buffer_size_ = ACE_OS::atoi( argValString.c_str());
+        }
+        if (0 == heap.get_string_value( autoconfigKey, send_buffer_size_section, argValString))
+        {
             sstr.str(std::string());
             sstr << "Found send_buffer_size: " <<  argValString << std::endl;
             m_messageHandler(LogMessageType::DDS_INFO, sstr.str());
-	        newRtpsTransport->send_buffer_size_ = ACE_OS::atoi( argValString.c_str());
-	    }
-		if( 0 == heap.get_string_value( autoconfigKey, thread_per_connection_section, argValString))
-	    {
+            newRtpsTransport->send_buffer_size_ = ACE_OS::atoi( argValString.c_str());
+        }
+        if (0 == heap.get_string_value( autoconfigKey, thread_per_connection_section, argValString))
+        {
             sstr.str(std::string());
             sstr << "Found thread_per_connection: " <<  argValString << std::endl;
             m_messageHandler(LogMessageType::DDS_INFO, sstr.str());
-	        newRtpsTransport->thread_per_connection_ = ACE_OS::atoi( argValString.c_str());
-	    }
-		if( 0 == heap.get_string_value( autoconfigKey, ttl_section, argValString))
-	    {
+            newRtpsTransport->thread_per_connection_ = ACE_OS::atoi( argValString.c_str());
+        }
+        if (0 == heap.get_string_value( autoconfigKey, ttl_section, argValString))
+        {
             sstr.str(std::string());
             sstr << "Found ttl: " <<  argValString << std::endl;
             m_messageHandler(LogMessageType::DDS_INFO, sstr.str());
-	        newRtpsTransport->ttl_ = static_cast<unsigned char>(ACE_OS::atoi( argValString.c_str()));
-	    }
+            newRtpsTransport->ttl_ = static_cast<unsigned char>(ACE_OS::atoi( argValString.c_str()));
+        }
 #ifdef WIN32
-    	if (ddsIP == "127.0.0.1")
-    	{
+        if (ddsIP == "127.0.0.1")
+        {
             m_messageHandler(LogMessageType::DDS_INFO, "OpenDDS 3.15.0preXX workaround: Stuffing DDS_IP into multicast_interface for rtps transport");
-    	    newRtpsTransport->multicast_interface_ = ddsIP;
-    	}
+            newRtpsTransport->multicast_interface_ = ddsIP;
+        }
 #endif
 
 
@@ -504,7 +509,7 @@ bool DDSManager::joinDomain(const int& domainID, const std::string& config, std:
         // newRtpsTransport->max_samples_per_packet_ = defaultRtpsTransport->max_samples_per_packet_;
         // newRtpsTransport->multicast_group_address_ = defaultRtpsTransport->multicast_group_address_;
         // newRtpsTransport->multicast_interface_ = defaultRtpsTransport->multicast_interface_;
-		//settings below here have been reimplemented above.
+        //settings below here have been reimplemented above.
         // newRtpsTransport->nak_depth_ = defaultRtpsTransport->nak_depth_;
         // newRtpsTransport->nak_response_delay_ = defaultRtpsTransport->nak_response_delay_;
         // newRtpsTransport->optimum_packet_size_ = defaultRtpsTransport->optimum_packet_size_;
@@ -514,7 +519,7 @@ bool DDSManager::joinDomain(const int& domainID, const std::string& config, std:
         // newRtpsTransport->send_buffer_size_ = defaultRtpsTransport->send_buffer_size_;
         // newRtpsTransport->thread_per_connection_ = defaultRtpsTransport->thread_per_connection_;
 
-		std::string multicastAddr = "239.255.2." + std::to_string(domainID);
+        std::string multicastAddr = "239.255.2." + std::to_string(domainID);
 
         // Create a full multicast address + port (239.255.2.X:ABCD). NetworkAddress() is just a wrapper for the ACE_INET crap we were doing before.
         OpenDDS::DCPS::NetworkAddress multicast_addr = OpenDDS::DCPS::NetworkAddress(rtpsPort, multicastAddr.c_str());
@@ -523,51 +528,51 @@ bool DDSManager::joinDomain(const int& domainID, const std::string& config, std:
         newConfig->sorted_insert(newRtpsTransport);
         m_messageHandler(LogMessageType::DDS_INFO, newTransport->dump_to_str());
 
-		static bool alreadySetGlobal = false;
-		if (alreadySetGlobal) 
-		{
+        static bool alreadySetGlobal = false;
+        if (alreadySetGlobal)
+        {
             m_messageHandler(LogMessageType::DDS_INFO,"Global config has already been set. Will not set again.");
-		}
-		else 
-		{
+        }
+        else
+        {
             m_messageHandler(LogMessageType::DDS_INFO, "Set global config to new config");
-			//Set global config to new config
-			transportReg->global_config(newConfig);
-			alreadySetGlobal = true;
-		}
-	}
+            //Set global config to new config
+            transportReg->global_config(newConfig);
+            alreadySetGlobal = true;
+        }
+    }
 
-	else
-	{
-	    const OpenDDS::DCPS::TransportConfig_rch globalConfig = transportReg->global_config();
-	    const size_t transportConfigCount = globalConfig->instances_.size();
-		//std::cout << "Num transports existing: " << transportConfigCount << std::endl;
-	    for (size_t i = 0; i < transportConfigCount; i++)
-	    {
-	        const OpenDDS::DCPS::TransportInst_rch transportInstance = globalConfig->instances_[i];
-	        const std::string& transportType = transportInstance.in()->transport_type_;
-	
-	        // The default configuration for the rtps_udp transport does not conform
-	        // to the standard. We will make one which conforms.
-	        if (transportType == "rtps_udp")
-	        {
-	            const std::string transportName =
-	                transportType + "-" + std::to_string(domainID) + "-" + std::to_string(g_transportInstances[domainID]);
+    else
+    {
+        const OpenDDS::DCPS::TransportConfig_rch globalConfig = transportReg->global_config();
+        const size_t transportConfigCount = globalConfig->instances_.size();
+        //std::cout << "Num transports existing: " << transportConfigCount << std::endl;
+        for (size_t i = 0; i < transportConfigCount; i++)
+        {
+            const OpenDDS::DCPS::TransportInst_rch transportInstance = globalConfig->instances_[i];
+            const std::string& transportType = transportInstance.in()->transport_type_;
+
+            // The default configuration for the rtps_udp transport does not conform
+            // to the standard. We will make one which conforms.
+            if (transportType == "rtps_udp")
+            {
+                const std::string transportName =
+                    transportType + "-" + std::to_string(domainID) + "-" + std::to_string(g_transportInstances[domainID]);
                 sstr.str(std::string());
                 sstr << "Creating a transport named " << transportName.c_str() << std::endl;
                 m_messageHandler(LogMessageType::DDS_INFO, sstr.str());
-	
-	            OpenDDS::DCPS::TransportInst_rch newTransport =
-	                transportReg->create_inst(transportName, transportType);
-	
-	            OpenDDS::DCPS::RtpsUdpInst_rch newRtpsTransport =
-	                OpenDDS::DCPS::static_rchandle_cast
-	                <OpenDDS::DCPS::RtpsUdpInst>(newTransport);
-	
-	            OpenDDS::DCPS::RtpsUdpInst_rch defaultRtpsTransport =
-	                OpenDDS::DCPS::static_rchandle_cast
-	                <OpenDDS::DCPS::RtpsUdpInst>(transportInstance);
-				
+
+                OpenDDS::DCPS::TransportInst_rch newTransport =
+                    transportReg->create_inst(transportName, transportType);
+
+                OpenDDS::DCPS::RtpsUdpInst_rch newRtpsTransport =
+                    OpenDDS::DCPS::static_rchandle_cast
+                    <OpenDDS::DCPS::RtpsUdpInst>(newTransport);
+
+                OpenDDS::DCPS::RtpsUdpInst_rch defaultRtpsTransport =
+                    OpenDDS::DCPS::static_rchandle_cast
+                    <OpenDDS::DCPS::RtpsUdpInst>(transportInstance);
+
                 // Use settings from the config file as a starting point
                 newRtpsTransport->anticipated_fragments_ = defaultRtpsTransport->anticipated_fragments_;
                 newRtpsTransport->datalink_control_chunks_ = defaultRtpsTransport->datalink_control_chunks_;
@@ -597,22 +602,22 @@ bool DDSManager::joinDomain(const int& domainID, const std::string& config, std:
                 newRtpsTransport->use_multicast_ = defaultRtpsTransport->use_multicast_;
 
                 OpenDDS::DCPS::NetworkAddress rtps_multicast_addr = OpenDDS::DCPS::NetworkAddress(rtpsPort, "239.255.0.2");
-	            newRtpsTransport->multicast_group_address(rtps_multicast_addr);
-	            newConfig->sorted_insert(newRtpsTransport);
-				//std::cout << "Transport config: " << std::endl;
-    			//std::cout << newTransport->dump_to_str() << std::endl;
-	        }
-	        else // Not rtps_udp transport, so just add the existing config
-	        {
-				//std::cout << "Not rtps_udp transport, so adding existing config" << std::endl;
-	            newConfig->sorted_insert(transportInstance);
-	        }
-	
-	    } // End global config transport loop	
-	} //end if auto config
+                newRtpsTransport->multicast_group_address(rtps_multicast_addr);
+                newConfig->sorted_insert(newRtpsTransport);
+                //std::cout << "Transport config: " << std::endl;
+                //std::cout << newTransport->dump_to_str() << std::endl;
+            }
+            else // Not rtps_udp transport, so just add the existing config
+            {
+                //std::cout << "Not rtps_udp transport, so adding existing config" << std::endl;
+                newConfig->sorted_insert(transportInstance);
+            }
 
-	// Force this domain participant to use the new config
-	transportReg->bind_config(newConfig, m_domainParticipant);
+        } // End global config transport loop
+    } //end if auto config
+
+    // Force this domain participant to use the new config
+    transportReg->bind_config(newConfig, m_domainParticipant);
 
     return true;
 
@@ -811,7 +816,7 @@ bool DDSManager::createSubscriber(const std::string& topicName,
             << "'." << std::endl;
         return false;
     }
-    
+
     // Create the subscriber if we don't already have one
     if (!topicGroup->subscriber)
     {
@@ -860,7 +865,7 @@ bool DDSManager::createSubscriber(const std::string& topicName,
         }
 
         topicGroup->filteredTopics[filterName] = filteredTopic;
-        
+
         reader = topicGroup->subscriber->create_datareader(
             filteredTopic,
             topicGroup->dataReaderQos,
@@ -947,8 +952,8 @@ bool DDSManager::createPublisher(const std::string& topicName)
             writerListener.get(),
             DDS::INCONSISTENT_TOPIC_STATUS |
             DDS::OFFERED_INCOMPATIBLE_QOS_STATUS |
-			DDS::SAMPLE_LOST_STATUS |
-			DDS::SAMPLE_REJECTED_STATUS |
+            DDS::SAMPLE_LOST_STATUS |
+            DDS::SAMPLE_REJECTED_STATUS |
             DDS::PUBLICATION_MATCHED_STATUS);
         writerListener->SetHandler(m_wlHandler);
 
@@ -1180,7 +1185,7 @@ bool DDSManager::replaceFilter(const std::string& topicName,
     // Create a new filtered topic if requested
     if (!filter.empty())
     {
-        // The topic filter name must be unique or it will fail on the 
+        // The topic filter name must be unique or it will fail on the
         // second time it's created
         static int counter = 0;
         ++counter;
@@ -1388,7 +1393,7 @@ DDS::DataWriter_var DDSManager::getWriter(const std::string& topicName) const
     //    << " with writer handle: "
     //    << iter->second->writer->get_instance_handle()
     //    << std::endl;
-    
+
 
     return iter->second->writer;
 }
