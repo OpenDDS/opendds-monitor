@@ -78,41 +78,41 @@ OpenDynamicData& OpenDynamicData::operator=(const OpenDynamicData& other)
         switch (kind)
         {
         case CORBA::tk_long:
-            thisChild->setValue<int32_t>(otherChild->getValue<int32_t>());
+            thisChild->setValue(otherChild->m_value.int32);
             break;
         case CORBA::tk_short:
-            thisChild->setValue<int16_t>(otherChild->getValue<int16_t>());
+            thisChild->setValue(otherChild->m_value.int16);
             break;
         case CORBA::tk_ushort:
-            thisChild->setValue<uint16_t>(otherChild->getValue<uint16_t>());
+            thisChild->setValue(otherChild->m_value.uint16);
             break;
         case CORBA::tk_enum:
         case CORBA::tk_ulong:
-            thisChild->setValue<uint32_t>(otherChild->getValue<uint32_t>());
+            thisChild->setValue(otherChild->m_value.uint32);
             break;
         case CORBA::tk_float:
-            thisChild->setValue<float>(otherChild->getValue<float>());
+            thisChild->setValue(otherChild->m_value.float32);
             break;
         case CORBA::tk_double:
-            thisChild->setValue<double>(otherChild->getValue<double>());
+            thisChild->setValue(otherChild->m_value.float64);
             break;
         case CORBA::tk_boolean:
-            thisChild->setValue<bool>(otherChild->getValue<bool>());
+            thisChild->setValue(otherChild->m_value.boolean != 0);
             break;
         case CORBA::tk_char:
-            thisChild->setValue<char>(otherChild->getValue<char>());
+            thisChild->setValue(otherChild->m_value.char8);
             break;
         case CORBA::tk_wchar:
-            thisChild->setValue<CORBA::WChar>(otherChild->getValue<CORBA::WChar>());
+            thisChild->setValue(otherChild->m_value.char16);
             break;
         case CORBA::tk_octet:
-            thisChild->setValue<uint8_t>(otherChild->getValue<uint8_t>());
+            thisChild->setValue(otherChild->m_value.uint8);
             break;
         case CORBA::tk_longlong:
-            thisChild->setValue<int64_t>(otherChild->getValue<int64_t>());
+            thisChild->setValue(otherChild->m_value.int64);
             break;
         case CORBA::tk_ulonglong:
-            thisChild->setValue<uint64_t>(otherChild->getValue<uint64_t>());
+            thisChild->setValue(otherChild->m_value.uint64);
             break;
         case CORBA::tk_string:
             thisChild->setStringValue(otherChild->getStringValue());
@@ -283,7 +283,7 @@ bool OpenDynamicData::operator==(const OpenDynamicData& other)
 //------------------------------------------------------------------------------
 void OpenDynamicData::dump() const
 {
-    for (const auto child : m_children)
+    for (const auto& child : m_children)
     {
         if (child->getKind() == CORBA::tk_sequence ||
             child->getKind() == CORBA::tk_array ||
@@ -376,7 +376,7 @@ bool OpenDynamicData::operator>>(OpenDDS::DCPS::Serializer& stream) const
 {
     //std::cout << "DEBUG OpenDynamicData::operator>>" << endl;
     bool pass = true;
-    for (const std::shared_ptr<OpenDynamicData> child : m_children)
+    for (const std::shared_ptr<OpenDynamicData>& child : m_children)
     {
         switch (child->getKind())
         {
@@ -444,11 +444,11 @@ bool OpenDynamicData::operator>>(OpenDDS::DCPS::Serializer& stream) const
             //XCDR2 adds a delimiter header before every sequence of complex types. Try reading it from the typecode.
             if((m_encodingKind != OpenDDS::DCPS::Encoding::KIND_XCDR1) && child->containsComplexTypes())
             {
-                uint32_t delimiterHeader = child->getEncapsulationLength();
+                CORBA::ULong delimiterHeader = static_cast<CORBA::ULong>(child->getEncapsulationLength());
                 //std::cout << "DEBUG Creating sequence delim hdr: " << delimiterHeader << std::endl;
                 pass &= (stream << delimiterHeader);
             }
-            CORBA::ULong seqLength = child->getLength();
+            CORBA::ULong seqLength = static_cast<CORBA::ULong>(child->getLength());
             //std::cout << "DEBUG sequence length hdr: " <<  child->getLength() << std::endl;
             pass &= (stream << seqLength);
             if(seqLength > 0)
@@ -462,7 +462,7 @@ bool OpenDynamicData::operator>>(OpenDDS::DCPS::Serializer& stream) const
             //XCDR2 adds a delimiter header before every struct. Try reading it from the typecode.
             if(m_encodingKind != OpenDDS::DCPS::Encoding::KIND_XCDR1)
             {
-                uint32_t delimiterHeader = child->getEncapsulationLength();
+                CORBA::ULong delimiterHeader = static_cast<CORBA::ULong>(child->getEncapsulationLength());
                 //std::cout << "DEBUG Creating struct delim hdr: " << delimiterHeader << std::endl;
                 pass &= (stream << delimiterHeader);
             }
@@ -473,7 +473,7 @@ bool OpenDynamicData::operator>>(OpenDDS::DCPS::Serializer& stream) const
             //XCDR2 adds a delimiter header before every array of complex types. Try reading it from the typecode.
             if((m_encodingKind != OpenDDS::DCPS::Encoding::KIND_XCDR1) && child->containsComplexTypes())
             {
-                uint32_t delimiterHeader = child->getEncapsulationLength();
+                CORBA::ULong delimiterHeader = static_cast<CORBA::ULong>(child->getEncapsulationLength());
                 //std::cout << "DEBUG Creating array delim hdr: " << delimiterHeader << std::endl;
                 pass &= (stream << delimiterHeader);
             }
@@ -763,7 +763,7 @@ size_t OpenDynamicData::getEncapsulationLength()
         case CORBA::tk_struct:
             {
                 size_t sum=0;
-                for(const auto child : m_children)
+                for(const auto& child : m_children)
                 {
                     sum += child->getEncapsulationLength();
                 }
@@ -1080,8 +1080,8 @@ void OpenDynamicData::populate()
     // Create child members for each member of struct types
     if (kind == CORBA::tk_struct)
     {
-        const size_t memberCount = m_typeCode->member_count();
-        for (size_t i = 0; i < memberCount; i++)
+        const CORBA::ULong memberCount = m_typeCode->member_count();
+        for (CORBA::ULong i = 0; i < memberCount; i++)
         {
             CORBA::TypeCode_ptr memberType = m_typeCode->member_type(i);
             if (!memberType)

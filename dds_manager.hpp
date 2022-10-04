@@ -1,6 +1,8 @@
 #ifndef __DDS_MANAGER_HPP__
 #define __DDS_MANAGER_HPP__
 
+#include "dds_manager.h"
+
 #include <exception>
 #include <iostream>
 #include <vector>
@@ -10,12 +12,13 @@
 #include <dds/DCPS/TypeSupportImpl.h>
 #include <dds/DCPS/Serializer.h>
 #include <tao/AnyTypeCode/Any.h>
-#include "dds_listeners.h"
 #include <dds/DCPS/Service_Participant.h>
 #pragma warning(pop)
 
 //User must supply this by compiling std_qos.idl.
 #include "std_qosC.h"
+
+#include "dds_listeners.h"
 
  //As of OpenDDS 3.13, we can rejoin domains after calling the destructor, but only if we don't call this function
  //until the end of the program

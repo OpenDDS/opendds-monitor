@@ -4,10 +4,9 @@
 #include "first_define.h"
 #include "ui_log_page.h"
 
-#include <QMutex>
 #include <iostream>
+#include <memory>
 #include <mutex>
-
 
 /**
  * @brief The message log page class.

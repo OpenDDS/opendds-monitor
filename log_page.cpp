@@ -10,6 +10,8 @@
 #include <QMutex>
 #include <QFile>
 
+#include <memory>
+
 //------------------------------------------------------------------------------
 LogPage::LogPage(QWidget* parent) :
     QWidget(parent)

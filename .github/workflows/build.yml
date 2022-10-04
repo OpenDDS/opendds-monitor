@@ -1,0 +1,242 @@
+---
+name: "opendds-monitor CI"
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - master
+  schedule:
+    - cron: '10 0 * * 0'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        opendds_branch:
+          - master
+          # - latest-release
+        runner:
+          - windows-2022
+          - windows-2019
+          - ubuntu-22.04
+          - ubuntu-20.04
+          - macos-12
+          - macos-11
+
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+      # Check out opendds-monitor
+      - name: 'Checkout opendds-monitor'
+        uses: actions/checkout@v3
+
+      # Check out MPC / ACE_TAO / OpenDDS
+      - name: 'Checkout MPC'
+        uses: actions/checkout@v3
+        with:
+          repository: DOCGroup/MPC
+          path: MPC
+          fetch-depth: 1
+      - name: 'Checkout ACE_TAO'
+        uses: actions/checkout@v3
+        with:
+          repository: DOCGroup/ACE_TAO
+          ref: ace6tao2
+          path: ACE_TAO
+          fetch-depth: 1
+      - name: 'Checkout OpenDDS'
+        uses: actions/checkout@v3
+        with:
+          repository: objectcomputing/OpenDDS
+          ref: ${{ matrix.opendds_branch }}
+          path: OpenDDS
+          fetch-depth: 1
+
+      # Pull Down Pre-Built Dependencies
+      - name: 'Install openssl, xerces, qt5, and qwt (Linux)'
+        if: runner.os == 'Linux'
+        run: |-
+          sudo apt-get update
+          sudo apt-get -y install libssl-dev libxerces-c-dev qtbase5-dev libqt5svg5-dev libqwt-qt5-dev
+      - name: 'Install xerces, qt5, and qwt (macOS)'
+        if: runner.os == 'macOS'
+        run: |-
+          brew install xerces-c qt5 qwt-qt5
+      - name: 'Install openssl, xerces, qt5, and qwt (Windows)'
+        if: runner.os == 'Windows'
+        uses: lukka/run-vcpkg@v7
+        with:
+          vcpkgGitCommitId: b86c0c35b88e2bf3557ff49dc831689c2f085090
+          vcpkgArguments: --recurse openssl xerces-c qt5 qwt
+          vcpkgTriplet: x64-windows
+
+      # Set Up Build Environments
+      - name: 'Set Up MSVC Environment'
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      # Set Environment Variables
+      - name: 'Set environment variables (Linux / macOS)'
+        if: runner.os == 'Linux' || runner.os == 'macOS'
+        shell: bash
+        run: |-
+          echo "ACE_ROOT=$GITHUB_WORKSPACE/ACE_TAO/ACE" >> $GITHUB_ENV
+          echo "TAO_ROOT=$GITHUB_WORKSPACE/ACE_TAO/TAO" >> $GITHUB_ENV
+          echo "DDS_ROOT=$GITHUB_WORKSPACE/OpenDDS" >> $GITHUB_ENV
+          echo "MPC_ROOT=$GITHUB_WORKSPACE/MPC" >> $GITHUB_ENV
+          echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/ACE_TAO/ACE/lib:$GITHUB_WORKSPACE/OpenDDS/lib" >> $GITHUB_ENV
+          CONFIG_OPTIONS+=" --no-tests --std=c++17 --ipv6 --security"
+          if [ '${{ runner.os }}' == 'macOS' ]; then
+            CONFIG_OPTIONS+=" --xerces3=/usr/local/Cellar/xerces-c/3.2.3 --openssl=/usr/local/opt/openssl@1.1"
+          fi
+          echo "CONFIG_OPTIONS=$CONFIG_OPTIONS" >> $GITHUB_ENV
+          export COMPILER_VERSION=$(c++ --version 2>&1 | head -n 1)
+          echo "COMPILER_VERSION=$COMPILER_VERSION" >> $GITHUB_ENV
+          echo "OBJ_EXT=\\.o" >> $GITHUB_ENV
+          TAR_EXE="tar"
+          MD5_EXE="md5sum"
+          if [ '${{ runner.os }}' == 'macOS' ]; then
+            TAR_EXE="gtar"
+            MD5_EXE="md5 -r"
+          fi
+          echo "TAR_EXE=$TAR_EXE" >> $GITHUB_ENV
+          echo "MD5_EXE=$MD5_EXE" >> $GITHUB_ENV
+      - name: 'Set environment variables (Windows)'
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |-
+          echo "ACE_ROOT=$GITHUB_WORKSPACE\\ACE_TAO\\ACE" >> $GITHUB_ENV
+          echo "TAO_ROOT=$GITHUB_WORKSPACE\\ACE_TAO\\TAO" >> $GITHUB_ENV
+          echo "DDS_ROOT=$GITHUB_WORKSPACE\\OpenDDS" >> $GITHUB_ENV
+          echo "MPC_ROOT=$GITHUB_WORKSPACE\\MPC" >> $GITHUB_ENV
+          CONFIG_OPTIONS+=" --no-tests --std=c++17 --ipv6 --security --xerces3=\"$VCPKG_ROOT\\installed\\x64-windows\" --openssl=\"$VCPKG_ROOT\\installed\\x64-windows\""
+          echo "CONFIG_OPTIONS=$CONFIG_OPTIONS" >> $GITHUB_ENV
+          export COMPILER_VERSION=$("C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -property catalog_productDisplayVersion)
+          echo "COMPILER_VERSION=$COMPILER_VERSION" >> $GITHUB_ENV
+          echo "OBJ_EXT=\\.obj" >> $GITHUB_ENV
+          TAR_EXE="tar"
+          MD5_EXE="md5sum"
+          echo "TAR_EXE=$TAR_EXE" >> $GITHUB_ENV
+          echo "MD5_EXE=$MD5_EXE" >> $GITHUB_ENV
+      - name: 'Set environment variables (Common)'
+        shell: bash
+        run: |-
+          cd ACE_TAO
+          export ACE_COMMIT=$(git rev-parse HEAD)
+          echo "ACE_COMMIT=$ACE_COMMIT" >> $GITHUB_ENV
+          cd ../OpenDDS
+          export DDS_COMMIT=$(git rev-parse HEAD)
+          echo "DDS_COMMIT=$DDS_COMMIT" >> $GITHUB_ENV
+          export MATRIX_MD5=$(echo "${{ matrix }}" | ${{ env.MD5_EXE }} | cut -d ' ' -f 1)
+          echo "MATRIX_MD5=$MATRIX_MD5" >> $GITHUB_ENV
+          export COMPILER_MD5=$(echo "$COMPILER_VERSION" | ${{ env.MD5_EXE }} | cut -d ' ' -f 1)
+          echo "COMPILER_MD5=$COMPILER_MD5" >> $GITHUB_ENV
+          export CONFIG_MD5=$(echo "$CONFIG_VERSION" | ${{ env.MD5_EXE }} | cut -d ' ' -f 1)
+          echo "CONFIG_MD5=$CONFIG_MD5" >> $GITHUB_ENV
+
+      # Check Build Cache
+      - name: 'Check Build Cache'
+        id: cache-build
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.MATRIX_MD5 }}.tar.xz
+          key: c01_${{ env.MATRIX_MD5 }}_${{ env.COMPILER_MD5 }}_${{ env.ACE_COMMIT }}_${{ env.DDS_COMMIT }}_${{ env.CONFIG_MD5 }}
+
+      # Configure OpenDDS
+      - name: 'Configure & Build OpenDDS (Linux / macOS)'
+        if: steps.cache-build.outputs.cache-hit != 'true' && (runner.os == 'Linux' || runner.os == 'macOS')
+        shell: bash
+        run: |-
+          cd OpenDDS
+          ./configure ${{ env.CONFIG_OPTIONS }}
+      - name: 'Configure OpenDDS (Windows)'
+        if: steps.cache-build.outputs.cache-hit != 'true' && runner.os == 'Windows'
+        shell: cmd
+        run: |-
+          cd OpenDDS
+          configure ${{ env.CONFIG_OPTIONS }}
+
+      # Build OpenDDS
+      - name: 'Build OpenDDS (Linux / macOS)'
+        if: steps.cache-build.outputs.cache-hit != 'true' && (runner.os == 'Linux' || runner.os == 'macOS')
+        shell: bash
+        run: |-
+          cd OpenDDS
+          . setenv.sh
+          make -j3
+      - name: 'Build OpenDDS (Windows)'
+        if: steps.cache-build.outputs.cache-hit != 'true' && runner.os == 'Windows'
+        shell: cmd
+        run: |-
+          cd OpenDDS
+          call setenv.cmd
+          msbuild -p:Configuration=Debug,Platform=x64 -m DDS_TAOv2.sln
+
+      # Create Build Cache
+      - name: 'Create Build Cache'
+        if: steps.cache-build.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          cd ACE_TAO
+          find . -iname "*$OBJ_EXT" | xargs rm
+          git clean -xdfn | cut -d ' ' -f 3- | sed 's/^/ACE_TAO\//g' | tee ../ACE_TAO_files.txt
+          cd ..
+          $TAR_EXE cvf ${{ env.MATRIX_MD5 }}.tar ACE_TAO/ACE/ace/config.h
+          cat ACE_TAO_files.txt | xargs $TAR_EXE uvf ${{ env.MATRIX_MD5 }}.tar
+          cd OpenDDS
+          find . -iname "*$OBJ_EXT" | xargs rm
+          git clean -xdfn | cut -d ' ' -f 3- | sed 's/^/OpenDDS\//g' | tee ../OpenDDS_files.txt
+          cd ..
+          cat OpenDDS_files.txt | xargs $TAR_EXE uvf ${{ env.MATRIX_MD5 }}.tar
+          xz -3 ${{ env.MATRIX_MD5 }}.tar
+
+      # Extract Build Cache
+      - name: 'Extract Build Cache'
+        if: steps.cache-build.outputs.cache-hit == 'true'
+        shell: bash
+        run: |
+          tar xvfJ ${{ env.MATRIX_MD5 }}.tar.xz
+
+      # Set Up Problem Matchers
+      - name: 'Set Up Problem Matcher (Windows)'
+        if: runner.os == 'Windows'
+        uses: ammaraskar/msvc-problem-matcher@0.1
+      - name: 'Set Up Problem Matcher (Linux / macOS)'
+        if: runner.os == 'Linux' || runner.os == 'macOS'
+        uses: ammaraskar/gcc-problem-matcher@0.1
+
+      # Build opendds-monitor
+      - name: 'Build opendds-monitor (Linux / macOS)'
+        if: runner.os == 'Linux' || runner.os == 'macOS'
+        shell: bash
+        run: |-
+          cd OpenDDS
+          . setenv.sh
+          cd ..
+          mkdir build
+          cd build
+          CMAKE_ARGS=""
+          if [ '${{ runner.os }}' == 'macOS' ]; then
+            CMAKE_ARGS+=" -DQt5_DIR=$(brew --prefix qt5)/lib/cmake/Qt5"
+          fi
+          cmake $CMAKE_ARGS ..
+          make
+      - name: 'Build opendds-monitor (Windows)'
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |-
+          cd OpenDDS
+          call setenv.cmd
+          cd ..
+          mkdir build
+          cd build
+          cmake -DCMAKE_PREFIX_PATH=%VCPKG_ROOT%\installed\x64-windows ..
+          msbuild -p:Configuration=Debug,Platform=x64 -m opendds-monitor.sln
+

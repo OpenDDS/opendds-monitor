@@ -11,6 +11,8 @@
 
 #include <QString>
 
+#include <memory>
+
 class OpenDynamicData;
 
 

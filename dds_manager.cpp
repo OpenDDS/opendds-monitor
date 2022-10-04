@@ -51,8 +51,8 @@ DDSManager::DDSManager(std::function<void(LogMessageType mt, const std::string& 
 void DDSManager::SetReaderListenerHandler(DDSReaderListenerStatusHandler* rlHandler)
 {
     m_rlHandler = rlHandler;
-    for (auto &topicGroup : m_topics) {
-        for (auto &rl : topicGroup.second->m_readerListeners) {
+    for (auto& topicGroup : m_topics) {
+        for (auto& rl : topicGroup.second->m_readerListeners) {
             rl.second->SetHandler(m_rlHandler);
         }
     }
@@ -71,7 +71,7 @@ bool DDSManager::cleanUpTopicsForOneManager()
     decltype(m_uniqueLock) lock(m_topicMutex);
     std::list<std::shared_future<bool>> asyncFutures;
 
-    for (auto &iter : m_topics)
+    for (auto& iter : m_topics)
     {
         if (iter.second != nullptr)
         {
@@ -84,7 +84,7 @@ bool DDSManager::cleanUpTopicsForOneManager()
     lock.unlock();
 
     bool allClear = true;
-    for (auto f : asyncFutures)
+    for (const auto& f : asyncFutures)
     {
         f.wait();
         allClear = allClear && f.get();
@@ -1037,7 +1037,7 @@ bool DDSManager::readCallbacks(const std::string& topicName,
         return false;
     }
 
-    auto &emitter = topicGroup->emitters[readerName];
+    auto& emitter = topicGroup->emitters[readerName];
     if (!emitter)
     {
         return false;
@@ -1340,11 +1340,6 @@ DDS::DataReader_var DDSManager::getReader(const std::string& topicName,
     decltype(m_sharedLock) lock(m_topicMutex);
 
     auto iter = m_topics.find(topicName);
-
-    if (&m_topics == nullptr)
-    {
-        return nullptr;
-    }
 
     if (iter == m_topics.end())
     {
@@ -1668,7 +1663,7 @@ DDSManager::TopicGroup::~TopicGroup()
 
     //Moved this up because I'm not sure if it was causing delete_contentfilteredtopic and delete_topic
     //to fail sometimes. -MM
-    for (auto &emiter : emitters)
+    for (auto& emiter : emitters)
     {
         emiter.second->stop();
     }
@@ -1676,7 +1671,7 @@ DDSManager::TopicGroup::~TopicGroup()
 
     if (domain && !filteredTopics.empty())
     {
-        for (auto &iter : filteredTopics)
+        for (auto& iter : filteredTopics)
         {
             tempRet = domain->delete_contentfilteredtopic(iter.second);
             if (tempRet != DDS::RETCODE_OK) {

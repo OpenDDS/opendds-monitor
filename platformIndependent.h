@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <chrono>
+#include <memory>
 #include <thread>
 
 // Convenience MACROS

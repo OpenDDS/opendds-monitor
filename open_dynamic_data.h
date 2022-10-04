@@ -220,19 +220,19 @@ public:
     {
         switch (m_typeCode->kind())
         {
-        case CORBA::tk_long: m_value.int32 = value; break;
-        case CORBA::tk_short: m_value.int16 = value; break;
-        case CORBA::tk_ushort: m_value.uint16 = value; break;
+        case CORBA::tk_long: m_value.int32 = static_cast<CORBA::Long>(value); break;
+        case CORBA::tk_short: m_value.int16  = static_cast<CORBA::Short>(value); break;
+        case CORBA::tk_ushort: m_value.uint16  = static_cast<CORBA::UShort>(value); break;
         case CORBA::tk_enum:
-        case CORBA::tk_ulong: m_value.uint32 = value; break;
-        case CORBA::tk_float: m_value.float32 = value; break;
-        case CORBA::tk_double: m_value.float64 = value; break;
-        case CORBA::tk_boolean: m_value.boolean = value; break;
-        case CORBA::tk_char: m_value.char8 = value; break;
-        case CORBA::tk_wchar: m_value.char16 = value; break;
-        case CORBA::tk_octet: m_value.uint8 = value; break;
-        case CORBA::tk_longlong: m_value.int64 = value; break;
-        case CORBA::tk_ulonglong: m_value.uint64 = value; break;
+        case CORBA::tk_ulong: m_value.uint32  = static_cast<CORBA::ULong>(value); break;
+        case CORBA::tk_float: m_value.float32  = static_cast<CORBA::Float>(value); break;
+        case CORBA::tk_double: m_value.float64  = static_cast<CORBA::Double>(value); break;
+        case CORBA::tk_boolean: m_value.boolean  = static_cast<CORBA::Boolean>(value); break;
+        case CORBA::tk_char: m_value.char8  = static_cast<CORBA::Char>(value); break;
+        case CORBA::tk_wchar: m_value.char16  = static_cast<CORBA::WChar>(value); break;
+        case CORBA::tk_octet: m_value.uint8  = static_cast<CORBA::Octet>(value); break;
+        case CORBA::tk_longlong: m_value.int64  = static_cast<CORBA::LongLong>(value); break;
+        case CORBA::tk_ulonglong: m_value.uint64  = static_cast<CORBA::ULongLong>(value); break;
         default:
             std::cerr << "OpenDynamicData::setValue: "
                       << "Unsupported type (" << m_typeCode->kind() << ")"
