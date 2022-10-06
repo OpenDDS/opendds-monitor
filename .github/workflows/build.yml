@@ -227,7 +227,7 @@ jobs:
             CMAKE_ARGS+=" -DQt5_DIR=$(brew --prefix qt5)/lib/cmake/Qt5"
           fi
           cmake $CMAKE_ARGS ..
-          make
+          cmake --build .
       - name: 'Build opendds-monitor (Windows)'
         if: runner.os == 'Windows'
         shell: cmd
@@ -238,5 +238,5 @@ jobs:
           mkdir build
           cd build
           cmake -DCMAKE_PREFIX_PATH=%VCPKG_ROOT%\installed\x64-windows ..
-          msbuild -p:Configuration=Debug,Platform=x64 -m opendds-monitor.sln
+          cmake --build .
 
