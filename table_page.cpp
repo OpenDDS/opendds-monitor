@@ -40,7 +40,7 @@ TablePage::TablePage(const QString& topicName,
     m_tableModel = std::make_unique<TopicTableModel>(topicTableView, m_topicName);
     topicTableView->setModel(m_tableModel.get());
     //topicTableView->setColumnWidth(TopicTableModel::STATUS_COLUMN, 21);
-    connect(m_tableModel.get(), SIGNAL(dataChanged()), this, SLOT(dataChanged()));
+    connect(m_tableModel.get(), SIGNAL(dataHasChanged()), this, SLOT(dataHasChanged()));
 
     // Create a topic monitor to receive the data samples
     m_topicMonitor = std::make_unique <TopicMonitor>(topicName);
@@ -515,7 +515,7 @@ void TablePage::on_topicTableView_pressed(const QModelIndex& index)
 
 
 //------------------------------------------------------------------------------
-void TablePage::dataChanged()
+void TablePage::dataHasChanged()
 {
     revertButton->setEnabled(true);
 }

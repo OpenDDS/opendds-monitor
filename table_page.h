@@ -107,7 +107,7 @@ private slots:
     /**
      * @brief Enable appropriate buttons when data has changed in the model.
      */
-    void dataChanged();
+    void dataHasChanged();
 
     /**
      * @brief Update the history table with the latest data from DDS.
