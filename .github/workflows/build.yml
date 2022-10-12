@@ -71,7 +71,7 @@ jobs:
           brew install xerces-c qt5 qwt-qt5
       - name: 'Install openssl, xerces, qt5, and qwt (Windows)'
         if: runner.os == 'Windows'
-        uses: lukka/run-vcpkg@v7
+        uses: lukka/run-vcpkg@v10.5
         with:
           vcpkgGitCommitId: b86c0c35b88e2bf3557ff49dc831689c2f085090
           vcpkgArguments: --recurse openssl xerces-c qt5 qwt
@@ -207,10 +207,10 @@ jobs:
       # Set Up Problem Matchers
       - name: 'Set Up Problem Matcher (Windows)'
         if: runner.os == 'Windows'
-        uses: ammaraskar/msvc-problem-matcher@0.1
+        uses: ammaraskar/msvc-problem-matcher@0.2.0
       - name: 'Set Up Problem Matcher (Linux / macOS)'
         if: runner.os == 'Linux' || runner.os == 'macOS'
-        uses: ammaraskar/gcc-problem-matcher@0.1
+        uses: ammaraskar/gcc-problem-matcher@0.2.0
 
       # Build opendds-monitor
       - name: 'Build opendds-monitor (Linux / macOS)'
