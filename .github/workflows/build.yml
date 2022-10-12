@@ -71,7 +71,7 @@ jobs:
           brew install xerces-c qt5 qwt-qt5
       - name: 'Install openssl, xerces, qt5, and qwt (Windows)'
         if: runner.os == 'Windows'
-        uses: lukka/run-vcpkg@v10.5
+        uses: lukka/run-vcpkg@v7
         with:
           vcpkgGitCommitId: b86c0c35b88e2bf3557ff49dc831689c2f085090
           vcpkgArguments: --recurse openssl xerces-c qt5 qwt
