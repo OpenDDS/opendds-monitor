@@ -10,6 +10,11 @@
     <height>300</height>
    </rect>
   </property>
+  <property name="font">
+   <font>
+    <family>Ubuntu Mono</family>
+   </font>
+  </property>
   <property name="windowTitle">
    <string>Participants</string>
   </property>
@@ -38,7 +43,7 @@
       <bool>false</bool>
      </attribute>
      <attribute name="verticalHeaderDefaultSectionSize">
-      <number>19</number>
+      <number>21</number>
      </attribute>
     </widget>
    </item>

@@ -89,21 +89,19 @@ public:
         COLUMN_HOST,
         COLUMN_APP,
         COLUMN_INSTANCE,
-        COLUMN_TIMESTAMP,
+        COLUMN_DISCOVERED_TIMESTAMP,
         MAX_eColumnIds_VALUE
     };
-
-public:
 
     /**
      * @brief Add a new participant to the model.
      */
-    void addParticipant(const ParticipantInfo &);
+    void addParticipant(const ParticipantInfo& info);
 
     /**
      * @brief Remove a participant from the model.
      */
-    void removeParticipant(const ParticipantInfo &);
+    void removeParticipant(const ParticipantInfo& info);
 
 private:
 
