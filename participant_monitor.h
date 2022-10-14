@@ -1,9 +1,13 @@
-#ifndef __DDS_PARTICIPANT_MONITOR_H__
-#define __DDS_PARTICIPANT_MONITOR_H__
+#pragma once
 
-#include <string>
-#include <functional>
 #include "dds_listeners.h"
+
+#include <dds/DCPS/GuidConverter.h>
+
+#include <functional>
+#include <map>
+#include <mutex>
+#include <string>
 
 /**
  * @brief Stores information on a DDS participant.
@@ -38,23 +42,23 @@ public:
     std::string hostID; ///< GUID host ID
     std::string appID; ///< GUID app ID
     std::string instanceID; ///< GUID instance ID
-    std::string timestamp; ///< Discovered timestamp
+    std::string discovered_timestamp; ///< Created timestamp
+};
 
-}; // End ParticipantInfo
-
+typedef std::function<void(const ParticipantInfo&)> ParticipantInfoCallback;
 
 /**
  * @brief Receives information about participants on the bus.
  * @details 
  */
-class ParticipantMonitor : public virtual GenericReaderListener
+class ParticipantMonitor
 {
 public:
 
     /**
      * @brief Constructor for the DDS participant monitor class.
      */
-    ParticipantMonitor(DDS::DomainParticipant* domain, std::function<void(const ParticipantInfo&)> onAdd = nullptr, std::function<void(const ParticipantInfo&)> onRemove = nullptr);
+    ParticipantMonitor(DDS::DomainParticipant* domain, ParticipantInfoCallback onAdd = nullptr, ParticipantInfoCallback onRemove = nullptr);
     ParticipantMonitor() = delete;
 
     /**
@@ -62,26 +66,31 @@ public:
      */
     ~ParticipantMonitor();
 
-    /**
-     * @brief Callback method to handle the DDS::DATA_AVAILABLE_STATUS message.
-     * @param[in] reader The data reader containing the new message.
-     */
-    void on_data_available(DDS::DataReader_ptr reader) override;
+    struct DcpsParticipantListener : public GenericReaderListener {
+        DcpsParticipantListener(ParticipantMonitor* monitor) : m_monitor(monitor) {}
+        void on_data_available(DDS::DataReader_ptr reader) { if (m_monitor) { m_monitor->on_participant_data_available(reader); } }
+        ParticipantMonitor* m_monitor;
+    };
+
+    struct DcpsParticipantLocationListener : public GenericReaderListener {
+        DcpsParticipantLocationListener(ParticipantMonitor* monitor) : m_monitor(monitor) {}
+        void on_data_available(DDS::DataReader_ptr reader) { if (m_monitor) { m_monitor->on_participant_location_data_available(reader); } }
+        ParticipantMonitor* m_monitor;
+    };
 
 private:
 
+    void on_participant_data_available(DDS::DataReader_ptr reader);
+    void on_participant_location_data_available(DDS::DataReader_ptr reader);
+
     /// Stores the built-in data reader for the participant topic
-    DDS::DataReader_ptr m_dataReader;
-    std::function<void(const ParticipantInfo&)> m_addParticipant;
-    std::function<void(const ParticipantInfo&)> m_removeParticipant;
-	
-	/// Callbacks for adding and removing participants
+    DDS::DataReader_ptr m_participant_datareader;
+    DDS::DataReader_ptr m_participant_location_datareader;
+    DcpsParticipantListener m_participant_listener;
+    DcpsParticipantLocationListener m_participant_location_listener;
+    ParticipantInfoCallback m_addParticipant;
+    ParticipantInfoCallback m_removeParticipant;
 
-}; // End ParticipantMonitor
-
-
-#endif
-
-/**
- * @}
- */
+    std::mutex m_info_map_mutex;
+    std::map<OpenDDS::DCPS::GUID_t, ParticipantInfo> m_info_map;
+};
