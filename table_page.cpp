@@ -43,7 +43,7 @@ TablePage::TablePage(const QString& topicName,
     connect(m_tableModel.get(), SIGNAL(dataHasChanged()), this, SLOT(dataHasChanged()));
 
     // Create a topic monitor to receive the data samples
-    m_topicMonitor = std::make_unique <TopicMonitor>(topicName);
+    m_topicMonitor = std::make_unique<TopicMonitor>(topicName);
     m_topicReplayer = std::make_unique<TopicReplayer>(topicName);
 
     connect(&m_refreshTimer, SIGNAL(timeout()), this, SLOT(refreshPage()));
@@ -55,8 +55,6 @@ TablePage::TablePage(const QString& topicName,
 //------------------------------------------------------------------------------
 TablePage::~TablePage()
 {
-    m_topicReplayer.release();  //Leak on purpose since DDS shutdown isn't quite right
-    m_topicMonitor.release();  //Leak on purpose since DDS shutdown isn't quite right
     CommonData::flushSamples(m_topicName);
 }
 

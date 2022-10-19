@@ -213,13 +213,6 @@ void DDSMonitorMainWindow::on_topicTree_itemClicked(QTreeWidgetItem* item, int)
     topicInfo->subQos.partition = partitionInfo;
     topicInfo->pubQos.partition = partitionInfo;
 
-
-    if (!CommonData::createPubSub(topicName))
-    {
-        // TODO: Show a popup?
-        return;
-    }
-
     // Create a new topic page
     QIcon tableIcon(":/images/stock_data-table.png");
     TablePage* page = new TablePage(topicName, mainTabWidget);
