@@ -57,15 +57,12 @@ TopicReplayer::TopicReplayer(const QString& topicName) :
         return;
     }
 
-    OpenDDS::DCPS::RcHandle<TopicReplayer> thisHandle =
-        OpenDDS::DCPS::rchandle_from(this);
-
     m_replayer = service->create_replayer(
         domain,
         m_topic,
         topicInfo->pubQos,
         topicInfo->writerQos,
-        thisHandle
+        OpenDDS::DCPS::RcHandle<OpenDDS::DCPS::ReplayerListener>()
     );
 
     if (!m_replayer)

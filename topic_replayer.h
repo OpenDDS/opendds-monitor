@@ -19,7 +19,7 @@ class OpenDynamicData;
 /**
  * @brief Topic replayer for sending raw DDS data samples.
  */
-class TopicReplayer : public OpenDDS::DCPS::ReplayerListener
+class TopicReplayer
 {
 public:
 

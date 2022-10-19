@@ -14,6 +14,7 @@ TopicMonitor::TopicMonitor(const QString& topicName) :
                            m_topicName(topicName),
                            m_filter(""),
                            m_typeCode(nullptr),
+                           m_listener(OpenDDS::DCPS::make_rch<RecorderListener>(OpenDDS::DCPS::ref(*this))),
                            m_recorder(nullptr),
                            m_topic(nullptr),
                            m_paused(false)
@@ -58,16 +59,13 @@ TopicMonitor::TopicMonitor(const QString& topicName) :
         return;
     }
 
-    OpenDDS::DCPS::RcHandle<TopicMonitor> thisHandle =
-        OpenDDS::DCPS::rchandle_from(this);
-
     //std::cout << "DEBUG Created typeless topic, now creating recorder" << endl;
     m_recorder = service->create_recorder(
         domain,
         m_topic,
         topicInfo->subQos,
         topicInfo->readerQos,
-        thisHandle
+        m_listener
     );
 
     if (!m_recorder)
@@ -82,8 +80,7 @@ TopicMonitor::TopicMonitor(const QString& topicName) :
 //------------------------------------------------------------------------------
 TopicMonitor::~TopicMonitor()
 {
-    //I think this should really call close(), but this crashes the program.
-    //I'm going to opt for a memory leak when someone closes a topic tab.
+    close();
 }
 
 
@@ -149,7 +146,7 @@ void TopicMonitor::on_sample_data_received(OpenDDS::DCPS::Recorder*,
     //printf("\n=== TopicMonitor::on_sample_data_received ===\n");
     //printf("Size = %zu bytes\n", rawSample.sample_->length());
     
-    if(rawSample.header_.message_id_ != OpenDDS::DCPS::SAMPLE_DATA)
+    if (rawSample.header_.message_id_ != OpenDDS::DCPS::SAMPLE_DATA)
     {
         printf("\nSkipping message that is not SAMPLE_DATA. This should not be possible! Something must have changed in OpenDDS\'s RecorderImpl::data_received(const ReceivedDataSample& sample) function in an incompatible way.\n");
         return;
@@ -157,7 +154,7 @@ void TopicMonitor::on_sample_data_received(OpenDDS::DCPS::Recorder*,
 
     //printf("Global Encoding Kind: %s\n", OpenDDS::DCPS::Encoding::kind_to_string(globalEncoding).c_str());
     //printf("Raw Sample Encoding Kind: %s\n", OpenDDS::DCPS::Encoding::kind_to_string(rawSample.encoding_kind_).c_str());
-    if(globalEncoding != rawSample.encoding_kind_)
+    if (globalEncoding != rawSample.encoding_kind_)
     {
         printf("Skipping message with encoding kind that does not match our encoding kind.\n");
         printf("Global Encoding Kind: %s\n", OpenDDS::DCPS::Encoding::kind_to_string(globalEncoding).c_str());
@@ -175,7 +172,7 @@ void TopicMonitor::on_sample_data_received(OpenDDS::DCPS::Recorder*,
     bool pass = true;
 
     std::shared_ptr<OpenDynamicData> sample = CreateOpenDynamicData(m_typeCode, globalEncoding, m_extensibility);
-    if(globalEncoding !=  OpenDDS::DCPS::Encoding::KIND_XCDR1)
+    if (globalEncoding !=  OpenDDS::DCPS::Encoding::KIND_XCDR1)
     {                    
         std::cout << "Removing delimiter header" << std::endl;
         uint32_t delim_header=0;
@@ -186,7 +183,7 @@ void TopicMonitor::on_sample_data_received(OpenDDS::DCPS::Recorder*,
             pass = false;
             return;
         }
-        //std::cout << "DEBUG on_sample_data_received eating top level struct stream delim. Size returned: " << delim_header <<std::endl;
+        //std::cout << "DEBUG on_sample_data_received eating top level struct stream delim. Size returned: " << delim_header << std::endl;
     }
 
     (*(sample.get())) << serial;
@@ -228,14 +225,6 @@ void TopicMonitor::on_sample_data_received(OpenDDS::DCPS::Recorder*,
     CommonData::storeSample(m_topicName, sampleName, sample);
 
 } // End TopicMonitor::on_sample_data_received
-
-
-//------------------------------------------------------------------------------
-void TopicMonitor::on_recorder_matched(OpenDDS::DCPS::Recorder*,
-                                       const DDS::SubscriptionMatchedStatus&)
-{
-    // Does nothing but must exist.
-}
 
 
 //------------------------------------------------------------------------------

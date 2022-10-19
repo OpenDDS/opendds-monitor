@@ -17,7 +17,7 @@
 /**
  * @brief Topic monitor for receiving raw DDS data samples.
  */
-class TopicMonitor : public OpenDDS::DCPS::RecorderListener
+class TopicMonitor
 {
 public:
 
@@ -54,16 +54,25 @@ public:
      * @param[in] recorder The recorder object with the data.
      * @param[in] rawSample The new data sample for this topic.
      */
-    virtual void on_sample_data_received(OpenDDS::DCPS::Recorder* recorder,
-                                         const OpenDDS::DCPS::RawDataSample& rawSample);
+    void on_sample_data_received(OpenDDS::DCPS::Recorder* recorder,
+                                 const OpenDDS::DCPS::RawDataSample& rawSample);
 
-    /**
-     * @brief Callback for a newly discovered publisher for this topic.
-     * @param[in] recorder The recorder object with the newly discovered match.
-     * @param[in] status The status of the newly discovered match.
-     */
-    virtual void on_recorder_matched(OpenDDS::DCPS::Recorder* recorder,
-                                     const DDS::SubscriptionMatchedStatus& status);
+    class RecorderListener : public OpenDDS::DCPS::RecorderListener
+    {
+    public:
+        RecorderListener(TopicMonitor& monitor) : m_monitor(monitor) {}
+
+        void on_sample_data_received(OpenDDS::DCPS::Recorder* recorder,
+                                     const OpenDDS::DCPS::RawDataSample& rawSample) override
+        {
+            m_monitor.on_sample_data_received(recorder, rawSample);
+        }
+
+        void on_recorder_matched(OpenDDS::DCPS::Recorder* recorder,
+                                 const DDS::SubscriptionMatchedStatus& status) override {}
+    private:
+        TopicMonitor& m_monitor;
+    };
 
     /**
      * @brief Stop receiving samples.
@@ -90,6 +99,9 @@ private:
 
     /// Stores the typecode for this topic.
     const CORBA::TypeCode* m_typeCode;
+
+    /// Listener for the recorder, calls back into this object
+    OpenDDS::DCPS::RcHandle<RecorderListener> m_listener;
 
     /// Stores the recorder object for this monitor.
     OpenDDS::DCPS::Recorder* m_recorder;

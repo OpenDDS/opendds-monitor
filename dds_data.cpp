@@ -73,37 +73,6 @@ std::shared_ptr<TopicInfo> CommonData::getTopicInfo(const QString& topicName)
     return topicInfo;
 }
 
-
-//------------------------------------------------------------------------------
-bool CommonData::createPubSub(const QString& topicName, const QString& /*filter*/)
-{
-    // Make sure we have an information object for this topic
-    std::shared_ptr<TopicInfo> topicInfo = getTopicInfo(topicName);
-    if (topicInfo == nullptr)
-    {
-        std::cerr << "Unable to find topic information for "
-                  << topicName.toStdString()
-                  << std::endl;
-
-        return false;
-    }
-
-    // Make sure the type code is valid
-    if (!topicInfo->typeCode)
-    {
-        std::cerr << "Unable to find type code information for '"
-                  << topicName.toStdString()
-                  << "'. Wait for a DDSManager publisher or subscriber..."
-                  << std::endl;
-
-        return false;
-    }
-
-    return true;
-
-} // End CommonData::createPubSub
-
-
 //------------------------------------------------------------------------------
 QVariant CommonData::readValue(const QString& topicName,
                                const QString& memberName,

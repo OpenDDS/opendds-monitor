@@ -226,15 +226,6 @@ public:
     static std::shared_ptr<TopicInfo> getTopicInfo(const QString& topicName);
 
     /**
-     * @brief Create the publisher/subscriber objects for a given topic.
-     * @param[in] topicName The target topic name.
-     * @param[in] filter Install this topic filter if specified.
-     * @return True if the operation was successful; false otherwise.
-     */
-    static bool createPubSub(const QString& topicName,
-                             const QString& filter = "");
-
-    /**
      * @brief Read the value of a DDS sample.
      * @param[in] topicName The name of the topic.
      * @param[in] memberName The name of the topic member.
