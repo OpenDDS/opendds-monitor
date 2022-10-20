@@ -45,6 +45,12 @@ DDSManager::DDSManager(std::function<void(LogMessageType mt, const std::string& 
     //Register to get ace messages
     ACE::init();
     m_dispatcher = OpenDDS::DCPS::make_rch<OpenDDS::DCPS::ServiceEventDispatcher>(threadPoolSize);
+
+    QosDictionary::getDataRepresentationType();
+    QosDictionary::getTimestampPolicy();
+
+    std::cout << std::endl;
+
     //m_thisCount++;
 }
 
