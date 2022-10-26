@@ -209,7 +209,7 @@ public:
     static std::unique_ptr<DDSManager> m_ddsManager;
 
     /// Delete all data objects before closing.
-   static void cleanup();
+    static void cleanup();
 
     /**
      * @brief Store the information on a discovered topic.

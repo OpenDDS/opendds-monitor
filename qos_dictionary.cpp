@@ -147,7 +147,7 @@ DDS::DestinationOrderQosPolicyKind QosDictionary::getTimestampPolicy()
 	//TODO: Determine if this needs thread safety. I think it doesn't?
 	static bool first_time = true;
 	static DDS::DestinationOrderQosPolicyKind retval = DDS::BY_RECEPTION_TIMESTAMP_DESTINATIONORDER_QOS;
-	if(!first_time)
+	if (!first_time)
 	{
 		//if (retval == DDS::BY_SOURCE_TIMESTAMP_DESTINATIONORDER_QOS)
 		//{
@@ -161,11 +161,11 @@ DDS::DestinationOrderQosPolicyKind QosDictionary::getTimestampPolicy()
 	}
 	char* DDS_DISTRUST_TIMESTAMPS = getenv("DDS_DISTRUST_TIMESTAMPS");
 	bool distrust_timestamps = false;
-	if(DDS_DISTRUST_TIMESTAMPS != NULL)
+	if (DDS_DISTRUST_TIMESTAMPS != NULL)
 	{
 		std::string distrust_val(DDS_DISTRUST_TIMESTAMPS);
 		std::transform(distrust_val.begin(), distrust_val.end(), distrust_val.begin(), ::tolower); 
-		if((distrust_val != "") && (distrust_val != "0") && (distrust_val != "false"))
+		if ((distrust_val != "") && (distrust_val != "0") && (distrust_val != "false"))
 		{
 			distrust_timestamps = true;
 		}
@@ -201,7 +201,7 @@ DDS::DataRepresentationId_t QosDictionary::getDataRepresentationType()
 	//TODO: Determine if this needs thread safety. I think it doesn't?
 	static bool first_time = true;
 	static DDS::DataRepresentationId_t retval = DDS::XCDR2_DATA_REPRESENTATION;
-	if(!first_time)
+	if (!first_time)
 	{
 		//if (retval == DDS::XCDR2_DATA_REPRESENTATION)
 		//{
@@ -215,11 +215,11 @@ DDS::DataRepresentationId_t QosDictionary::getDataRepresentationType()
 	}
 	char* DDS_USE_OLD_CDR = getenv("DDS_USE_OLD_CDR");
 	bool old_cdr = false;
-	if(DDS_USE_OLD_CDR != NULL)
+	if (DDS_USE_OLD_CDR != NULL)
 	{
 		std::string old_cdr_val(DDS_USE_OLD_CDR);
 		std::transform(old_cdr_val.begin(), old_cdr_val.end(), old_cdr_val.begin(), ::tolower); 
-		if((old_cdr_val != "") && (old_cdr_val != "0") && (old_cdr_val != "false"))
+		if ((old_cdr_val != "") && (old_cdr_val != "0") && (old_cdr_val != "false"))
 		{
 			old_cdr = true;
 		}
@@ -244,7 +244,7 @@ DDS::DataRepresentationId_t QosDictionary::getDataRepresentationType()
 
 OpenDDS::DCPS::Encoding::Kind QosDictionary::getEncodingKind()
 {
-	if(QosDictionary::getDataRepresentationType() == DDS::XCDR_DATA_REPRESENTATION)
+	if (QosDictionary::getDataRepresentationType() == DDS::XCDR_DATA_REPRESENTATION)
 	{
 		return OpenDDS::DCPS::Encoding::KIND_XCDR1;
 	}

@@ -62,7 +62,7 @@ DDSMonitorMainWindow::DDSMonitorMainWindow() :
     {
         settings.setValue("domainID", domainID);
         setWindowTitle("DDS Monitor - Domain " + QString::number(domainID));
-
+        activateWindow();
 
         // Join the DDS domain
         CommonData::m_ddsManager = std::make_unique<DDSManager>();
@@ -100,7 +100,7 @@ DDSMonitorMainWindow::~DDSMonitorMainWindow()
 {
     CommonData::cleanup();
 
-    CommonData::m_ddsManager.reset();;
+    CommonData::m_ddsManager.reset();
     ShutdownDDS();
 }
 
@@ -326,8 +326,9 @@ void DDSMonitorMainWindow::reportConfig() const
         return;
     }
 
-    DDS::DomainParticipant* domain = CommonData::m_ddsManager->getDomainParticipant();
     int domainID = 0;
+    DDS::DomainParticipant* domain = CommonData::m_ddsManager ? CommonData::m_ddsManager->getDomainParticipant() : nullptr;
+
     if (domain)
     {
         domainID = domain->get_domain_id();

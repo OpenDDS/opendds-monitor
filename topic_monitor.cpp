@@ -29,21 +29,18 @@ TopicMonitor::TopicMonitor(const QString& topicName) :
         return;
     }
 
-    // Make sure the type code is valid
     m_typeCode = topicInfo->typeCode;
-    if (m_typeCode == nullptr)
-    {
-        std::cerr << "Unable to find type code information for "
-                  << topicName.toStdString()
-                  << std::endl;
-        return;
-    }
 
     //store extensibility
     m_extensibility = topicInfo->extensibility;
 
     OpenDDS::DCPS::Service_Participant* service = TheServiceParticipant;
-    DDS::DomainParticipant* domain = CommonData::m_ddsManager->getDomainParticipant();
+    DDS::DomainParticipant* domain = CommonData::m_ddsManager ? CommonData::m_ddsManager->getDomainParticipant() : nullptr;
+
+    if (!domain) {
+        std::cerr << "No domain participant" << std::endl;
+        return;
+    }
 
     m_topic = service->create_typeless_topic(domain,
         topicInfo->name.c_str(),
@@ -122,7 +119,7 @@ void TopicMonitor::close()
         m_recorder = nullptr;
     }
 
-    DDS::DomainParticipant* domain = CommonData::m_ddsManager->getDomainParticipant();
+    DDS::DomainParticipant* domain = CommonData::m_ddsManager ? CommonData::m_ddsManager->getDomainParticipant() : nullptr;
     if (domain)
     {
         domain->delete_topic(m_topic);
@@ -137,6 +134,8 @@ void TopicMonitor::close()
 void TopicMonitor::on_sample_data_received(OpenDDS::DCPS::Recorder*,
                                            const OpenDDS::DCPS::RawDataSample& rawSample)
 {
+    //std::cout << "DEBUG TopicMonitor::on_sample_data_received()" << std::endl;
+
     if (m_paused)
     {
         return;
@@ -188,7 +187,6 @@ void TopicMonitor::on_sample_data_received(OpenDDS::DCPS::Recorder*,
 
     (*(sample.get())) << serial;
     //sample->dump();
-
 
     // If a filter was specified, make sure the sample passes
     if (!m_filter.isEmpty())
