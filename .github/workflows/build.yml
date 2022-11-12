@@ -94,8 +94,7 @@ jobs:
           echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/ACE_TAO/ACE/lib:$GITHUB_WORKSPACE/OpenDDS/lib" >> $GITHUB_ENV
           CONFIG_OPTIONS+=" --no-tests --std=c++17 --ipv6 --security"
           if [ '${{ runner.os }}' == 'macOS' ]; then
-            XERCESC_ROOT=$(find /usr/local/Cellar/xerces-c -iname "3\.*\.*" -type d | sort -r | head -n 1)
-            CONFIG_OPTIONS+=" --xerces3=$XERCESC_ROOT --openssl=/usr/local/opt/openssl@1.1"
+            CONFIG_OPTIONS+=" --xerces3=$(brew --prefix xerces-c) --openssl=/usr/local/opt/openssl@1.1"
           fi
           echo "CONFIG_OPTIONS=$CONFIG_OPTIONS" >> $GITHUB_ENV
           export COMPILER_VERSION=$(c++ --version 2>&1 | head -n 1)
