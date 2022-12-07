@@ -1,10 +1,10 @@
-﻿# OpenDDS Monitor
+# OpenDDS Monitor
 
 A Qt application for monitoring OpenDDS domain participants and topics.
 
 ## Requirements
 
-* OpenDDS (http://www.opendds.org) and its dependencies (ACE/TAO, and possibly openssl or xerces3)
+* OpenDDS (https://www.opendds.org) and its dependencies (ACE/TAO, and possibly openssl or xerces3)
 * Qt 5
 * Qwt
 * CMake
@@ -14,7 +14,7 @@ A Qt application for monitoring OpenDDS domain participants and topics.
 
 * Ubuntu 22.04 (g++ 11.2.0)
 * Ubuntu 20.04 (g++ 9.4.0)
-* macOS 12 (Apple clang XXX)
+* macOS 12 (Apple clang 14.0.0)
 * macOS 11 (Apple clang 13.0.0)
 * Windows Server 2022 (VS2022)
 * Windows Server 2019 (VS2019)
@@ -23,7 +23,7 @@ A Qt application for monitoring OpenDDS domain participants and topics.
 
 Assuming a valid development environment, OpenDDS environment variables are set, and Qt / Qwt installs are discoverable:
 ```
-$ mkdir bulid
+$ mkdir build
 $ cd build
 $ cmake ..
 $ cmake --build .
