@@ -192,6 +192,9 @@ public:
     /// The type code information object. Set from user_data in the Topic Qos.
     std::unique_ptr<CORBA::Any> typeCodeObj;
 
+    /// DynamicType of the topic's type
+    DDS::DynamicType_var dynamic_type;
+
 }; // End TopicInfo
 
 
