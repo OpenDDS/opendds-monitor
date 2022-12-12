@@ -252,7 +252,23 @@ void TopicMonitor::on_sample_data_received(OpenDDS::DCPS::Recorder*,
 
 void TopicMonitor::on_data_available(DDS::DataReader_ptr dr)
 {
-  // TODO
+    if (m_paused) {
+        return;
+    }
+
+    DDS::DynamicDataReader_var ddr = DDS::DynamicDataReader::_narrow(dr);
+    DDS::DynamicDataSeq messages;
+    DDS::SampleInfoSeq infos;
+    ddr->take(messages, infos, DDS::LENGTH_UNLIMITED,
+              DDS::ANY_SAMPLE_STATE, DDS::ANY_VIEW_STATE, DDS::ANY_INSTANCE_STATE);
+
+    for (unsigned int i = 0; i < messages.length(); ++i) {
+        // TODO: Get a timestamp for each sample and store it?
+        // Apply content filtering when it's supported.
+        if (infos[i].valid_data) {
+            CommonData::storeDynamicSample(m_topicName, messages[i]);
+        }
+    }
 }
 
 //------------------------------------------------------------------------------

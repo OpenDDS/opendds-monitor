@@ -146,7 +146,7 @@ public:
      * @brief Fixes history for strict reliable topics. see QosDictionary::Topic::strictReliable()
      */
     void fixHistory();
-    
+
     /**
      * @brief Store the Topic QoS user_data information.
      * @param[in] userData The Topic QoS user_data information.
@@ -185,7 +185,7 @@ public:
 
     /// Type code length
     size_t typeCodeLength;
-    
+
     /// Pointer to the type code information object. Set from user_data in the Topic Qos.
     const CORBA::TypeCode* typeCode;
 
@@ -255,6 +255,10 @@ public:
                             const QString& sampleName,
                             const std::shared_ptr<OpenDynamicData> sample);
 
+    /// Store a new sample represented by a DynamicData object.
+    static void storeDynamicSample(const QString& topic_name,
+                                   const DDS::DynamicData_var sample);
+
     /**
      * @brief Get a copy of a sample for a specified topic.
      * @remarks The caller is responsible for deleting the new sample.
@@ -301,11 +305,17 @@ private:
      */
     static QMap<QString, std::shared_ptr<TopicInfo>> m_topicInfo;
 
+    /// Store list of DynamicData objects for each topic.
+    static QMap<QString, QList<DDS::DynamicData_var> > m_dynamicsamples;
+
     /// Mutex for protecting access to m_samples.
     static QMutex m_sampleMutex;
 
     /// Mutex for protecting access to m_topicInfo.
     static QMutex m_topicMutex;
+
+    /// Mutex for protecting access to m_dynamicsamples.
+    static QMutex m_dynsampleMutex;
 
     /**
      * @brief Constructor for the DDS Monitor data storage class.

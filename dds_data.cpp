@@ -217,7 +217,7 @@ QVariant CommonData::readValue(const QString& topicName,
 void CommonData::flushSamples(const QString& topicName)
 {
     m_sampleMutex.lock();
-    
+
     //Confirm this still does the same thing -MM
     //auto sampleList = m_samples[topicName];
 
@@ -265,6 +265,23 @@ void CommonData::storeSample(const QString& topicName,
 
 } // End CommonData::storeSample
 
+//------------------------------------------------------------------------------
+void CommonData::storeDynamicSample(const QString& topic_name,
+                                    const DDS::DynamicData_var sample)
+{
+    m_dynsampleMutex.lock();
+
+    QList<DDS::DynamicData_var> sample_list = m_dynamicsamples[topic_name];
+    // Add new sample
+    sample_list.push_front(sample);
+
+    // Cleanup
+    while (sample_list.size() > MAX_SAMPLES) {
+        sample_list.pop_back();
+    }
+
+    m_dynsampleMutex.unlock();
+}
 
 //------------------------------------------------------------------------------
 std::shared_ptr<OpenDynamicData> CommonData::copySample(const QString& topicName,
@@ -356,7 +373,7 @@ void TopicInfo::addPartitions(const DDS::PartitionQosPolicy& partitionQos)
     for (CORBA::ULong i = 0; i < partitionNames.length(); i++)
     {
         const char* partitionStringC = partitionNames[i];
-        QString partitionString = partitionStringC; 
+        QString partitionString = partitionStringC;
         if (!partitions.contains(partitionString))
         {
             partitions.push_back(partitionString);
@@ -497,7 +514,7 @@ void TopicInfo::fixHistory()
     {
         //std::cout << "DEBUG STRICT RELIABLE WRITER" << std::endl;
         writerQos.history.kind = DDS::KEEP_ALL_HISTORY_QOS;
-    }    
+    }
 }
 
 
@@ -546,7 +563,7 @@ void TopicInfo::storeUserData(const DDS::OctetSeq& userData)
     // char[5]   - Topic has a key flag
     // char[6]   - Topic Type extensibility and mutability flags
     //           - 0: APPENDABLE
-    //           - 1: FINAL    
+    //           - 1: FINAL
     //           - 2: MUTABLE
     // char[7-8] - Padding
     // char[8-N] - Serialized CDR topic typecode
