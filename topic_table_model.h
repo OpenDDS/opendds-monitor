@@ -175,6 +175,12 @@ private:
      */
     void parseData(const std::shared_ptr<OpenDynamicData> data);
 
+    /// Convert from DDS::TypeKind to CORBA::TCKind. Needed to parse DynamicData.
+    CORBA::TCKind typekind_to_tckind(DDS::TypeKind tk);
+
+    /// Parse a DynamicData object into m_data
+    void parseData(const DDS::DynamicData_var data);
+
     /**
      * @brief Populate a DDS sample member.
      * @param[out] sample Populate this DDS sample.
