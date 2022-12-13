@@ -539,7 +539,7 @@ bool TopicTableModel::check_rc(DDS::ReturnCode_t rc, const char* what)
 }
 
 //------------------------------------------------------------------------------
-void TopicTableModel::parseData(const DDS::DynamicData_var data)
+void TopicTableModel::parseData(const DDS::DynamicData_var& data)
 {
     DDS::DynamicType_var type = data->type();
     const unsigned int count = data->get_item_count();

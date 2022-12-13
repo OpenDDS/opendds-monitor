@@ -76,7 +76,7 @@ public:
 
     void on_data_available(DDS::DataReader_ptr);
 
-    class DataReaderListenerImpl : public OpenDDS::DCPS::LocalObject<DDS::DataReaderListener>
+    class DataReaderListenerImpl : public virtual OpenDDS::DCPS::LocalObject<DDS::DataReaderListener>
     {
     public:
       DataReaderListenerImpl(TopicMonitor& monitor) : m_monitor(monitor) {}

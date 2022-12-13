@@ -1,21 +1,24 @@
-#include <iostream>
-#include <dds/DCPS/Service_Participant.h>
-#include <tao/AnyTypeCode/Any.h>
-
 #include "dds_manager.h"
 #include "dds_data.h"
 #include "qos_dictionary.h"
 #include "open_dynamic_data.h"
 
+#include <QMutexLocker>
+
+#include <dds/DCPS/Service_Participant.h>
+
+#include <tao/AnyTypeCode/Any.h>
+
+#include <iostream>
 
 std::unique_ptr<DDSManager> CommonData::m_ddsManager;
 QMap<QString, QList<std::shared_ptr<OpenDynamicData> > > CommonData::m_samples;
 QMap<QString, QStringList> CommonData::m_sampleTimes;
 QMap<QString, std::shared_ptr<TopicInfo>> CommonData::m_topicInfo;
-QMap<QString, QList<DDS::DynamicData_var> > CommonData::m_dynamicsamples;
+QMap<QString, QList<DDS::DynamicData_var> > CommonData::m_dynamicSamples;
 QMutex CommonData::m_sampleMutex;
 QMutex CommonData::m_topicMutex;
-QMutex CommonData::m_dynsampleMutex;
+QMutex CommonData::m_dynamicSamplesMutex;
 
 
 //------------------------------------------------------------------------------
@@ -29,14 +32,16 @@ void CommonData::cleanup()
     //    delete topicIter.value();
     //    topicIter.value() = nullptr;
     //}
-    m_sampleMutex.lock();
-    m_samples.clear();
-    m_sampleTimes.clear();
-    m_sampleMutex.unlock();
+    {
+        QMutexLocker locker(&m_sampleMutex);
+        m_samples.clear();
+        m_sampleTimes.clear();
+    }
 
-    m_topicMutex.lock();
-    m_topicInfo.clear();
-    m_topicMutex.unlock();
+    {
+        QMutexLocker locker(&m_topicMutex);
+        m_topicInfo.clear();
+    }
 
     // Deleting m_ddsManager causes the shared memory transport to crash when
     // closing the DDS service, so attempt leave the domain ourself.
@@ -55,22 +60,20 @@ void CommonData::cleanup()
 //------------------------------------------------------------------------------
 void CommonData::storeTopicInfo(const QString& topicName, std::shared_ptr<TopicInfo> info)
 {
-    m_topicMutex.lock();
+    QMutexLocker locker(&m_topicMutex);
     m_topicInfo[topicName] = info;
-    m_topicMutex.unlock();
 }
 
 //------------------------------------------------------------------------------
 std::shared_ptr<TopicInfo> CommonData::getTopicInfo(const QString& topicName)
 {
     std::shared_ptr<TopicInfo> topicInfo;
+    QMutexLocker locker(&m_topicMutex);
 
-    m_topicMutex.lock();
     if (m_topicInfo.contains(topicName))
     {
         topicInfo = m_topicInfo.value(topicName);
     }
-    m_topicMutex.unlock();
 
     return topicInfo;
 }
@@ -81,7 +84,7 @@ QVariant CommonData::readValue(const QString& topicName,
                                const unsigned int& index)
 {
     QVariant value;
-    m_sampleMutex.lock();
+    QMutexLocker locker(&m_sampleMutex);
 
 
     // Make sure the index is valid
@@ -89,7 +92,6 @@ QVariant CommonData::readValue(const QString& topicName,
     if ((int)index >= sampleList.count())
     {
         value = "NULL";
-        m_sampleMutex.unlock();
         return value;
     }
 
@@ -97,7 +99,6 @@ QVariant CommonData::readValue(const QString& topicName,
     if (!targetSample)
     {
         value = "NULL";
-        m_sampleMutex.unlock();
         return value;
     }
 
@@ -108,7 +109,6 @@ QVariant CommonData::readValue(const QString& topicName,
     if (!targetMember)
     {
         value = "NULL";
-        m_sampleMutex.unlock();
         return value;
     }
 
@@ -208,8 +208,6 @@ QVariant CommonData::readValue(const QString& topicName,
 
     } // End targetMember type switch
 
-
-    m_sampleMutex.unlock();
     return value;
 
 } // End CommonData::readValue
@@ -218,7 +216,7 @@ QVariant CommonData::readValue(const QString& topicName,
 //------------------------------------------------------------------------------
 void CommonData::flushSamples(const QString& topicName)
 {
-    m_sampleMutex.lock();
+    QMutexLocker locker(&m_sampleMutex);
 
     //Confirm this still does the same thing -MM
     //auto sampleList = m_samples[topicName];
@@ -231,7 +229,6 @@ void CommonData::flushSamples(const QString& topicName)
 
     m_samples[topicName].clear();
     m_sampleTimes[topicName].clear();
-    m_sampleMutex.unlock();
 }
 
 
@@ -240,7 +237,7 @@ void CommonData::storeSample(const QString& topicName,
                              const QString& sampleName,
                              const std::shared_ptr<OpenDynamicData> sample)
 {
-    m_sampleMutex.lock();
+    QMutexLocker locker(&m_sampleMutex);
 
     // Create the initial sample list if this is the first sample
     if (!m_samples.contains(topicName))
@@ -262,9 +259,6 @@ void CommonData::storeSample(const QString& topicName,
        sampleList.pop_back();
        m_sampleTimes[topicName].pop_back();
     }
-
-    m_sampleMutex.unlock();
-
 } // End CommonData::storeSample
 
 //------------------------------------------------------------------------------
@@ -272,9 +266,9 @@ void CommonData::storeDynamicSample(const QString& topic_name,
                                     const QString& sample_name,
                                     const DDS::DynamicData_var sample)
 {
-    m_dynsampleMutex.lock();
+    QMutexLocker locker(&m_dynamicSamplesMutex);
 
-    QList<DDS::DynamicData_var> sample_list = m_dynamicsamples[topic_name];
+    QList<DDS::DynamicData_var> sample_list = m_dynamicSamples[topic_name];
     // Add new sample
     sample_list.push_front(sample);
     m_sampleTimes[topic_name].push_front(sample_name);
@@ -284,8 +278,6 @@ void CommonData::storeDynamicSample(const QString& topic_name,
         sample_list.pop_back();
         m_sampleTimes[topic_name].pop_back();
     }
-
-    m_dynsampleMutex.unlock();
 }
 
 //------------------------------------------------------------------------------
@@ -293,15 +285,14 @@ std::shared_ptr<OpenDynamicData> CommonData::copySample(const QString& topicName
                                         const unsigned int& index)
 {
     std::shared_ptr<OpenDynamicData> newSample;
+    QMutexLocker(&m_sampleMutex);
 
-    m_sampleMutex.lock();
     if (m_samples.contains(topicName) &&
        m_samples.value(topicName).size() > (int)index)
     {
         // Don't copy the sample, just point to the shared pointer
         newSample = m_samples.value(topicName).at(index);
     }
-    m_sampleMutex.unlock();
 
     return newSample;
 }
@@ -311,13 +302,12 @@ DDS::DynamicData_var CommonData::copyDynamicSample(const QString& topic_name,
                                                    const unsigned int index)
 {
     DDS::DynamicData_var copied;
+    QMutexLocker locker(&m_dynamicSamplesMutex);
 
-    m_dynsampleMutex.lock();
-    if (m_dynamicsamples.contains(topic_name) &&
-        m_dynamicsamples.value(topic_name).size() > (int)index) {
-      copied = m_dynamicsamples.value(topic_name).at(index);
+    if (m_dynamicSamples.contains(topic_name) &&
+        m_dynamicSamples.value(topic_name).size() > (int)index) {
+      copied = m_dynamicSamples.value(topic_name).at(index);
     }
-    m_dynsampleMutex.unlock();
 
     return copied;
 }
@@ -326,13 +316,12 @@ DDS::DynamicData_var CommonData::copyDynamicSample(const QString& topic_name,
 QStringList CommonData::getSampleList(const QString& topicName)
 {
     QStringList sampleNames;
+    QMutexLocker locker(&m_sampleMutex);
 
-    m_sampleMutex.lock();
     if (m_sampleTimes.contains(topicName))
     {
         sampleNames = m_sampleTimes.value(topicName);
     }
-    m_sampleMutex.unlock();
 
     return sampleNames;
 }
@@ -341,7 +330,7 @@ QStringList CommonData::getSampleList(const QString& topicName)
 //------------------------------------------------------------------------------
 void CommonData::clearSamples(const QString& topicName)
 {
-    m_sampleMutex.lock();
+    QMutexLocker locker(&m_sampleMutex);
     if (m_samples.contains(topicName))
     {
         m_samples[topicName].clear();
@@ -357,7 +346,6 @@ void CommonData::clearSamples(const QString& topicName)
             m_sampleTimes[topicName].pop_back();
         }
     }
-    m_sampleMutex.unlock();
 }
 
 

@@ -154,8 +154,9 @@ void PublicationMonitor::on_data_available(DDS::DataReader_ptr reader)
 bool PublicationMonitor::get_dynamic_type(DDS::DynamicType_var& type, const DDS::BuiltinTopicKey_t& key,
                                           const char* topic_name, const char* type_name)
 {
-    OpenDDS::DCPS::DomainParticipantImpl* participant =
-      dynamic_cast<OpenDDS::DCPS::DomainParticipantImpl*>(CommonData::m_ddsManager->getDomainParticipant().in());
+    DDS::DomainParticipant_var participant_var = CommonData::m_ddsManager->getDomainParticipant();
+    OpenDDS::DCPS::DomainParticipantImpl* participant = dynamic_cast<OpenDDS::DCPS::DomainParticipantImpl*>(participant_var.in());
+
     DDS::ReturnCode_t ret = participant->get_dynamic_type(type, key);
     if (ret != DDS::RETCODE_OK) {
         std::cout << "WARNING: get_dynamic_type for topic " << topic_name

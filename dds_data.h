@@ -269,10 +269,10 @@ public:
      * @return A copy of the data sample or NULL if the index wasn't found.
      */
     static std::shared_ptr<OpenDynamicData> copySample(const QString& topicName,
-                                       const unsigned int& index);
+                                                       const unsigned int& index);
 
     static DDS::DynamicData_var copyDynamicSample(const QString& topic_name,
-                                                  const unsigned int index);
+                                                  unsigned int index);
     /**
      * @brief Get a list of sample names (timestamps) for a given topic.
      * @param[in] topicName The name of the topic.
@@ -311,7 +311,7 @@ private:
 
     /// Store list of DynamicData objects for each topic.
     /// We are storing the timestamps for these samples also in m_sampleTimes.
-    static QMap<QString, QList<DDS::DynamicData_var> > m_dynamicsamples;
+    static QMap<QString, QList<DDS::DynamicData_var> > m_dynamicSamples;
 
     /// Mutex for protecting access to m_samples.
     static QMutex m_sampleMutex;
@@ -319,8 +319,8 @@ private:
     /// Mutex for protecting access to m_topicInfo.
     static QMutex m_topicMutex;
 
-    /// Mutex for protecting access to m_dynamicsamples.
-    static QMutex m_dynsampleMutex;
+    /// Mutex for protecting access to m_dynamicSamples.
+    static QMutex m_dynamicSamplesMutex;
 
     /**
      * @brief Constructor for the DDS Monitor data storage class.

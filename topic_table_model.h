@@ -185,7 +185,7 @@ private:
     bool check_rc(DDS::ReturnCode_t rc, const char* what);
 
     /// Parse a DynamicData object into m_data
-    void parseData(const DDS::DynamicData_var data);
+    void parseData(const DDS::DynamicData_var& data);
 
     /**
      * @brief Populate a DDS sample member.
