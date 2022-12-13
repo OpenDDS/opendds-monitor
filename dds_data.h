@@ -259,7 +259,7 @@ public:
     /// Store a new sample represented by a DynamicData object.
     static void storeDynamicSample(const QString& topic_name,
                                    const QString& sample_name,
-                                   const DDS::DynamicData_var sample);
+                                   DDS::DynamicData_var sample);
 
     /**
      * @brief Get a copy of a sample for a specified topic.
