@@ -43,6 +43,8 @@ public:
      */
     void setSample(std::shared_ptr<OpenDynamicData> sample);
 
+    void setSample(DDS::DynamicData_var sample);
+
     /**
      * @brief Commit changes to the current sample.
      * @return The commited sample.
@@ -181,7 +183,7 @@ private:
     CORBA::TCKind typekind_to_tckind(DDS::TypeKind tk);
 
     bool check_rc(DDS::ReturnCode_t rc, const char* what);
-  
+
     /// Parse a DynamicData object into m_data
     void parseData(const DDS::DynamicData_var data);
 
@@ -205,6 +207,9 @@ private:
 
     /// Stores the data sample for reverting.
     std::shared_ptr<OpenDynamicData> m_sample;
+
+    /// For reverting.
+    DDS::DynamicData_var m_dynamicsample;
 
     /// The name of the topic for this data model
     QString m_topicName;

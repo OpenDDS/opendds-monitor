@@ -29,8 +29,15 @@ TopicTableModel::TopicTableModel(
         return;
     }
 
-    std::shared_ptr<OpenDynamicData> blankSample = CreateOpenDynamicData(topicInfo->typeCode, QosDictionary::getEncodingKind(), topicInfo->extensibility);
-    setSample(blankSample);
+    // TODO: Keep the call to setSample for blank OpenDynamicData sample and maybe
+    // call setSample overloads conditionally depending on the monitor's settings, i.e.,
+    // whether we want to use OpenDynamicData or DDS's DynamicData.
+
+    // This is not really a blank sample, but a null sample.
+    DDS::DynamicData_var blank_sample;
+    setSample(blank_sample);
+    //    std::shared_ptr<OpenDynamicData> blankSample = CreateOpenDynamicData(topicInfo->typeCode, QosDictionary::getEncodingKind(), topicInfo->extensibility);
+    //    setSample(blankSample);
 }
 
 
@@ -79,6 +86,27 @@ void TopicTableModel::setSample(std::shared_ptr<OpenDynamicData> sample)
 
 } // End TopicTableModel::updateSample
 
+//------------------------------------------------------------------------------
+void TopicTableModel::setSample(DDS::DynamicData_var sample)
+{
+    if (!sample) {
+        std::cerr << "TopicTableModel::setSample: Sample is null" << std::endl;
+        return;
+    }
+
+    emit layoutAboutToBeChanged();
+
+    while (!m_data.empty()) {
+        delete m_data.back();
+        m_data.pop_back();
+    }
+
+    // Store sample for reverting any changes to it.
+    m_dynamicsample = sample;
+    parseData(m_dynamicsample);
+
+    emit layoutChanged();
+}
 
 //------------------------------------------------------------------------------
 const std::shared_ptr<OpenDynamicData> TopicTableModel::commitSample()

@@ -258,6 +258,7 @@ public:
 
     /// Store a new sample represented by a DynamicData object.
     static void storeDynamicSample(const QString& topic_name,
+                                   const QString& sample_name,
                                    const DDS::DynamicData_var sample);
 
     /**
@@ -270,6 +271,8 @@ public:
     static std::shared_ptr<OpenDynamicData> copySample(const QString& topicName,
                                        const unsigned int& index);
 
+    static DDS::DynamicData_var copyDynamicSample(const QString& topic_name,
+                                                  const unsigned int index);
     /**
      * @brief Get a list of sample names (timestamps) for a given topic.
      * @param[in] topicName The name of the topic.
@@ -307,6 +310,7 @@ private:
     static QMap<QString, std::shared_ptr<TopicInfo>> m_topicInfo;
 
     /// Store list of DynamicData objects for each topic.
+    /// We are storing the timestamps for these samples also in m_sampleTimes.
     static QMap<QString, QList<DDS::DynamicData_var> > m_dynamicsamples;
 
     /// Mutex for protecting access to m_samples.

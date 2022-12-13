@@ -264,10 +264,14 @@ void TopicMonitor::on_data_available(DDS::DataReader_ptr dr)
               DDS::ANY_SAMPLE_STATE, DDS::ANY_VIEW_STATE, DDS::ANY_INSTANCE_STATE);
 
     for (unsigned int i = 0; i < messages.length(); ++i) {
-        // TODO: Get a timestamp for each sample and store it?
-        // Apply content filtering when it's supported.
         if (infos[i].valid_data) {
-          CommonData::storeDynamicSample(m_topicName, DDS::DynamicData::_duplicate(messages[i].in()));
+            // TODO: Apply content filtering when it's supported.
+            QDateTime dataTime = QDateTime::fromMSecsSinceEpoch(
+            (static_cast<unsigned long long>(infos[i].source_timestamp.sec) * 1000) +
+            (static_cast<unsigned long long>(infos[i].source_timestamp.nanosec) * 1e-6));
+            QString sampleName = dataTime.toString("HH:mm:ss.zzz");
+            CommonData::storeDynamicSample(m_topicName, sampleName,
+                                           DDS::DynamicData::_duplicate(messages[i].in()));
         }
     }
 }

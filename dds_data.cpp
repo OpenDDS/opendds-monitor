@@ -269,6 +269,7 @@ void CommonData::storeSample(const QString& topicName,
 
 //------------------------------------------------------------------------------
 void CommonData::storeDynamicSample(const QString& topic_name,
+                                    const QString& sample_name,
                                     const DDS::DynamicData_var sample)
 {
     m_dynsampleMutex.lock();
@@ -276,10 +277,12 @@ void CommonData::storeDynamicSample(const QString& topic_name,
     QList<DDS::DynamicData_var> sample_list = m_dynamicsamples[topic_name];
     // Add new sample
     sample_list.push_front(sample);
+    m_sampleTimes[topic_name].push_front(sample_name);
 
     // Cleanup
     while (sample_list.size() > MAX_SAMPLES) {
         sample_list.pop_back();
+        m_sampleTimes[topic_name].pop_back();
     }
 
     m_dynsampleMutex.unlock();
@@ -303,6 +306,21 @@ std::shared_ptr<OpenDynamicData> CommonData::copySample(const QString& topicName
     return newSample;
 }
 
+//------------------------------------------------------------------------------
+DDS::DynamicData_var CommonData::copyDynamicSample(const QString& topic_name,
+                                                   const unsigned int index)
+{
+    DDS::DynamicData_var copied;
+
+    m_dynsampleMutex.lock();
+    if (m_dynamicsamples.contains(topic_name) &&
+        m_dynamicsamples.value(topic_name).size() > (int)index) {
+      copied = m_dynamicsamples.value(topic_name).at(index);
+    }
+    m_dynsampleMutex.unlock();
+
+    return copied;
+}
 
 //------------------------------------------------------------------------------
 QStringList CommonData::getSampleList(const QString& topicName)
