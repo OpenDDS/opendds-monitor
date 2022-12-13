@@ -3,6 +3,8 @@
 
 #include "first_define.h"
 
+#include <dds/DCPS/XTypes/DynamicTypeSupport.h>
+
 #include <tao/Typecode_typesC.h>
 
 #include <QAbstractTableModel>
@@ -178,6 +180,8 @@ private:
     /// Convert from DDS::TypeKind to CORBA::TCKind. Needed to parse DynamicData.
     CORBA::TCKind typekind_to_tckind(DDS::TypeKind tk);
 
+    bool check_rc(DDS::ReturnCode_t rc, const char* what);
+  
     /// Parse a DynamicData object into m_data
     void parseData(const DDS::DynamicData_var data);
 

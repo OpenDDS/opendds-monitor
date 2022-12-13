@@ -5,6 +5,7 @@
 #include "dds_manager.h"
 #include "dds_data.h"
 #include "qos_dictionary.h"
+#include <dds/DCPS/XTypes/DynamicTypeSupport.h>
 #include <QDateTime>
 #include <iostream>
 
@@ -266,7 +267,7 @@ void TopicMonitor::on_data_available(DDS::DataReader_ptr dr)
         // TODO: Get a timestamp for each sample and store it?
         // Apply content filtering when it's supported.
         if (infos[i].valid_data) {
-            CommonData::storeDynamicSample(m_topicName, messages[i]);
+          CommonData::storeDynamicSample(m_topicName, DDS::DynamicData::_duplicate(messages[i].in()));
         }
     }
 }

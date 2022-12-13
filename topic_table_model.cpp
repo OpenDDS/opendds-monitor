@@ -452,6 +452,7 @@ void TopicTableModel::parseData(const std::shared_ptr<OpenDynamicData> data)
 //------------------------------------------------------------------------------
 CORBA::TCKind typekind_to_tckind(DDS::TypeKind tk)
 {
+    using namespace OpenDDS::XTypes;
     switch (tk) {
     case TK_INT32:
       return CORBA::tk_long;
@@ -556,7 +557,7 @@ void TopicTableModel::parseData(const DDS::DynamicData_var data)
         case CORBA::tk_long: {
             CORBA::Long value;
             if (check_rc(data->get_int32_value(value, id), "get_int32_value failed")) {
-                data_row->value = static_cast<int32_t>value;
+                data_row->value = static_cast<int32_t>(value);
             }
             break;
         }

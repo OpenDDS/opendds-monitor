@@ -45,7 +45,8 @@ signals:
 private:
 
     /// Get DynamicType for the corresponding topic
-    void get_dynamic_type(DDS::DynamicType_var& type, const DDS::BuiltinTopicKey_t & key);
+    bool get_dynamic_type(DDS::DynamicType_var& type, const DDS::BuiltinTopicKey_t & key,
+                          const char* topic_name, const char* type_name);
 
     /// Stores the built-in data reader for the Publication topic
     DDS::DataReader_ptr m_dataReader;

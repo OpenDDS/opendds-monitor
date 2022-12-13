@@ -9,6 +9,7 @@
 #pragma warning(push, 0)  //No DDS warnings
 #include <dds/DCPS/Serializer.h>
 #include <dds/DdsDcpsCoreC.h>
+#include <dds/DdsDynamicDataC.h>
 #pragma warning(pop)
 
 #include <QStringList>
