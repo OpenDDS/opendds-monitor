@@ -668,9 +668,9 @@ void TopicTableModel::parseData(const DDS::DynamicData_var& data)
             break;
         }
         case CORBA::tk_string: {
-            char* value;
+            CORBA::String_var value;
             if (check_rc(data->get_string_value(value, id), "get_string_value failed")) {
-                data_row->value = value;
+                data_row->value = value.in();
             }
             break;
         }

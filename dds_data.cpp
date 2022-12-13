@@ -268,7 +268,7 @@ void CommonData::storeDynamicSample(const QString& topic_name,
 {
     QMutexLocker locker(&m_dynamicSamplesMutex);
 
-    QList<DDS::DynamicData_var> sample_list = m_dynamicSamples[topic_name];
+    QList<DDS::DynamicData_var>& sample_list = m_dynamicSamples[topic_name];
     // Add new sample
     sample_list.push_front(sample);
     m_sampleTimes[topic_name].push_front(sample_name);

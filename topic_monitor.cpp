@@ -95,7 +95,7 @@ TopicMonitor::TopicMonitor(const QString& topicName) :
         m_dr = subscriber->create_datareader(m_topic,
                                              topicInfo->readerQos,
                                              &m_dr_listener,
-                                             0);
+                                             OpenDDS::DCPS::DEFAULT_STATUS_MASK);
         if (!m_dr) {
             std::cerr << "Failed to create data reader for topic " << topicInfo->name << std::endl;
             return;
