@@ -285,7 +285,7 @@ std::shared_ptr<OpenDynamicData> CommonData::copySample(const QString& topicName
                                         const unsigned int& index)
 {
     std::shared_ptr<OpenDynamicData> newSample;
-    QMutexLocker(&m_sampleMutex);
+    QMutexLocker locker(&m_sampleMutex);
 
     if (m_samples.contains(topicName) &&
        m_samples.value(topicName).size() > (int)index)
