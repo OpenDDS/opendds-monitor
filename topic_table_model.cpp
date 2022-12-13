@@ -450,7 +450,7 @@ void TopicTableModel::parseData(const std::shared_ptr<OpenDynamicData> data)
 } // End TopicTableModel::parseData
 
 //------------------------------------------------------------------------------
-CORBA::TCKind typekind_to_tckind(DDS::TypeKind tk)
+CORBA::TCKind TopicTableModel::typekind_to_tckind(DDS::TypeKind tk)
 {
     using namespace OpenDDS::XTypes;
     switch (tk) {

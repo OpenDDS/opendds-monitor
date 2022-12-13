@@ -12,8 +12,10 @@ std::unique_ptr<DDSManager> CommonData::m_ddsManager;
 QMap<QString, QList<std::shared_ptr<OpenDynamicData> > > CommonData::m_samples;
 QMap<QString, QStringList> CommonData::m_sampleTimes;
 QMap<QString, std::shared_ptr<TopicInfo>> CommonData::m_topicInfo;
+QMap<QString, QList<DDS::DynamicData_var> > CommonData::m_dynamicsamples;
 QMutex CommonData::m_sampleMutex;
 QMutex CommonData::m_topicMutex;
+QMutex CommonData::m_dynsampleMutex;
 
 
 //------------------------------------------------------------------------------
