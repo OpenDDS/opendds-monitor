@@ -9,6 +9,7 @@
 #pragma warning(push, 0)  //No DDS warnings
 #include <dds/DCPS/Serializer.h>
 #include <dds/DdsDcpsCoreC.h>
+#include <dds/DdsDynamicDataC.h>
 #pragma warning(pop)
 
 #include <QStringList>
@@ -146,7 +147,7 @@ public:
      * @brief Fixes history for strict reliable topics. see QosDictionary::Topic::strictReliable()
      */
     void fixHistory();
-    
+
     /**
      * @brief Store the Topic QoS user_data information.
      * @param[in] userData The Topic QoS user_data information.
@@ -185,12 +186,15 @@ public:
 
     /// Type code length
     size_t typeCodeLength;
-    
+
     /// Pointer to the type code information object. Set from user_data in the Topic Qos.
     const CORBA::TypeCode* typeCode;
 
     /// The type code information object. Set from user_data in the Topic Qos.
     std::unique_ptr<CORBA::Any> typeCodeObj;
+
+    /// DynamicType of the topic's type
+    DDS::DynamicType_var dynamic_type;
 
 }; // End TopicInfo
 
@@ -252,6 +256,11 @@ public:
                             const QString& sampleName,
                             const std::shared_ptr<OpenDynamicData> sample);
 
+    /// Store a new sample represented by a DynamicData object.
+    static void storeDynamicSample(const QString& topic_name,
+                                   const QString& sample_name,
+                                   DDS::DynamicData_var sample);
+
     /**
      * @brief Get a copy of a sample for a specified topic.
      * @remarks The caller is responsible for deleting the new sample.
@@ -260,8 +269,10 @@ public:
      * @return A copy of the data sample or NULL if the index wasn't found.
      */
     static std::shared_ptr<OpenDynamicData> copySample(const QString& topicName,
-                                       const unsigned int& index);
+                                                       const unsigned int& index);
 
+    static DDS::DynamicData_var copyDynamicSample(const QString& topic_name,
+                                                  unsigned int index);
     /**
      * @brief Get a list of sample names (timestamps) for a given topic.
      * @param[in] topicName The name of the topic.
@@ -298,11 +309,18 @@ private:
      */
     static QMap<QString, std::shared_ptr<TopicInfo>> m_topicInfo;
 
+    /// Store list of DynamicData objects for each topic.
+    /// We are storing the timestamps for these samples also in m_sampleTimes.
+    static QMap<QString, QList<DDS::DynamicData_var> > m_dynamicSamples;
+
     /// Mutex for protecting access to m_samples.
     static QMutex m_sampleMutex;
 
     /// Mutex for protecting access to m_topicInfo.
     static QMutex m_topicMutex;
+
+    /// Mutex for protecting access to m_dynamicSamples.
+    static QMutex m_dynamicSamplesMutex;
 
     /**
      * @brief Constructor for the DDS Monitor data storage class.

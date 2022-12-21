@@ -3,6 +3,8 @@
 
 #include "first_define.h"
 
+#include <dds/DCPS/XTypes/DynamicTypeSupport.h>
+
 #include <tao/Typecode_typesC.h>
 
 #include <QAbstractTableModel>
@@ -40,6 +42,8 @@ public:
      * @param[in] sample The new DDS data sample.
      */
     void setSample(std::shared_ptr<OpenDynamicData> sample);
+
+    void setSample(DDS::DynamicData_var sample);
 
     /**
      * @brief Commit changes to the current sample.
@@ -175,6 +179,14 @@ private:
      */
     void parseData(const std::shared_ptr<OpenDynamicData> data);
 
+    /// Convert from DDS::TypeKind to CORBA::TCKind. Needed to parse DynamicData.
+    CORBA::TCKind typekind_to_tckind(DDS::TypeKind tk);
+
+    bool check_rc(DDS::ReturnCode_t rc, const char* what);
+
+    /// Parse a DynamicData object into m_data
+    void parseData(const DDS::DynamicData_var& data);
+
     /**
      * @brief Populate a DDS sample member.
      * @param[out] sample Populate this DDS sample.
@@ -195,6 +207,9 @@ private:
 
     /// Stores the data sample for reverting.
     std::shared_ptr<OpenDynamicData> m_sample;
+
+    /// For reverting.
+    DDS::DynamicData_var m_dynamicsample;
 
     /// The name of the topic for this data model
     QString m_topicName;

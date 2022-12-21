@@ -29,8 +29,15 @@ TopicTableModel::TopicTableModel(
         return;
     }
 
-    std::shared_ptr<OpenDynamicData> blankSample = CreateOpenDynamicData(topicInfo->typeCode, QosDictionary::getEncodingKind(), topicInfo->extensibility);
-    setSample(blankSample);
+    // TODO: Keep the call to setSample for blank OpenDynamicData sample and maybe
+    // call setSample overloads conditionally depending on the monitor's settings, i.e.,
+    // whether we want to use OpenDynamicData or DDS's DynamicData.
+
+    // This is not really a blank sample, but a null sample.
+    DDS::DynamicData_var blank_sample;
+    setSample(blank_sample);
+    //    std::shared_ptr<OpenDynamicData> blankSample = CreateOpenDynamicData(topicInfo->typeCode, QosDictionary::getEncodingKind(), topicInfo->extensibility);
+    //    setSample(blankSample);
 }
 
 
@@ -79,6 +86,27 @@ void TopicTableModel::setSample(std::shared_ptr<OpenDynamicData> sample)
 
 } // End TopicTableModel::updateSample
 
+//------------------------------------------------------------------------------
+void TopicTableModel::setSample(DDS::DynamicData_var sample)
+{
+    if (!sample) {
+        std::cerr << "TopicTableModel::setSample: Sample is null" << std::endl;
+        return;
+    }
+
+    emit layoutAboutToBeChanged();
+
+    while (!m_data.empty()) {
+        delete m_data.back();
+        m_data.pop_back();
+    }
+
+    // Store sample for reverting any changes to it.
+    m_dynamicsample = sample;
+    parseData(m_dynamicsample);
+
+    emit layoutChanged();
+}
 
 //------------------------------------------------------------------------------
 const std::shared_ptr<OpenDynamicData> TopicTableModel::commitSample()
@@ -449,6 +477,211 @@ void TopicTableModel::parseData(const std::shared_ptr<OpenDynamicData> data)
 
 } // End TopicTableModel::parseData
 
+//------------------------------------------------------------------------------
+CORBA::TCKind TopicTableModel::typekind_to_tckind(DDS::TypeKind tk)
+{
+    using namespace OpenDDS::XTypes;
+    switch (tk) {
+    case TK_INT32:
+      return CORBA::tk_long;
+    case TK_UINT32:
+      return CORBA::tk_ulong;
+    case TK_INT16:
+      return CORBA::tk_short;
+    case TK_UINT16:
+      return CORBA::tk_ushort;
+    case TK_INT64:
+      return CORBA::tk_longlong;
+    case TK_UINT64:
+      return CORBA::tk_ulonglong;
+    case TK_FLOAT32:
+      return CORBA::tk_float;
+    case TK_FLOAT64:
+      return CORBA::tk_double;
+    case TK_FLOAT128:
+      return CORBA::tk_longdouble;
+    case TK_CHAR8:
+      return CORBA::tk_char;
+    case TK_CHAR16:
+      return CORBA::tk_wchar;
+    case TK_BYTE:
+      return CORBA::tk_octet;
+    case TK_BOOLEAN:
+      return CORBA::tk_boolean;
+    case TK_STRING8:
+      return CORBA::tk_string;
+    case TK_STRING16:
+      return CORBA::tk_wstring;
+    case TK_ENUM:
+      return CORBA::tk_enum;
+    case TK_SEQUENCE:
+      return CORBA::tk_sequence;
+    case TK_ARRAY:
+      return CORBA::tk_array;
+    case TK_STRUCTURE:
+      return CORBA::tk_struct;
+    case TK_UNION:
+      return CORBA::tk_union;
+    default:
+      // Use tk_void?
+      return CORBA::tk_void;
+    }
+}
+
+//------------------------------------------------------------------------------
+bool TopicTableModel::check_rc(DDS::ReturnCode_t rc, const char* what)
+{
+  if (rc != DDS::RETCODE_OK) {
+    std::cerr << "WARNING: " << what << std::endl;
+    return false;
+  }
+  return true;
+}
+
+//------------------------------------------------------------------------------
+void TopicTableModel::parseData(const DDS::DynamicData_var& data)
+{
+    DDS::DynamicType_var type = data->type();
+    const unsigned int count = data->get_item_count();
+    for (unsigned int i = 0; i < count; ++i) {
+        DDS::MemberId id = data->get_member_id_at_index(i);
+        if (id == OpenDDS::XTypes::MEMBER_ID_INVALID) {
+            std::cerr << "Failed to get MemberId at index " << i << std::endl;
+            continue;
+        }
+
+        DDS::DynamicTypeMember_var dtm;
+        DDS::ReturnCode_t ret = type->get_member(dtm, id);
+        if (ret != DDS::RETCODE_OK) {
+            std::cerr << "Failed to get DynamicTypeMember for member Id " << id << std::endl;
+            continue;
+        }
+        DDS::MemberDescriptor_var md;
+        ret = dtm->get_descriptor(md);
+        if (ret != DDS::RETCODE_OK) {
+            std::cerr << "Failed to get MemberDescriptor for member Id " << id << std::endl;
+            continue;
+        }
+
+        // DataRow for each member
+        DataRow* data_row = new DataRow;
+        data_row->type = typekind_to_tckind(md->type()->get_kind());
+        data_row->isOptional = false; // TODO: set to the right value
+        data_row->name = md->name();
+        data_row->isKey = false; // TODO: set to the right value
+
+        // Update the current editor delegate
+        const int thisRow = static_cast<int>(m_data.size());
+        if (m_tableView->itemDelegateForRow(thisRow))
+        {
+            delete m_tableView->itemDelegateForRow(thisRow);
+        }
+        m_tableView->setItemDelegateForRow(thisRow, new LineEditDelegate(this));
+
+        // Store the value into a QVariant
+        // TODO: This only supports members of basic types. Need updates to handle
+        // more complex members (sequence, array, struct, union, etc).
+        switch (data_row->type) {
+        case CORBA::tk_long: {
+            CORBA::Long value;
+            if (check_rc(data->get_int32_value(value, id), "get_int32_value failed")) {
+                data_row->value = static_cast<int32_t>(value);
+            }
+            break;
+        }
+        case CORBA::tk_short: {
+            CORBA::Short value;
+            if (check_rc(data->get_int16_value(value, id), "get_int16_value failed")) {
+                data_row->value = static_cast<int16_t>(value);
+            }
+            break;
+        }
+        case CORBA::tk_ushort: {
+            CORBA::UShort value;
+            if (check_rc(data->get_uint16_value(value, id), "get_uint16_value failed")) {
+                data_row->value = static_cast<uint16_t>(value);
+            }
+            break;
+        }
+        case CORBA::tk_ulong: {
+            CORBA::ULong value;
+            if (check_rc(data->get_uint32_value(value, id), "get_uint32_value failed")) {
+                data_row->value = static_cast<uint32_t>(value);
+            }
+            break;
+        }
+        case CORBA::tk_float: {
+            CORBA::Float value;
+            if (check_rc(data->get_float32_value(value, id), "get_float32_value failed")) {
+                data_row->value = static_cast<float>(value);
+            }
+            break;
+        }
+        case CORBA::tk_double: {
+            CORBA::Double value;
+            if (check_rc(data->get_float64_value(value, id), "get_float64_value failed")) {
+                data_row->value = static_cast<double>(value);
+            }
+            break;
+        }
+        case CORBA::tk_boolean: {
+            CORBA::Boolean value;
+            if (check_rc(data->get_boolean_value(value, id), "get_boolean_value failed")) {
+                data_row->value = static_cast<uint32_t>(value);
+            }
+            break;
+        }
+        case CORBA::tk_char: {
+            CORBA::Char value;
+            if (check_rc(data->get_char8_value(value, id), "get_char8_value failed")) {
+                data_row->value = value;
+            }
+            break;
+        }
+        case CORBA::tk_wchar: {
+            CORBA::WChar value;
+            if (check_rc(data->get_char16_value(value, id), "get_char16_value failed")) {
+                // TODO: Set to data_row?
+                // data_row->value = value;
+            }
+            break;
+        }
+        case CORBA::tk_octet: {
+            CORBA::Octet value;
+            if (check_rc(data->get_byte_value(value, id), "get_byte_value failed")) {
+                data_row->value = static_cast<uint8_t>(value);
+            }
+            break;
+        }
+        case CORBA::tk_longlong: {
+            CORBA::LongLong value;
+            if (check_rc(data->get_int64_value(value, id), "get_int64_value failed")) {
+                data_row->value = static_cast<qint64>(value);
+            }
+            break;
+        }
+        case CORBA::tk_ulonglong: {
+            CORBA::ULongLong value;
+            if (check_rc(data->get_uint64_value(value, id), "get_uint64_value failed")) {
+                data_row->value = static_cast<quint64>(value);
+            }
+            break;
+        }
+        case CORBA::tk_string: {
+            CORBA::String_var value;
+            if (check_rc(data->get_string_value(value, id), "get_string_value failed")) {
+                data_row->value = value.in();
+            }
+            break;
+        }
+        default:
+            data_row->value = "NULL";
+            break;
+        }
+
+        m_data.push_back(data_row);
+    }
+}
 
 //------------------------------------------------------------------------------
 bool TopicTableModel::populateSample(std::shared_ptr<OpenDynamicData> const sample,

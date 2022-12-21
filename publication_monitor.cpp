@@ -1,4 +1,5 @@
 #include <dds/DCPS/BuiltInTopicUtils.h>
+#include <dds/DCPS/XTypes/DynamicTypeSupport.h>
 #include <iostream>
 
 #include "dds_data.h"
@@ -92,18 +93,21 @@ void PublicationMonitor::on_data_available(DDS::DataReader_ptr reader)
 
         std::shared_ptr<TopicInfo> topicInfo = CommonData::getTopicInfo(topicName);
 
-        // If we already know about this topic but don't have the typecode, add it
-        if (topicInfo != nullptr &&
-            topicInfo->typeCode == nullptr &&
-            userDataSize > 0)
-        {
-            topicInfo->storeUserData(sampleData.topic_data.value);
-        }
-        
-        // If we already know about this topic, just store additional
-        // partition information and move on
-        if (topicInfo != nullptr)
-        {
+        if (topicInfo != nullptr) {
+            if (topicInfo->typeCode == nullptr && userDataSize > 0) {
+                // If we already know about this topic but don't have the typecode, add it
+                topicInfo->storeUserData(sampleData.topic_data.value);
+            }
+            if (!topicInfo->dynamic_type) {
+                // Try getting DynamicType of this topic again if it failed before
+                DDS::DynamicType_var dt;
+                if (get_dynamic_type(dt, sampleData.key, sampleData.topic_name, sampleData.type_name)) {
+                    topicInfo->dynamic_type = dt;
+                }
+            }
+
+            // If we already know about this topic, just store additional
+            // partition information and move on
             topicInfo->addPartitions(sampleData.partition);
             continue;
         }
@@ -126,6 +130,11 @@ void PublicationMonitor::on_data_available(DDS::DataReader_ptr reader)
         topicInfo->setPresentationPolicy(sampleData.presentation);
         topicInfo->addPartitions(sampleData.partition);
         topicInfo->fixHistory();
+        // Get DynamicType of the topic
+        DDS::DynamicType_var dt;
+        if (get_dynamic_type(dt, sampleData.key, sampleData.topic_name, sampleData.type_name)) {
+            topicInfo->dynamic_type = dt;
+        }
         CommonData::storeTopicInfo(topicName, topicInfo);
 
         // Check for USR specific user data
@@ -142,6 +151,22 @@ void PublicationMonitor::on_data_available(DDS::DataReader_ptr reader)
 
 } // End PublicationMonitor::on_data_available
 
+bool PublicationMonitor::get_dynamic_type(DDS::DynamicType_var& type, const DDS::BuiltinTopicKey_t& key,
+                                          const char* topic_name, const char* type_name)
+{
+    DDS::DomainParticipant_var participant_var = CommonData::m_ddsManager->getDomainParticipant();
+    OpenDDS::DCPS::DomainParticipantImpl* participant = dynamic_cast<OpenDDS::DCPS::DomainParticipantImpl*>(participant_var.in());
+
+    DDS::ReturnCode_t ret = participant->get_dynamic_type(type, key);
+    if (ret != DDS::RETCODE_OK) {
+        std::cout << "WARNING: get_dynamic_type for topic " << topic_name
+                  << " returned " << OpenDDS::DCPS::retcode_to_string(ret) << std::endl;
+        return false;
+    }
+    DDS::TypeSupport_var dts = new DDS::DynamicTypeSupport(type);
+    dts->register_type(participant, type_name);
+    return true;
+}
 
 /**
  * @}

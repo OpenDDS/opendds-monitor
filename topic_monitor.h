@@ -74,6 +74,38 @@ public:
         TopicMonitor& m_monitor;
     };
 
+    void on_data_available(DDS::DataReader_ptr);
+
+    class DataReaderListenerImpl : public virtual OpenDDS::DCPS::LocalObject<DDS::DataReaderListener>
+    {
+    public:
+      DataReaderListenerImpl(TopicMonitor& monitor) : m_monitor(monitor) {}
+      virtual void on_requested_deadline_missed(DDS::DataReader_ptr,
+                                                const DDS::RequestedDeadlineMissedStatus&) {}
+
+      virtual void on_requested_incompatible_qos(DDS::DataReader_ptr,
+                                                 const DDS::RequestedIncompatibleQosStatus&) {}
+
+      virtual void on_liveliness_changed(DDS::DataReader_ptr,
+                                         const DDS::LivelinessChangedStatus&) {}
+
+      virtual void on_subscription_matched(DDS::DataReader_ptr,
+                                           const DDS::SubscriptionMatchedStatus&) {}
+
+      virtual void on_sample_rejected(DDS::DataReader_ptr,
+                                      const DDS::SampleRejectedStatus&) {}
+
+      virtual void on_data_available(DDS::DataReader_ptr reader)
+      {
+        m_monitor.on_data_available(reader);
+      }
+
+      virtual void on_sample_lost(DDS::DataReader_ptr,
+                                  const DDS::SampleLostStatus&) {}
+    private:
+      TopicMonitor& m_monitor;
+    };
+
     /**
      * @brief Stop receiving samples.
      */
@@ -105,6 +137,12 @@ private:
 
     /// Stores the recorder object for this monitor.
     OpenDDS::DCPS::Recorder* m_recorder;
+
+    /// Listener for a dynamic reader
+    DataReaderListenerImpl m_dr_listener;
+
+    /// A dynamic data reader for this topic
+    DDS::DataReader_var m_dr;
 
     /// Stores the topic object for this monitor.
     DDS::Topic* m_topic;

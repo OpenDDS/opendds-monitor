@@ -614,12 +614,21 @@ void TablePage::setSample(const QString& sampleName)
     }
 
     m_selectedSample = sampleName;
+
+    // Comment out functionality for OpenDynamicData.
+    // Uncomment when we support both DynamicData and OpenDynamicData.
+    /*
     auto sample = CommonData::copySample(m_topicName, index);
     if (sample != nullptr)
     {
         m_tableModel->setSample(sample);
         //printf("\n=== %s ===\n", m_topicName.toUtf8().data());
         //sample->dump();
+    }
+    */
+    DDS::DynamicData_var sample = CommonData::copyDynamicSample(m_topicName, index);
+    if (sample) {
+        m_tableModel->setSample(sample);
     }
 
     revertButton->setEnabled(false);

@@ -5,6 +5,7 @@
 #include "dds_manager.h"
 #include "dds_data.h"
 #include "qos_dictionary.h"
+#include <dds/DCPS/XTypes/DynamicTypeSupport.h>
 #include <QDateTime>
 #include <iostream>
 
@@ -15,6 +16,7 @@ TopicMonitor::TopicMonitor(const QString& topicName) :
                            m_filter(""),
                            m_typeCode(nullptr),
                            m_listener(OpenDDS::DCPS::make_rch<RecorderListener>(OpenDDS::DCPS::ref(*this))),
+                           m_dr_listener(*this),
                            m_recorder(nullptr),
                            m_topic(nullptr),
                            m_paused(false)
@@ -29,48 +31,76 @@ TopicMonitor::TopicMonitor(const QString& topicName) :
         return;
     }
 
-    m_typeCode = topicInfo->typeCode;
-
     //store extensibility
     m_extensibility = topicInfo->extensibility;
-
     OpenDDS::DCPS::Service_Participant* service = TheServiceParticipant;
-    DDS::DomainParticipant* domain = CommonData::m_ddsManager ? CommonData::m_ddsManager->getDomainParticipant() : nullptr;
-
-    if (!domain) {
-        std::cerr << "No domain participant" << std::endl;
-        return;
+    DDS::DomainParticipant_var participant;
+    if (CommonData::m_ddsManager) {
+      participant = CommonData::m_ddsManager->getDomainParticipant();
     }
 
-    m_topic = service->create_typeless_topic(domain,
-        topicInfo->name.c_str(),
-        topicInfo->typeName.c_str(),
-        topicInfo->hasKey,
-        topicInfo->topicQos,
-        new GenericTopicListener,
-        DDS::INCONSISTENT_TOPIC_STATUS);
-
-    if (!m_topic)
-    {
-        std::cerr << "Failed to create topic" << std::endl;
-        return;
+    if (!participant) {
+      std::cerr << "No domain participant" << std::endl;
+      return;
     }
 
-    //std::cout << "DEBUG Created typeless topic, now creating recorder" << endl;
-    m_recorder = service->create_recorder(
-        domain,
-        m_topic,
-        topicInfo->subQos,
-        topicInfo->readerQos,
-        m_listener
-    );
+    if (topicInfo->typeCode) {
+        // Use the existing mechanism based on TypeCode.
+        m_typeCode = topicInfo->typeCode;
+        m_topic = service->create_typeless_topic(participant,
+                                                 topicInfo->name.c_str(),
+                                                 topicInfo->typeName.c_str(),
+                                                 topicInfo->hasKey,
+                                                 topicInfo->topicQos,
+                                                 new GenericTopicListener,
+                                                 DDS::INCONSISTENT_TOPIC_STATUS);
+        if (!m_topic) {
+            std::cerr << "Failed to create typeless topic " << topicInfo->name << std::endl;
+            return;
+        }
 
-    if (!m_recorder)
-    {
-        std::cerr << "Failed to created recorder" << std::endl;
-        return;
+        //std::cout << "DEBUG Created typeless topic, now creating recorder" << endl;
+        m_recorder = service->create_recorder(participant,
+                                              m_topic,
+                                              topicInfo->subQos,
+                                              topicInfo->readerQos,
+                                              m_listener);
+        if (!m_recorder) {
+            std::cerr << "Failed to created recorder for topic " << topicInfo->name << std::endl;
+            return;
+        }
+    } else {
+        // Use DynamicDataReader instead.
+        // When this is called, the information about this topic including its
+        // DynamicType should be already obtained. The topic's type should also be
+        // registered with the local domain participant.
+        m_topic = participant->create_topic(topicInfo->name.c_str(),
+                                            topicInfo->typeName.c_str(),
+                                            topicInfo->topicQos,
+                                            0,
+                                            0);
+        if (!m_topic) {
+            std::cerr << "Failed to create topic " << topicInfo->name << std::endl;
+            return;
+        }
+
+        DDS::Subscriber_var subscriber = participant->create_subscriber(topicInfo->subQos,
+                                                                        0,
+                                                                        0);
+        if (!subscriber) {
+            std::cerr << "Failed to create subscriber for topic " << topicInfo->name << std::endl;
+            return;
+        }
+
+        m_dr = subscriber->create_datareader(m_topic,
+                                             topicInfo->readerQos,
+                                             &m_dr_listener,
+                                             OpenDDS::DCPS::DEFAULT_STATUS_MASK);
+        if (!m_dr) {
+            std::cerr << "Failed to create data reader for topic " << topicInfo->name << std::endl;
+            return;
+        }
     }
-
 } // End TopicMonitor::TopicMonitor
 
 
@@ -140,11 +170,11 @@ void TopicMonitor::on_sample_data_received(OpenDDS::DCPS::Recorder*,
     {
         return;
     }
-    
+
     OpenDDS::DCPS::Encoding::Kind globalEncoding = QosDictionary::getEncodingKind();
     //printf("\n=== TopicMonitor::on_sample_data_received ===\n");
     //printf("Size = %zu bytes\n", rawSample.sample_->length());
-    
+
     if (rawSample.header_.message_id_ != OpenDDS::DCPS::SAMPLE_DATA)
     {
         printf("\nSkipping message that is not SAMPLE_DATA. This should not be possible! Something must have changed in OpenDDS\'s RecorderImpl::data_received(const ReceivedDataSample& sample) function in an incompatible way.\n");
@@ -161,18 +191,18 @@ void TopicMonitor::on_sample_data_received(OpenDDS::DCPS::Recorder*,
         printf("There probably is a mismatch between the configuration of ddsmon and one or more publishers. Either the UseXTypes flag in opendds.ini or DDS_USE_OLD_CDR environment variable.\n");
         return;
     }
-        
+
     OpenDDS::DCPS::Serializer serial(
         rawSample.sample_.get(), rawSample.encoding_kind_, static_cast<OpenDDS::DCPS::Endianness>(rawSample.header_.byte_order_));
 
     //RJ 2022-01-20 With OpenDDS 3.19.0, the entire message header is read before the sample gets passed to this function.
-    //Code that strips off the RTPS header has been removed. 
+    //Code that strips off the RTPS header has been removed.
     //Same with the reset_alignment call in the serializer. That has already happened before the sample is passed to this function.
     bool pass = true;
 
     std::shared_ptr<OpenDynamicData> sample = CreateOpenDynamicData(m_typeCode, globalEncoding, m_extensibility);
     if (globalEncoding !=  OpenDDS::DCPS::Encoding::KIND_XCDR1)
-    {                    
+    {
         std::cout << "Removing delimiter header" << std::endl;
         uint32_t delim_header=0;
         if (! (serial >> delim_header)) {
@@ -196,10 +226,10 @@ void TopicMonitor::on_sample_data_received(OpenDDS::DCPS::Recorder*,
         {
             OpenDDS::DCPS::FilterEvaluator filterTest(m_filter.toUtf8().data(), false);
             DynamicMetaStruct metaInfo(sample);
- 
+
             const DDS::StringSeq noParams;
             pass = filterTest.eval(rawSample.sample_.get(), false, false, metaInfo, noParams, m_extensibility);
-            
+
         }
         catch (const std::exception& e)
         {
@@ -224,6 +254,35 @@ void TopicMonitor::on_sample_data_received(OpenDDS::DCPS::Recorder*,
 
 } // End TopicMonitor::on_sample_data_received
 
+void TopicMonitor::on_data_available(DDS::DataReader_ptr dr)
+{
+    if (m_paused) {
+        return;
+    }
+
+    DDS::DynamicDataReader_var ddr = DDS::DynamicDataReader::_narrow(dr);
+    DDS::DynamicDataSeq messages;
+    DDS::SampleInfoSeq infos;
+    const DDS::ReturnCode_t ret = ddr->take(messages, infos, DDS::LENGTH_UNLIMITED,
+      DDS::ANY_SAMPLE_STATE, DDS::ANY_VIEW_STATE, DDS::ANY_INSTANCE_STATE);
+    if (ret != DDS::RETCODE_OK && ret != DDS::RETCODE_NO_DATA) {
+        std::cerr << "Failed to take samples for topic "
+                  << m_topicName.toStdString() << std::endl;
+        return;
+    }
+
+    for (unsigned int i = 0; i < messages.length(); ++i) {
+        if (infos[i].valid_data) {
+            // TODO: Apply content filtering when it's supported.
+            QDateTime dataTime = QDateTime::fromMSecsSinceEpoch(
+              (static_cast<unsigned long long>(infos[i].source_timestamp.sec) * 1000) +
+              (static_cast<unsigned long long>(infos[i].source_timestamp.nanosec) * 1e-6));
+            QString sampleName = dataTime.toString("HH:mm:ss.zzz");
+            CommonData::storeDynamicSample(m_topicName, sampleName,
+                                           DDS::DynamicData::_duplicate(messages[i].in()));
+        }
+    }
+}
 
 //------------------------------------------------------------------------------
 void TopicMonitor::pause()
