@@ -38,68 +38,68 @@ endif (NOT ${Qwt_FOUND})
 set(CMAKE_AUTOMOC FALSE)
 
 set(UI
-  graph_page.ui
-  graph_properties.ui
-  log_page.ui
-  main_window.ui
-  participant_page.ui
-  recorder_dialog.ui
-  table_page.ui
+  ui/graph_page.ui
+  ui/graph_properties.ui
+  ui/log_page.ui
+  ui/main_window.ui
+  ui/participant_page.ui
+  ui/recorder_dialog.ui
+  ui/table_page.ui
 )
 
 set(HEADER
-  dds_callback.h
-  dds_data.h
-  dds_listeners.h
-  dds_logging.h
-  dds_manager.h
-  dds_manager.hpp
-  dynamic_meta_struct.h
-  editor_delegates.h
-  filesystem.hpp
-  first_define.h
-  graph_page.h
-  log_page.h
-  main_window.h
-  open_dynamic_data.h
-  participant_monitor.h
-  participant_page.h
-  participant_table_model.h
-  platformIndependent.h
-  publication_monitor.h
-  qos_dictionary.h
-  recorder_dialog.h
-  subscription_monitor.h
-  table_page.h
-  topic_monitor.h
-  topic_replayer.h
-  topic_table_model.h
+  src/dds_callback.h
+  src/dds_data.h
+  src/dds_listeners.h
+  src/dds_logging.h
+  src/dds_manager.h
+  src/dds_manager.hpp
+  src/dynamic_meta_struct.h
+  src/editor_delegates.h
+  src/filesystem.hpp
+  src/first_define.h
+  src/graph_page.h
+  src/log_page.h
+  src/main_window.h
+  src/open_dynamic_data.h
+  src/participant_monitor.h
+  src/participant_page.h
+  src/participant_table_model.h
+  src/platformIndependent.h
+  src/publication_monitor.h
+  src/qos_dictionary.h
+  src/recorder_dialog.h
+  src/subscription_monitor.h
+  src/table_page.h
+  src/topic_monitor.h
+  src/topic_replayer.h
+  src/topic_table_model.h
 )
 
 set(SOURCE
-  dds_callback.cpp
-  dds_data.cpp
-  dds_listeners.cpp
-  dds_logging.cpp
-  dds_manager.cpp
-  dynamic_meta_struct.cpp
-  editor_delegates.cpp
-  graph_page.cpp
-  log_page.cpp
-  main.cpp
-  main_window.cpp
-  open_dynamic_data.cpp
-  participant_monitor.cpp
-  participant_page.cpp
-  participant_table_model.cpp
-  publication_monitor.cpp
-  qos_dictionary.cpp
-  recorder_dialog.cpp
-  subscription_monitor.cpp
-  table_page.cpp
-  topic_monitor.cpp
-  topic_replayer.cpp
-  topic_table_model.cpp
+  src/dds_callback.cpp
+  src/dds_data.cpp
+  src/dds_listeners.cpp
+  src/dds_logging.cpp
+  src/dds_manager.cpp
+  src/dynamic_meta_struct.cpp
+  src/editor_delegates.cpp
+  src/graph_page.cpp
+  src/log_page.cpp
+  src/main.cpp
+  src/main_window.cpp
+  src/open_dynamic_data.cpp
+  src/participant_monitor.cpp
+  src/participant_page.cpp
+  src/participant_table_model.cpp
+  src/publication_monitor.cpp
+  src/qos_dictionary.cpp
+  src/recorder_dialog.cpp
+  src/subscription_monitor.cpp
+  src/table_page.cpp
+  src/topic_monitor.cpp
+  src/topic_replayer.cpp
+  src/topic_table_model.cpp
 )
 
 # Add the windows explorer icon
@@ -110,16 +110,16 @@ endif(WIN32)
 qt5_add_resources(RESOURCES ddsmon.qrc)
 
 qt5_wrap_cpp(MOC_SOURCE
-  graph_page.h
-  log_page.h
-  main_window.h
-  participant_page.h
-  participant_table_model.h
-  publication_monitor.h
-  recorder_dialog.h
-  subscription_monitor.h
-  table_page.h
-  topic_table_model.h
+  src/graph_page.h
+  src/log_page.h
+  src/main_window.h
+  src/participant_page.h
+  src/participant_table_model.h
+  src/publication_monitor.h
+  src/recorder_dialog.h
+  src/subscription_monitor.h
+  src/table_page.h
+  src/topic_table_model.h
 )
 
 qt5_wrap_ui(UI_SOURCE ${UI})
@@ -159,4 +159,4 @@ target_include_directories(monitor PRIVATE
   ${CMAKE_BINARY_DIR}
 )
 
-OPENDDS_TARGET_SOURCES(monitor std_qos.idl)
+OPENDDS_TARGET_SOURCES(monitor idl/std_qos.idl)
