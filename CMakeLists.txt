@@ -37,23 +37,26 @@ endif (NOT ${Qwt_FOUND})
 
 set(CMAKE_AUTOMOC FALSE)
 
-set(UI
-  ui/graph_page.ui
-  ui/graph_properties.ui
-  ui/log_page.ui
-  ui/main_window.ui
-  ui/participant_page.ui
-  ui/recorder_dialog.ui
-  ui/table_page.ui
-)
-
-set(HEADER
+set(MANAGER_HEADER
   src/dds_callback.h
-  src/dds_data.h
   src/dds_listeners.h
   src/dds_logging.h
   src/dds_manager.h
-  src/dds_manager.hpp
+  src/participant_monitor.h
+  src/qos_dictionary.h
+)
+
+set(MANAGER_SOURCE
+  src/dds_callback.cpp
+  src/dds_listeners.cpp
+  src/dds_logging.cpp
+  src/dds_manager.cpp
+  src/participant_monitor.cpp
+  src/qos_dictionary.cpp
+)
+
+set(HEADER
+  src/dds_data.h
   src/dynamic_meta_struct.h
   src/editor_delegates.h
   src/filesystem.hpp
@@ -62,12 +65,10 @@ set(HEADER
   src/log_page.h
   src/main_window.h
   src/open_dynamic_data.h
-  src/participant_monitor.h
   src/participant_page.h
   src/participant_table_model.h
   src/platformIndependent.h
   src/publication_monitor.h
-  src/qos_dictionary.h
   src/recorder_dialog.h
   src/subscription_monitor.h
   src/table_page.h
@@ -77,11 +78,7 @@ set(HEADER
 )
 
 set(SOURCE
-  src/dds_callback.cpp
   src/dds_data.cpp
-  src/dds_listeners.cpp
-  src/dds_logging.cpp
-  src/dds_manager.cpp
   src/dynamic_meta_struct.cpp
   src/editor_delegates.cpp
   src/graph_page.cpp
@@ -89,17 +86,25 @@ set(SOURCE
   src/main.cpp
   src/main_window.cpp
   src/open_dynamic_data.cpp
-  src/participant_monitor.cpp
   src/participant_page.cpp
   src/participant_table_model.cpp
   src/publication_monitor.cpp
-  src/qos_dictionary.cpp
   src/recorder_dialog.cpp
   src/subscription_monitor.cpp
   src/table_page.cpp
   src/topic_monitor.cpp
   src/topic_replayer.cpp
   src/topic_table_model.cpp
+)
+
+set(UI
+  ui/graph_page.ui
+  ui/graph_properties.ui
+  ui/log_page.ui
+  ui/main_window.ui
+  ui/participant_page.ui
+  ui/recorder_dialog.ui
+  ui/table_page.ui
 )
 
 # Add the windows explorer icon
@@ -124,7 +129,36 @@ qt5_wrap_cpp(MOC_SOURCE
 
 qt5_wrap_ui(UI_SOURCE ${UI})
 
+add_library(manager
+  ${MANAGER_HEADER}
+  ${MANAGER_SOURCE}
+)
+
+target_compile_features(manager PRIVATE cxx_std_17)
+
+if (MSVC)
+  target_compile_definitions(manager PRIVATE _CRT_SECURE_NO_WARNINGS)
+endif()
+
+target_link_libraries(manager
+  OpenDDS::Dcps
+  OpenDDS::Rtps
+  OpenDDS::Rtps_Udp
+  OpenDDS::Tcp
+  OpenDDS::Shmem
+  OpenDDS::Udp
+  OpenDDS::Multicast
+  Threads::Threads
+)
+
+target_include_directories(manager PRIVATE
+  ${CMAKE_BINARY_DIR}
+)
+
+OPENDDS_TARGET_SOURCES(manager idl/std_qos.idl)
+
 add_executable(monitor
+  ${MANAGER_HEADER}
   ${HEADER}
   ${SOURCE}
   ${RESOURCES}
@@ -139,10 +173,7 @@ if (MSVC)
 endif()
 
 target_link_libraries(monitor
-  OpenDDS::Dcps
-  OpenDDS::Rtps
-  OpenDDS::Rtps_Udp
-  OpenDDS::Tcp
+  manager
   ${QWT_LIBRARY}
   Qt5::PrintSupport
   Qt5::Widgets
@@ -150,7 +181,6 @@ target_link_libraries(monitor
   Qt5::Gui
   Qt5::Svg
   Qt5::OpenGL
-  Threads::Threads
   $<$<NOT:$<PLATFORM_ID:Windows>>:Qt5::DBus>
 )
 
@@ -159,4 +189,24 @@ target_include_directories(monitor PRIVATE
   ${CMAKE_BINARY_DIR}
 )
 
-OPENDDS_TARGET_SOURCES(monitor idl/std_qos.idl)
+add_executable(testapp
+  ${MANAGER_HEADER}
+  test/main.cpp
+)
+
+target_compile_features(testapp PRIVATE cxx_std_17)
+
+if (MSVC)
+  target_compile_definitions(testapp PRIVATE _CRT_SECURE_NO_WARNINGS)
+endif()
+
+OPENDDS_TARGET_SOURCES(testapp test/test.idl OPENDDS_IDL_OPTIONS "-Gxtypes-complete" SUPPRESS_ANYS OFF)
+
+target_link_libraries(testapp
+  manager
+)
+
+target_include_directories(testapp PRIVATE
+  ${CMAKE_BINARY_DIR}
+  src
+)

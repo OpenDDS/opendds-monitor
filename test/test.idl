@@ -1,0 +1,81 @@
+#include <dds/DdsDcpsCore.idl>
+
+module test {
+
+struct BasicTypes {
+  unsigned short us;
+  short s;
+  unsigned long ul;
+  long l;
+  unsigned long long ull;
+  long long ll;
+  float f;
+  double d;
+  long double ld;
+  boolean b;
+  octet o;
+  char c;
+  wchar wc;
+  string str;
+  wstring wstr;
+};
+
+@topic
+struct BasicMessage {
+  string origin;
+  unsigned long long count;
+  BasicTypes bt;
+};
+
+typedef sequence<BasicTypes> BasicTypesSeq;
+typedef sequence<BasicTypesSeq> BasicTypesSeqSeq;
+
+enum EnumType { one, two, three, four };
+
+union UnionType switch (EnumType) {
+case one:
+  string str;
+case two:
+  BasicTypes bt;
+case three:
+  BasicTypesSeq bts;
+case four:
+  BasicTypesSeqSeq btss;
+};
+
+struct TreeNode;
+
+typedef sequence<TreeNode> TreeNodeSeq;
+
+struct TreeNode {
+  EnumType et;
+  UnionType ut;
+  TreeNodeSeq tns;
+};
+
+union ComplexUnionType switch (EnumType) {
+case one:
+  string str;
+case two:
+  UnionType ut;
+case three:
+  TreeNode tn;
+case four:
+  TreeNodeSeq tns;
+};
+
+typedef sequence<ComplexUnionType> ComplexUnionTypeSeq;
+
+struct ComplexTypes {
+  BasicTypes bt;
+  ComplexUnionTypeSeq cuts;
+};
+
+@topic
+struct ComplexMessage {
+  string origin;
+  unsigned long long count;
+  ComplexTypes ct;
+};
+
+};
