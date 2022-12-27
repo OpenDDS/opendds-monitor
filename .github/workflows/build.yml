@@ -21,7 +21,7 @@ jobs:
       matrix:
         opendds_branch:
           - master
-          # - latest-release
+          - latest-release
         runner:
           - windows-2022
           - windows-2019
