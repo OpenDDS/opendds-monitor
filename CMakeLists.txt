@@ -189,24 +189,51 @@ target_include_directories(monitor PRIVATE
   ${CMAKE_BINARY_DIR}
 )
 
-add_executable(testapp
+add_executable(managed_testapp
   ${MANAGER_HEADER}
-  test/main.cpp
+  test/managed.cpp
 )
 
-target_compile_features(testapp PRIVATE cxx_std_17)
+target_compile_features(managed_testapp PRIVATE cxx_std_17)
 
 if (MSVC)
-  target_compile_definitions(testapp PRIVATE _CRT_SECURE_NO_WARNINGS)
+  target_compile_definitions(managed_testapp PRIVATE _CRT_SECURE_NO_WARNINGS)
 endif()
 
-OPENDDS_TARGET_SOURCES(testapp test/test.idl OPENDDS_IDL_OPTIONS "-Gxtypes-complete" SUPPRESS_ANYS OFF)
+OPENDDS_TARGET_SOURCES(managed_testapp test/test.idl OPENDDS_IDL_OPTIONS "-Gxtypes-complete" SUPPRESS_ANYS OFF)
 
-target_link_libraries(testapp
+target_link_libraries(managed_testapp
   manager
 )
 
-target_include_directories(testapp PRIVATE
+target_include_directories(managed_testapp PRIVATE
+  ${CMAKE_BINARY_DIR}
+  src
+)
+
+add_executable(unmanaged_testapp
+  test/unmanaged.cpp
+)
+
+target_compile_features(unmanaged_testapp PRIVATE cxx_std_17)
+
+if (MSVC)
+  target_compile_definitions(unmanaged_testapp PRIVATE _CRT_SECURE_NO_WARNINGS)
+endif()
+
+OPENDDS_TARGET_SOURCES(unmanaged_testapp test/test.idl OPENDDS_IDL_OPTIONS "-Gxtypes-complete" SUPPRESS_ANYS OFF)
+
+target_link_libraries(unmanaged_testapp
+  OpenDDS::Dcps
+  OpenDDS::Rtps
+  OpenDDS::Rtps_Udp
+  OpenDDS::Tcp
+  OpenDDS::Shmem
+  OpenDDS::Udp
+  OpenDDS::Multicast
+)
+
+target_include_directories(unmanaged_testapp PRIVATE
   ${CMAKE_BINARY_DIR}
   src
 )

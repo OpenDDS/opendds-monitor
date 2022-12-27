@@ -20,8 +20,8 @@ std::string to_str(const T& t) {
   return oss.str();
 }
 
-const char basic_topic_name[] = "Basic";
-const char complex_topic_name[] = "Complex";
+const char basic_topic_name[] = "Managed-Basic";
+const char complex_topic_name[] = "Managed-Complex";
 
 int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
 {
@@ -51,11 +51,11 @@ int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
   bool create_complex_message_publisher_result = dds_manager->createPublisher(complex_topic_name);
   OPENDDS_ASSERT(create_complex_message_publisher_result);
 
-  bool create_basic_message_subscriber_result = dds_manager->createSubscriber(basic_topic_name, "basic_message_subscriber");
-  OPENDDS_ASSERT(create_basic_message_subscriber_result);
+  //bool create_basic_message_subscriber_result = dds_manager->createSubscriber(basic_topic_name, "basic_message_subscriber");
+  //OPENDDS_ASSERT(create_basic_message_subscriber_result);
 
-  bool create_complex_message_subscriber_result = dds_manager->createSubscriber(complex_topic_name, "complex_message_subscriber");
-  OPENDDS_ASSERT(create_complex_message_subscriber_result);
+  //bool create_complex_message_subscriber_result = dds_manager->createSubscriber(complex_topic_name, "complex_message_subscriber");
+  //OPENDDS_ASSERT(create_complex_message_subscriber_result);
 
   bool run = true;
 
@@ -77,6 +77,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
       complex_message.ct.cuts.length(1);
       test::TreeNode tn;
       tn.et = test::EnumType::three;
+      tn.ut.str("a string");
       complex_message.ct.cuts[0]._d(test::EnumType::one);
       complex_message.ct.cuts[0].tn(tn);
       dds_manager->writeSample(complex_message, complex_topic_name);
