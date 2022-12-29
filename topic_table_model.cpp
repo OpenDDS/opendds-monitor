@@ -637,6 +637,7 @@ void TopicTableModel::setDataRow(DataRow* const data_row,
         break;
     }
     case CORBA::tk_enum: {
+        // When @bit_bound is supported, update this to call the right interface.
         CORBA::Long value;
         if (check_rc(data->get_int32_value(value, id), "get enum value failed")) {
             data_row->value = static_cast<int32_t>(value);
@@ -690,7 +691,7 @@ void TopicTableModel::parseCollection(const DDS::DynamicData_var& data)
         DataRow* data_row = new DataRow;
         data_row->type = typekind_to_tckind(elem_tk);
         data_row->isOptional = false;
-        data_row->name = "";
+        data_row->name = td->name() + "[" + std::to_string(i) + "]";
         data_row->isKey = false;
 
         // Update the current editor delegate
