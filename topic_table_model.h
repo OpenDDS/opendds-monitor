@@ -186,11 +186,11 @@ private:
 
     void setDataRow(DataRow* const row, const DDS::DynamicData_var& data, DDS::MemberId id);
 
-    void parseCollection(const DDS::DynamicData_var& data);
-    void parseAggregated(const DDS::DynamicData_var& data);
+    void parseCollection(const DDS::DynamicData_var& data, std::string namePrefix);
+    void parseAggregated(const DDS::DynamicData_var& data, std::string namePrefix);
 
     /// Parse a DynamicData object into m_data
-    void parseData(const DDS::DynamicData_var& data);
+    void parseData(const DDS::DynamicData_var& data, std::string namePrefix);
 
     /**
      * @brief Populate a DDS sample member.

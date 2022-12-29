@@ -103,7 +103,7 @@ void TopicTableModel::setSample(DDS::DynamicData_var sample)
 
     // Store sample for reverting any changes to it.
     m_dynamicsample = sample;
-    parseData(m_dynamicsample);
+    parseData(m_dynamicsample, "");
 
     emit layoutChanged();
 }
@@ -651,7 +651,7 @@ void TopicTableModel::setDataRow(DataRow* const data_row,
 }
 
 //------------------------------------------------------------------------------
-void TopicTableModel::parseCollection(const DDS::DynamicData_var& data)
+void TopicTableModel::parseCollection(const DDS::DynamicData_var& data, std::string namePrefix)
 {
     DDS::DynamicType_var type = data->type();
     DDS::TypeDescriptor_var td;
@@ -671,6 +671,7 @@ void TopicTableModel::parseCollection(const DDS::DynamicData_var& data)
             std::cerr << "Failed to get MemberId for element at index " << i << std::endl;
             continue;
         }
+
         switch (elem_tk) {
         case OpenDDS::XTypes::TK_SEQUENCE:
         case OpenDDS::XTypes::TK_ARRAY:
@@ -681,7 +682,8 @@ void TopicTableModel::parseCollection(const DDS::DynamicData_var& data)
             if (ret != DDS::RETCODE_OK) {
                 std::cerr << "ge_complex_value for element at index " << i << " failed" << std::endl;
             } else {
-                parseData(nested_data);
+	        std::string scoped_elem_name = namePrefix + "[" + std::to_string(i) + "]";
+		parseData(nested_data, scoped_elem_name);
             }
             continue;
         }
@@ -691,7 +693,8 @@ void TopicTableModel::parseCollection(const DDS::DynamicData_var& data)
         DataRow* data_row = new DataRow;
         data_row->type = typekind_to_tckind(elem_tk);
         data_row->isOptional = false;
-        data_row->name = td->name() + "[" + std::to_string(i) + "]";
+	std::string scoped_elem_name = namePrefix + "[" + std::to_string(i) + "]";
+	data_row->name = scoped_elem_name.c_str();
         data_row->isKey = false;
 
         // Update the current editor delegate
@@ -708,7 +711,7 @@ void TopicTableModel::parseCollection(const DDS::DynamicData_var& data)
 }
 
 //------------------------------------------------------------------------------
-void TopicTableModel::parseAggregated(const DDS::DynamicData_var& data)
+void TopicTableModel::parseAggregated(const DDS::DynamicData_var& data, std::string namePrefix)
 {
     DDS::DynamicType_var type = data->type();
     const unsigned int count = data->get_item_count();
@@ -732,6 +735,7 @@ void TopicTableModel::parseAggregated(const DDS::DynamicData_var& data)
             continue;
         }
 
+	std::string scoped_member_name = namePrefix.empty() ? md->name() : namePrefix + "." + md->name();
         const OpenDDS::XTypes::TypeKind member_tk = OpenDDS::XTypes::get_base_type(md->type())->get_kind();
         switch (member_tk) {
         case OpenDDS::XTypes::TK_SEQUENCE:
@@ -743,7 +747,7 @@ void TopicTableModel::parseAggregated(const DDS::DynamicData_var& data)
             if (ret != DDS::RETCODE_OK) {
                 std::cerr << "get_complex_value for member Id " << id << " failed" << std::endl;
             } else {
-                parseData(nested_data);
+		parseData(nested_data, scoped_member_name);
             }
             continue;
         }
@@ -753,7 +757,7 @@ void TopicTableModel::parseAggregated(const DDS::DynamicData_var& data)
         DataRow* data_row = new DataRow;
         data_row->type = typekind_to_tckind(member_tk);
         data_row->isOptional = md->is_optional();
-        data_row->name = md->name();
+        data_row->name = scoped_member_name.c_str();
         data_row->isKey = md->is_key();
 
         // Update the current editor delegate
@@ -770,17 +774,17 @@ void TopicTableModel::parseAggregated(const DDS::DynamicData_var& data)
 }
 
 //------------------------------------------------------------------------------
-void TopicTableModel::parseData(const DDS::DynamicData_var& data)
+void TopicTableModel::parseData(const DDS::DynamicData_var& data, std::string namePrefix)
 {
     const OpenDDS::XTypes::TypeKind tk = data->type()->get_kind();
     switch (tk) {
     case OpenDDS::XTypes::TK_SEQUENCE:
     case OpenDDS::XTypes::TK_ARRAY:
-        parseCollection(data);
+        parseCollection(data, namePrefix);
         break;
     case OpenDDS::XTypes::TK_STRUCTURE:
     case OpenDDS::XTypes::TK_UNION:
-        parseAggregated(data);
+        parseAggregated(data, namePrefix);
         break;
     default:
         std::cerr << "Attempted to parse a DynamicData object of unexpected type ("
