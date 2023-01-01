@@ -728,10 +728,10 @@ void TopicTableModel::parseCollection(const DDS::DynamicData_var& data, const st
         // DataRow for each element
         DataRow* data_row = new DataRow;
         data_row->type = typekind_to_tckind(elem_tk);
-        data_row->isOptional = false;
+        data_row->isOptional = false; // TODO: Get the right value from the containing type
 	std::string scoped_elem_name = namePrefix + "[" + std::to_string(i) + "]";
 	data_row->name = scoped_elem_name.c_str();
-        data_row->isKey = false;
+        data_row->isKey = false; // TODO: Get the right value from the containing type
 
         // Update the current editor delegate
         const int thisRow = static_cast<int>(m_data.size());
@@ -794,7 +794,7 @@ void TopicTableModel::parseAggregated(const DDS::DynamicData_var& data, const st
         data_row->type = typekind_to_tckind(member_tk);
         data_row->isOptional = md->is_optional();
         data_row->name = scoped_member_name.c_str();
-        data_row->isKey = md->is_key();
+        data_row->isKey = md->is_key(); // TODO: Handle implicit key case
 
         // Update the current editor delegate
         const int thisRow = static_cast<int>(m_data.size());
