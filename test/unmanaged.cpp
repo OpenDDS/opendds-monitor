@@ -7,7 +7,6 @@
 
 #include <iostream>
 #include <thread>
-
 #include <sstream>
 
 template <typename T>
@@ -104,9 +103,9 @@ int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
 
     DDS::DataWriter_var basic_dw =
       pub->create_datawriter(basic_topic.in(),
-                              datawriter_qos,
-                              DDS::DataWriterListener::_nil(),
-                              ::OpenDDS::DCPS::DEFAULT_STATUS_MASK);
+                             datawriter_qos,
+                             DDS::DataWriterListener::_nil(),
+                             ::OpenDDS::DCPS::DEFAULT_STATUS_MASK);
 
     if (CORBA::is_nil(basic_dw.in())) {
       std::cerr << "create_datawriter failed for '" << basic_topic_name << "'" << std::endl;
@@ -123,9 +122,9 @@ int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
 
     DDS::DataWriter_var complex_dw =
       pub->create_datawriter(complex_topic.in(),
-                              datawriter_qos,
-                              DDS::DataWriterListener::_nil(),
-                              ::OpenDDS::DCPS::DEFAULT_STATUS_MASK);
+                             datawriter_qos,
+                             DDS::DataWriterListener::_nil(),
+                             ::OpenDDS::DCPS::DEFAULT_STATUS_MASK);
 
     if (CORBA::is_nil(complex_dw.in())) {
       std::cerr << "create_datawriter failed for '" << complex_topic_name << "'" << std::endl;

@@ -10,7 +10,6 @@
 
 #include <iostream>
 #include <thread>
-
 #include <sstream>
 
 template <typename T>
