@@ -3,7 +3,7 @@
 
 #include <dds/DCPS/ValueDispatcher.h>
 
-#include <ace/Init_ACE.h>
+#include <ace/OS_main.h>
 
 #include <iostream>
 #include <thread>
@@ -19,7 +19,7 @@ std::string to_str(const T& t) {
 const char basic_topic_name[] = "Unmanaged-Basic";
 const char complex_topic_name[] = "Unmanaged-Complex";
 
-int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
+int main(int argc, char* argv[])
 {
   const int domain_id = 4;
   std::cout << "Testing..." << std::endl;
