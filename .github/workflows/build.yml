@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - master
+      - latest-release
   schedule:
     - cron: '10 0 * * 0'
 
@@ -33,11 +34,9 @@ jobs:
     runs-on: ${{ matrix.runner }}
 
     steps:
-      # Check out opendds-monitor
+      # Clone git repositories
       - name: 'Checkout opendds-monitor'
         uses: actions/checkout@v3
-
-      # Check out MPC / ACE_TAO / OpenDDS
       - name: 'Checkout MPC'
         uses: actions/checkout@v3
         with:
@@ -81,8 +80,6 @@ jobs:
       - name: 'Set Up MSVC Environment'
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1
-
-      # Set Environment Variables
       - name: 'Set environment variables (Linux / macOS)'
         if: runner.os == 'Linux' || runner.os == 'macOS'
         shell: bash
@@ -141,15 +138,18 @@ jobs:
           export CONFIG_MD5=$(echo "$CONFIG_VERSION" | ${{ env.MD5_EXE }} | cut -d ' ' -f 1)
           echo "CONFIG_MD5=$CONFIG_MD5" >> $GITHUB_ENV
 
-      # Check Build Cache
+      # Configure and build OpenDDS (using cache)
       - name: 'Check Build Cache'
         id: cache-build
         uses: actions/cache@v3
         with:
           path: ${{ env.MATRIX_MD5 }}.tar.xz
           key: c01_${{ env.MATRIX_MD5 }}_${{ env.COMPILER_MD5 }}_${{ env.ACE_COMMIT }}_${{ env.DDS_COMMIT }}_${{ env.CONFIG_MD5 }}
-
-      # Configure OpenDDS
+      - name: 'Extract Build Cache'
+        if: steps.cache-build.outputs.cache-hit == 'true'
+        shell: bash
+        run: |
+          tar xvfJ ${{ env.MATRIX_MD5 }}.tar.xz
       - name: 'Configure & Build OpenDDS (Linux / macOS)'
         if: steps.cache-build.outputs.cache-hit != 'true' && (runner.os == 'Linux' || runner.os == 'macOS')
         shell: bash
@@ -162,8 +162,6 @@ jobs:
         run: |-
           cd OpenDDS
           configure ${{ env.CONFIG_OPTIONS }}
-
-      # Build OpenDDS
       - name: 'Build OpenDDS (Linux / macOS)'
         if: steps.cache-build.outputs.cache-hit != 'true' && (runner.os == 'Linux' || runner.os == 'macOS')
         shell: bash
@@ -178,8 +176,6 @@ jobs:
           cd OpenDDS
           call setenv.cmd
           msbuild -p:Configuration=Debug,Platform=x64 -m DDS_TAOv2.sln
-
-      # Create Build Cache
       - name: 'Create Build Cache'
         if: steps.cache-build.outputs.cache-hit != 'true'
         shell: bash
@@ -196,23 +192,18 @@ jobs:
           cd ..
           cat OpenDDS_files.txt | xargs $TAR_EXE uvf ${{ env.MATRIX_MD5 }}.tar
           xz -3 ${{ env.MATRIX_MD5 }}.tar
-
-      # Extract Build Cache
-      - name: 'Extract Build Cache'
-        if: steps.cache-build.outputs.cache-hit == 'true'
+      - name: 'Show OpenDDS Configuration'
         shell: bash
         run: |
-          tar xvfJ ${{ env.MATRIX_MD5 }}.tar.xz
+          tools/scripts/show_build_config.pl
 
-      # Set Up Problem Matchers
+      # Build opendds-monitor
       - name: 'Set Up Problem Matcher (Windows)'
         if: runner.os == 'Windows'
         uses: ammaraskar/msvc-problem-matcher@0.2.0
       - name: 'Set Up Problem Matcher (Linux / macOS)'
         if: runner.os == 'Linux' || runner.os == 'macOS'
         uses: ammaraskar/gcc-problem-matcher@0.2.0
-
-      # Build opendds-monitor
       - name: 'Build opendds-monitor (Linux / macOS)'
         if: runner.os == 'Linux' || runner.os == 'macOS'
         shell: bash
