@@ -69,7 +69,6 @@ int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
       test::TreeNode tn;
       tn.et = test::EnumType::three;
       tn.ut.str("a string");
-      complex_message.ct.cuts[0]._d(test::EnumType::one);
       complex_message.ct.cuts[0].tn(tn);
       dds_manager->writeSample(complex_message, complex_topic_name);
 

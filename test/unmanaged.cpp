@@ -158,7 +158,6 @@ int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
         test::TreeNode tn;
         tn.ut.str("a string");
         tn.et = test::EnumType::three;
-        complex_message.ct.cuts[0]._d(test::EnumType::one);
         complex_message.ct.cuts[0].tn(tn);
         complex_message_dw->write(complex_message, DDS::HANDLE_NIL);
 
