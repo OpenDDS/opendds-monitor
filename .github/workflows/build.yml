@@ -58,7 +58,7 @@ jobs:
           path: OpenDDS
           fetch-depth: 1
 
-      # Pull Down Pre-Built Dependencies
+      # Get 3rd-party Dependencies
       - name: 'Install openssl, xerces, qt5, and qwt (Linux)'
         if: runner.os == 'Linux'
         run: |-
@@ -193,10 +193,9 @@ jobs:
           cat OpenDDS_files.txt | xargs $TAR_EXE uvf ${{ env.MATRIX_MD5 }}.tar
           xz -3 ${{ env.MATRIX_MD5 }}.tar
       - name: 'Show OpenDDS Configuration'
-        shell: bash
         run: |
           cd OpenDDS
-          tools/scripts/show_build_config.pl
+          perl tools/scripts/show_build_config.pl
 
       # Build opendds-monitor
       - name: 'Set Up Problem Matcher (Windows)'
