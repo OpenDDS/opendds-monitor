@@ -195,6 +195,7 @@ jobs:
       - name: 'Show OpenDDS Configuration'
         shell: bash
         run: |
+          cd OpenDDS
           tools/scripts/show_build_config.pl
 
       # Build opendds-monitor
