@@ -50,18 +50,10 @@ int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
   bool create_complex_message_publisher_result = dds_manager->createPublisher(complex_topic_name);
   OPENDDS_ASSERT(create_complex_message_publisher_result);
 
-  //bool create_basic_message_subscriber_result = dds_manager->createSubscriber(basic_topic_name, "basic_message_subscriber");
-  //OPENDDS_ASSERT(create_basic_message_subscriber_result);
-
-  //bool create_complex_message_subscriber_result = dds_manager->createSubscriber(complex_topic_name, "complex_message_subscriber");
-  //OPENDDS_ASSERT(create_complex_message_subscriber_result);
-
   bool run = true;
 
   const std::string id = std::string(argv[0]) + '-' + to_str(std::this_thread::get_id());
   CORBA::Long count = 0;
-
-  srand(time(0));
 
   std::thread thread([&](){
     while (run) {
