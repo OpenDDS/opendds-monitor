@@ -15,7 +15,7 @@
 template <typename T>
 std::string to_str(const T& t) {
   std::ostringstream oss;
-  oss << t << std::flush;
+  oss << t;
   return oss.str();
 }
 

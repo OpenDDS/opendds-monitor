@@ -12,7 +12,7 @@
 template <typename T>
 std::string to_str(const T& t) {
   std::ostringstream oss;
-  oss << t << std::flush;
+  oss << t;
   return oss.str();
 }
 
@@ -36,14 +36,14 @@ int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
                               participant_qos,
                               DDS::DomainParticipantListener::_nil(),
                               ::OpenDDS::DCPS::DEFAULT_STATUS_MASK);
-    if (CORBA::is_nil(participant.in())) {
+    if (!participant) {
       std::cerr << "create_participant failed." << std::endl;
       return 1;
     }
 
     test::BasicMessageTypeSupportImpl::_var_type basic_tsi = new test::BasicMessageTypeSupportImpl();
 
-    if (DDS::RETCODE_OK != basic_tsi->register_type(participant.in(), "")) {
+    if (DDS::RETCODE_OK != basic_tsi->register_type(participant, "")) {
       std::cerr << "register_type failed." << std::endl;
       exit(1);
     }
@@ -54,19 +54,19 @@ int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
     participant->get_default_topic_qos(basic_topic_qos);
     DDS::Topic_var basic_topic =
       participant->create_topic(basic_topic_name,
-                                basic_type_name.in(),
+                                basic_type_name,
                                 basic_topic_qos,
                                 DDS::TopicListener::_nil(),
                                 ::OpenDDS::DCPS::DEFAULT_STATUS_MASK);
 
-    if (CORBA::is_nil(basic_topic.in())) {
+    if (!basic_topic) {
       std::cerr << "create_topic failed for '" << basic_topic_name << "'" << std::endl;
       exit(1);
     }
 
     test::BasicMessageTypeSupportImpl::_var_type complex_tsi = new test::BasicMessageTypeSupportImpl();
 
-    if (DDS::RETCODE_OK != complex_tsi->register_type(participant.in(), "")) {
+    if (DDS::RETCODE_OK != complex_tsi->register_type(participant, "")) {
       std::cerr << "register_type failed." << std::endl;
       exit(1);
     }
@@ -77,12 +77,12 @@ int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
     participant->get_default_topic_qos(complex_topic_qos);
     DDS::Topic_var complex_topic =
       participant->create_topic(complex_topic_name,
-                                complex_type_name.in(),
+                                complex_type_name,
                                 complex_topic_qos,
                                 DDS::TopicListener::_nil(),
                                 ::OpenDDS::DCPS::DEFAULT_STATUS_MASK);
 
-    if (CORBA::is_nil(complex_topic.in())) {
+    if (!complex_topic) {
       std::cerr << "create_topic failed for '" << complex_topic_name << "'" << std::endl;
       exit(1);
     }
@@ -93,7 +93,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
     DDS::Publisher_var pub =
       participant->create_publisher(pub_qos, DDS::PublisherListener::_nil(),
                                     ::OpenDDS::DCPS::DEFAULT_STATUS_MASK);
-    if (CORBA::is_nil(pub.in())) {
+    if (!pub) {
       std::cerr << "create_publisher failed." << std::endl;
       exit(1);
     }
@@ -102,39 +102,39 @@ int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
     pub->get_default_datawriter_qos(datawriter_qos);
 
     DDS::DataWriter_var basic_dw =
-      pub->create_datawriter(basic_topic.in(),
+      pub->create_datawriter(basic_topic,
                              datawriter_qos,
                              DDS::DataWriterListener::_nil(),
                              ::OpenDDS::DCPS::DEFAULT_STATUS_MASK);
 
-    if (CORBA::is_nil(basic_dw.in())) {
+    if (!basic_dw) {
       std::cerr << "create_datawriter failed for '" << basic_topic_name << "'" << std::endl;
       exit(1);
     }
 
     test::BasicMessageDataWriter_var basic_message_dw =
-      test::BasicMessageDataWriter::_narrow(basic_dw.in());
+      test::BasicMessageDataWriter::_narrow(basic_dw);
 
-    if (CORBA::is_nil(basic_message_dw.in())) {
+    if (!basic_message_dw) {
       std::cerr << "test::BasicMessageDataWriter::_narrow() failed." << std::endl;
       exit(1);
     }
 
     DDS::DataWriter_var complex_dw =
-      pub->create_datawriter(complex_topic.in(),
+      pub->create_datawriter(complex_topic,
                              datawriter_qos,
                              DDS::DataWriterListener::_nil(),
                              ::OpenDDS::DCPS::DEFAULT_STATUS_MASK);
 
-    if (CORBA::is_nil(complex_dw.in())) {
+    if (!complex_dw) {
       std::cerr << "create_datawriter failed for '" << complex_topic_name << "'" << std::endl;
       exit(1);
     }
 
     test::ComplexMessageDataWriter_var complex_message_dw =
-      test::ComplexMessageDataWriter::_narrow(complex_dw.in());
+      test::ComplexMessageDataWriter::_narrow(complex_dw);
 
-    if (CORBA::is_nil(complex_message_dw.in())) {
+    if (!complex_message_dw) {
       std::cerr << "test::ComplexMessageDataWriter::_narrow() failed." << std::endl;
       exit(1);
     }
@@ -175,7 +175,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR* argv[])
     thread.join();
 
     participant->delete_contained_entities();
-    dpf->delete_participant(participant.in());
+    dpf->delete_participant(participant);
   }
   catch (const CORBA::Exception& e)
   {
