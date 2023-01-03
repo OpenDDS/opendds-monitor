@@ -5,6 +5,7 @@
 
 #include <ace/OS_main.h>
 
+#include <chrono>
 #include <iostream>
 #include <thread>
 #include <sstream>
@@ -163,7 +164,7 @@ int main(int argc, char* argv[])
 
         ++count;
 
-        ACE_OS::sleep(ACE_Time_Value(5, 0));
+        std::this_thread::sleep_for(std::chrono::seconds(5));
       }
     });
 
