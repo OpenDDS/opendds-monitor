@@ -151,10 +151,6 @@ target_link_libraries(manager
   Threads::Threads
 )
 
-target_include_directories(manager PRIVATE
-  ${CMAKE_BINARY_DIR}
-)
-
 OPENDDS_TARGET_SOURCES(manager idl/std_qos.idl)
 
 add_executable(monitor
@@ -207,7 +203,6 @@ target_link_libraries(managed_testapp
 )
 
 target_include_directories(managed_testapp PRIVATE
-  ${CMAKE_BINARY_DIR}
   src
 )
 
@@ -235,6 +230,5 @@ target_link_libraries(unmanaged_testapp
 )
 
 target_include_directories(unmanaged_testapp PRIVATE
-  ${CMAKE_BINARY_DIR}
   src
 )
