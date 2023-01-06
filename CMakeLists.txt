@@ -134,10 +134,10 @@ add_library(manager
   ${MANAGER_SOURCE}
 )
 
-target_compile_features(manager PRIVATE cxx_std_17)
-
 if (MSVC)
   target_compile_definitions(manager PRIVATE _CRT_SECURE_NO_WARNINGS)
+else()
+  target_compile_features(manager PRIVATE cxx_std_17)
 endif()
 
 target_link_libraries(manager
@@ -166,10 +166,10 @@ add_executable(monitor
   ${UI_SOURCE}
 )
 
-target_compile_features(monitor PRIVATE cxx_std_17)
-
 if (MSVC)
   target_compile_definitions(monitor PRIVATE _CRT_SECURE_NO_WARNINGS)
+else()
+  target_compile_features(monitor PRIVATE cxx_std_17)
 endif()
 
 target_link_libraries(monitor
@@ -194,10 +194,10 @@ add_executable(managed_testapp
   test/managed.cpp
 )
 
-target_compile_features(managed_testapp PRIVATE cxx_std_17)
-
 if (MSVC)
   target_compile_definitions(managed_testapp PRIVATE _CRT_SECURE_NO_WARNINGS)
+else()
+  target_compile_features(managed_testapp PRIVATE cxx_std_17)
 endif()
 
 OPENDDS_TARGET_SOURCES(managed_testapp test/test.idl OPENDDS_IDL_OPTIONS "-Gxtypes-complete" SUPPRESS_ANYS OFF)
@@ -215,10 +215,11 @@ add_executable(unmanaged_testapp
   test/unmanaged.cpp
 )
 
-target_compile_features(unmanaged_testapp PRIVATE cxx_std_17)
 
 if (MSVC)
   target_compile_definitions(unmanaged_testapp PRIVATE _CRT_SECURE_NO_WARNINGS)
+else ()
+  target_compile_features(unmanaged_testapp PRIVATE cxx_std_17)
 endif()
 
 OPENDDS_TARGET_SOURCES(unmanaged_testapp test/test.idl OPENDDS_IDL_OPTIONS "-Gxtypes-complete" SUPPRESS_ANYS OFF)
