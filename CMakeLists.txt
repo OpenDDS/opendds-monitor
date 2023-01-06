@@ -140,22 +140,20 @@ else()
   target_compile_features(manager PRIVATE cxx_std_17)
 endif()
 
-target_link_libraries(manager
+set(OPENDDS_TARGETS
   OpenDDS::Dcps
   OpenDDS::Rtps
   OpenDDS::Rtps_Udp
-  OpenDDS::Tcp
-  OpenDDS::Shmem
-  OpenDDS::Udp
-  OpenDDS::Multicast
+)
+
+target_link_libraries(manager
+  ${OPENDDS_TARGETS}
   Threads::Threads
 )
 
 OPENDDS_TARGET_SOURCES(manager idl/std_qos.idl)
 
 add_executable(monitor
-  ${MANAGER_HEADER}
-  ${HEADER}
   ${SOURCE}
   ${RESOURCES}
   ${MOC_SOURCE}
@@ -210,7 +208,6 @@ add_executable(unmanaged_testapp
   test/unmanaged.cpp
 )
 
-
 if (MSVC)
   target_compile_definitions(unmanaged_testapp PRIVATE _CRT_SECURE_NO_WARNINGS)
 else ()
@@ -220,13 +217,7 @@ endif()
 OPENDDS_TARGET_SOURCES(unmanaged_testapp test/test.idl OPENDDS_IDL_OPTIONS "-Gxtypes-complete" SUPPRESS_ANYS OFF)
 
 target_link_libraries(unmanaged_testapp
-  OpenDDS::Dcps
-  OpenDDS::Rtps
-  OpenDDS::Rtps_Udp
-  OpenDDS::Tcp
-  OpenDDS::Shmem
-  OpenDDS::Udp
-  OpenDDS::Multicast
+  ${OPENDDS_TARGETS}
 )
 
 target_include_directories(unmanaged_testapp PRIVATE
