@@ -1,17 +1,6 @@
 cmake_minimum_required(VERSION 3.0)
 
-#cmake_policy(SET CMP0048 NEW)
-
 project(opendds-monitor VERSION 0.0.1 LANGUAGES CXX)
-
-set(CMAKE_MODULE_PATH
-  ${CMAKE_SOURCE_DIR}
-  ${CMAKE_MODULE_PATH}
-)
-set(CMAKE_PREFIX_PATH
-  ${CMAKE_SOURCE_DIR}
-  ${CMAKE_PREFIX_PATH}
-)
 
 find_package(OpenDDS REQUIRED)
 
@@ -23,17 +12,12 @@ endif()
 
 find_package(Qt5 REQUIRED COMPONENTS Core Widgets Gui PrintSupport Svg OpenGL OPTIONAL_COMPONENTS ${qt_optional_components})
 
-if (NOT ${Qt5Core_FOUND})
-  message(STATUS "Skipping ${PROJECT_NAME} project: Qt5 not found")
-  return()
-endif (NOT ${Qt5Core_FOUND})
-
+# FindQwt.cmake is in this directory
+set(CMAKE_MODULE_PATH
+  ${CMAKE_SOURCE_DIR}
+  ${CMAKE_MODULE_PATH}
+)
 find_package(Qwt MODULE REQUIRED)
-
-if (NOT ${Qwt_FOUND})
-  message(STATUS "Skipping ${PROJECT_NAME} project: Qwt not found")
-  return()
-endif (NOT ${Qwt_FOUND})
 
 set(CMAKE_AUTOMOC FALSE)
 
@@ -155,6 +139,7 @@ OPENDDS_TARGET_SOURCES(manager idl/std_qos.idl)
 
 add_executable(monitor
   ${SOURCE}
+  ${HEADER}
   ${RESOURCES}
   ${MOC_SOURCE}
   ${UI_SOURCE}
@@ -183,43 +168,4 @@ target_include_directories(monitor PRIVATE
   ${CMAKE_BINARY_DIR}
 )
 
-add_executable(managed_testapp
-  ${MANAGER_HEADER}
-  test/managed.cpp
-)
-
-if (MSVC)
-  target_compile_definitions(managed_testapp PRIVATE _CRT_SECURE_NO_WARNINGS)
-else()
-  target_compile_features(managed_testapp PRIVATE cxx_std_17)
-endif()
-
-OPENDDS_TARGET_SOURCES(managed_testapp test/test.idl OPENDDS_IDL_OPTIONS "-Gxtypes-complete" SUPPRESS_ANYS OFF)
-
-target_link_libraries(managed_testapp
-  manager
-)
-
-target_include_directories(managed_testapp PRIVATE
-  src
-)
-
-add_executable(unmanaged_testapp
-  test/unmanaged.cpp
-)
-
-if (MSVC)
-  target_compile_definitions(unmanaged_testapp PRIVATE _CRT_SECURE_NO_WARNINGS)
-else ()
-  target_compile_features(unmanaged_testapp PRIVATE cxx_std_17)
-endif()
-
-OPENDDS_TARGET_SOURCES(unmanaged_testapp test/test.idl OPENDDS_IDL_OPTIONS "-Gxtypes-complete" SUPPRESS_ANYS OFF)
-
-target_link_libraries(unmanaged_testapp
-  ${OPENDDS_TARGETS}
-)
-
-target_include_directories(unmanaged_testapp PRIVATE
-  src
-)
+add_subdirectory(test EXCLUDE_FROM_ALL)

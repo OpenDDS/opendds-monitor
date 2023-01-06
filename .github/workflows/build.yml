@@ -218,7 +218,7 @@ jobs:
             CMAKE_ARGS+=" -DQt5_DIR=$(brew --prefix qt5)/lib/cmake/Qt5"
           fi
           cmake $CMAKE_ARGS ..
-          cmake --build .
+          cmake --build . -t all -t managed_testapp -t unmanaged_testapp
       - name: 'Build opendds-monitor (Windows)'
         if: runner.os == 'Windows'
         shell: cmd
@@ -230,4 +230,4 @@ jobs:
           cd build
           cmake -DCMAKE_PREFIX_PATH=%VCPKG_ROOT%\installed\x64-windows ..
           cmake --build .
-
+          cmake --build test -t managed_testapp -t unmanaged_testapp
