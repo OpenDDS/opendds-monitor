@@ -12,11 +12,7 @@ endif()
 
 find_package(Qt5 REQUIRED COMPONENTS Core Widgets Gui PrintSupport Svg OpenGL OPTIONAL_COMPONENTS ${qt_optional_components})
 
-# FindQwt.cmake is in this directory
-set(CMAKE_MODULE_PATH
-  ${CMAKE_SOURCE_DIR}
-  ${CMAKE_MODULE_PATH}
-)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}) # FindQwt.cmake is in this directory
 find_package(Qwt MODULE REQUIRED)
 
 set(CMAKE_AUTOMOC FALSE)
@@ -93,7 +89,7 @@ set(UI
 
 # Add the windows explorer icon
 if(WIN32)
-  set(SOURCE ${SOURCE} ddsmon.rc)
+  list(APPEND SOURCE ddsmon.rc)
 endif(WIN32)
 
 qt5_add_resources(RESOURCES ddsmon.qrc)
@@ -167,5 +163,7 @@ target_include_directories(monitor PRIVATE
   ${QWT_INCLUDE_DIR}
   ${CMAKE_BINARY_DIR}
 )
+
+configure_file(opendds.ini . COPYONLY)
 
 add_subdirectory(test EXCLUDE_FROM_ALL)
