@@ -65,7 +65,7 @@ int main(int argc, char* argv[])
       exit(1);
     }
 
-    test::BasicMessageTypeSupportImpl::_var_type complex_tsi = new test::BasicMessageTypeSupportImpl();
+    test::ComplexMessageTypeSupportImpl::_var_type complex_tsi = new test::ComplexMessageTypeSupportImpl();
 
     if (DDS::RETCODE_OK != complex_tsi->register_type(participant, "")) {
       std::cerr << "register_type failed." << std::endl;
