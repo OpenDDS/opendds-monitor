@@ -34,10 +34,8 @@ TopicTableModel::TopicTableModel(
     // whether we want to use OpenDynamicData or DDS's DynamicData.
 
     // This is not really a blank sample, but a null sample.
-    DDS::DynamicData_var blank_sample;
-    setSample(blank_sample);
-    //    std::shared_ptr<OpenDynamicData> blankSample = CreateOpenDynamicData(topicInfo->typeCode, QosDictionary::getEncodingKind(), topicInfo->extensibility);
-    //    setSample(blankSample);
+    std::shared_ptr<OpenDynamicData> blankSample = CreateOpenDynamicData(topicInfo->typeCode, QosDictionary::getEncodingKind(), topicInfo->extensibility);
+    setSample(blankSample);
 }
 
 
