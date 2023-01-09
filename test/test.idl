@@ -11,13 +11,12 @@ struct BasicTypes {
   long long ll;
   float f;
   double d;
-  long double ld;
   boolean b;
   octet o;
   char c;
   wchar wc;
   string str;
-  wstring wstr;
+  // OpenDynamicData doesn't support wstring and long double
 };
 
 @topic
