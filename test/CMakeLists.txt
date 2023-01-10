@@ -8,6 +8,8 @@ else()
   target_compile_features(managed_testapp PRIVATE cxx_std_17)
 endif()
 
+target_compile_options(managed_testapp PUBLIC -Wall -pedantic -Wno-unused -Wextra -Wcast-align -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 -Winit-self -Wlogical-op -Wmissing-include-dirs -Wnoexcept -Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-conversion -Wstrict-null-sentinel -Wstrict-overflow=5 -Wundef -Werror)
+
 OPENDDS_TARGET_SOURCES(managed_testapp test.idl OPENDDS_IDL_OPTIONS "-Gxtypes-complete" SUPPRESS_ANYS OFF)
 
 target_link_libraries(managed_testapp
@@ -29,6 +31,8 @@ else ()
 endif()
 
 OPENDDS_TARGET_SOURCES(unmanaged_testapp test.idl OPENDDS_IDL_OPTIONS "-Gxtypes-complete" SUPPRESS_ANYS OFF)
+
+target_compile_options(managed_testapp PUBLIC -Wall -pedantic -Wno-unused -Wextra -Wcast-align -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 -Winit-self -Wlogical-op -Wmissing-include-dirs -Wnoexcept -Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-conversion -Wstrict-null-sentinel -Wstrict-overflow=5 -Wundef -Werror)
 
 target_link_libraries(unmanaged_testapp
   ${OPENDDS_TARGETS}

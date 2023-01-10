@@ -120,6 +120,8 @@ else()
   target_compile_features(manager PRIVATE cxx_std_17)
 endif()
 
+target_compile_options(manager PUBLIC -Wall -pedantic -Wno-unused)
+
 set(OPENDDS_TARGETS
   OpenDDS::Dcps
   OpenDDS::Rtps

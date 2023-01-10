@@ -1,4 +1,5 @@
-#include "testC.h"
+#include "common.h"
+
 #include "testTypeSupportImpl.h"
 #include "std_qosC.h"
 
@@ -11,14 +12,6 @@
 #include <chrono>
 #include <iostream>
 #include <thread>
-#include <sstream>
-
-template <typename T>
-std::string to_str(const T& t) {
-  std::ostringstream oss;
-  oss << t;
-  return oss.str();
-}
 
 const char basic_topic_name[] = "Managed-Basic";
 const char complex_topic_name[] = "Managed-Complex";
@@ -54,23 +47,23 @@ int main(int argc, char* argv[])
   bool run = true;
 
   const std::string id = std::string(argv[0]) + '-' + to_str(std::this_thread::get_id());
-  CORBA::Long count = 0;
+  CORBA::ULongLong count = 0;
 
   std::thread thread([&](){
+    std::mt19937 mt;
+    mt.seed(static_cast<std::mt19937::result_type>(time(0)));
+
     while (run) {
       test::BasicMessage basic_message{};
       basic_message.origin = id.c_str();
-      basic_message.count = count;
-      dds_manager->writeSample(basic_message, basic_topic_name);
 
       test::ComplexMessage complex_message{};
       complex_message.origin = id.c_str();
-      complex_message.count = count;
-      complex_message.ct.cuts.length(1);
-      test::TreeNode tn;
-      tn.et = test::EnumType::three;
-      tn.ut.str("a string");
-      complex_message.ct.cuts[0].tn(tn);
+
+      generate_samples(mt, count, basic_message, complex_message);
+
+      dds_manager->writeSample(basic_message, basic_topic_name);
+
       dds_manager->writeSample(complex_message, complex_topic_name);
 
       ++count;

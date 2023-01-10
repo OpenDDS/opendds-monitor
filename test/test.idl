@@ -3,6 +3,8 @@
 module test {
 
 struct BasicTypes {
+  uint8 u8;
+  int8 i8;
   unsigned short us;
   short s;
   unsigned long ul;

@@ -110,7 +110,7 @@ void TopicTableModel::setSample(DDS::DynamicData_var sample)
 const std::shared_ptr<OpenDynamicData> TopicTableModel::commitSample()
 {
     // Reset the edited state
-    for (int i = 0; i < m_data.size(); i++)
+    for (size_t i = 0; i < m_data.size(); i++)
     {
         m_data.at(i)->edited = false;
     }
@@ -127,7 +127,7 @@ const std::shared_ptr<OpenDynamicData> TopicTableModel::commitSample()
     *newSample = *m_sample;
 
     // Populate the new sample from the user-edited changes
-    for (int i = 0; i < m_data.size(); i++)
+    for (size_t i = 0; i < m_data.size(); i++)
     {
         populateSample(newSample, m_data.at(i));
     }
@@ -203,7 +203,7 @@ QVariant TopicTableModel::data(const QModelIndex &index, int role) const
     const int row = index.row();
 
     // Make sure the data row is valid
-    if (row < 0 || row >= m_data.size() || !m_data.at(row))
+    if (row < 0 || static_cast<size_t>(row) >= m_data.size() || !m_data.at(row))
     {
         return QVariant();
     }
@@ -252,7 +252,10 @@ QVariant TopicTableModel::data(const QModelIndex &index, int role) const
             case CORBA::tk_octet: return "uint8";
             case CORBA::tk_enum: return "enum";
             case CORBA::tk_string: return "string";
-            default: return "?";
+            default: {
+                std::cerr << "unknown typeID: " << typeID << std::endl;
+                return "?";
+            }
         }
     }
 
@@ -270,7 +273,7 @@ bool TopicTableModel::setData(const QModelIndex &index,
     DataRow* data = nullptr;
 
     // Make sure we're in bounds of the data array
-    if (row < 0 || row >= m_data.size())
+    if (row < 0 || static_cast<size_t>(row) >= m_data.size())
     {
         return false;
     }
@@ -402,7 +405,9 @@ void TopicTableModel::parseData(const std::shared_ptr<OpenDynamicData> data)
         }
         case CORBA::tk_wchar:
         {
-            dataRow->value = ""; // FIXME?
+            wchar_t tmpValue[2] = { 0, 0 };
+            tmpValue[0] = child->getValue<wchar_t>();
+            dataRow->value = ACE_Wide_To_Ascii(tmpValue).char_rep();
             break;
         }
         case CORBA::tk_octet:
@@ -464,6 +469,7 @@ void TopicTableModel::parseData(const std::shared_ptr<OpenDynamicData> data)
             break;
         } // End enum block
         default:
+            std::cerr << "unknown kind: " << dataRow->type << std::endl;
             dataRow->value = "NULL";
             break;
 
@@ -484,6 +490,10 @@ CORBA::TCKind TopicTableModel::typekind_to_tckind(DDS::TypeKind tk)
       return CORBA::tk_long;
     case TK_UINT32:
       return CORBA::tk_ulong;
+    case TK_INT8:
+      return CORBA::tk_short;
+    case TK_UINT8:
+      return CORBA::tk_ushort;
     case TK_INT16:
       return CORBA::tk_short;
     case TK_UINT16:
@@ -521,8 +531,11 @@ CORBA::TCKind TopicTableModel::typekind_to_tckind(DDS::TypeKind tk)
     case TK_UNION:
       return CORBA::tk_union;
     default:
-      // Use tk_void?
-      return CORBA::tk_void;
+      {
+        std::cerr << "unknown TypeKind " << static_cast<uint16_t>(tk) << std::endl;
+        // Use tk_void?
+        return CORBA::tk_void;
+      }
     }
 }
 
@@ -551,14 +564,26 @@ void TopicTableModel::setDataRow(DataRow* const data_row,
     }
     case CORBA::tk_short: {
         CORBA::Short value;
-        if (check_rc(data->get_int16_value(value, id), "get_int16_value failed")) {
+        DDS::ReturnCode_t ret = data->get_int16_value(value, id);
+        if (ret != DDS::RETCODE_OK) {
+          ACE_INT8 tmp;
+          ret = data->get_int8_value(tmp, id);
+          value = static_cast<CORBA::Short>(tmp);
+        }
+        if (check_rc(ret, "get_int16_value failed")) {
             data_row->value = static_cast<int16_t>(value);
         }
         break;
     }
     case CORBA::tk_ushort: {
         CORBA::UShort value;
-        if (check_rc(data->get_uint16_value(value, id), "get_uint16_value failed")) {
+        DDS::ReturnCode_t ret = data->get_uint16_value(value, id);
+        if (ret != DDS::RETCODE_OK) {
+          ACE_UINT8 tmp;
+          ret = data->get_uint8_value(tmp, id);
+          value = static_cast<CORBA::UShort>(tmp);
+        }
+        if (check_rc(ret, "get_uint16_value failed")) {
             data_row->value = static_cast<uint16_t>(value);
         }
         break;
@@ -592,17 +617,16 @@ void TopicTableModel::setDataRow(DataRow* const data_row,
         break;
     }
     case CORBA::tk_char: {
-        CORBA::Char value;
-        if (check_rc(data->get_char8_value(value, id), "get_char8_value failed")) {
+        CORBA::Char value[2] = { 0, 0 };
+        if (check_rc(data->get_char8_value(value[0], id), "get_char8_value failed")) {
             data_row->value = value;
         }
         break;
     }
     case CORBA::tk_wchar: {
-        CORBA::WChar value;
-        if (check_rc(data->get_char16_value(value, id), "get_char16_value failed")) {
-          // TODO: Set to data_row?
-          // data_row->value = value;
+        CORBA::WChar value[2] = { 0, 0 };
+        if (check_rc(data->get_char16_value(value[0], id), "get_char16_value failed")) {
+            data_row->value = ACE_Wide_To_Ascii(value).char_rep();
         }
         break;
     }
@@ -926,7 +950,12 @@ bool TopicTableModel::populateSample(std::shared_ptr<OpenDynamicData> const samp
     }
     case CORBA::tk_wchar:
     {
-        // FIXME?
+        if (dataInfo->value.canConvert(QMetaType::Char))
+        {
+            char tmpValue = dataInfo->value.toChar().toLatin1();
+            memberData->setValue(tmpValue);
+            pass = true;
+        }
         break;
     }
     case CORBA::tk_octet:

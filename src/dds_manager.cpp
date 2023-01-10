@@ -2,7 +2,10 @@
 #include "dds_listeners.h"
 #include "qos_dictionary.h"
 
+#ifdef WIN32
 #pragma warning(push, 0)  //No DDS warnings
+#endif
+
 #include <tao/AnyTypeCode/TypeCode.h> // For ddsEnumToString
 #include <ace/Configuration_Import_Export.h> //for ace config parsing
 #include <ace/Init_ACE.h>
@@ -12,7 +15,10 @@
 #include <dds/DCPS/Service_Participant.h>
 #include <dds/DCPS/RTPS/RtpsDiscovery.h>
 #include <dds/DCPS/ServiceEventDispatcher.h>
+
+#ifdef WIN32
 #pragma warning(pop)
+#endif
 
 #include <iostream>
 #include <fstream>
@@ -27,8 +33,7 @@ std::map<int, int> g_transportInstances;
 
 //------------------------------------------------------------------------------
 DDSManager::DDSManager(std::function<void(LogMessageType mt, const std::string& message)> messageHandler, int threadPoolSize) :
-    m_domainParticipant(nullptr), m_autoConfig(false), m_iniCustomization(false),
-    m_messageHandler(messageHandler)
+    m_messageHandler(messageHandler), m_domainParticipant(nullptr), m_autoConfig(false), m_iniCustomization(false)
 {
 
     if (m_messageHandler == nullptr) {

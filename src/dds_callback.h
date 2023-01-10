@@ -1,11 +1,17 @@
 #ifndef __CALLBACK_H__
 #define __CALLBACK_H__
 
+#ifdef WIN32
 #pragma warning(push, 0)  //No DDS warnings
+#endif
+
 #include <dds/DCPS/TypeSupportImpl.h>
 #include <dds/DCPS/WaitSet.h>
 #include <dds/DCPS/EventDispatcher.h>
+
+#ifdef WIN32
 #pragma warning(pop)
+#endif
 
 #include <iostream>
 #include <typeinfo>
@@ -23,7 +29,7 @@ struct GenericCallback {
 template <typename TopicType>
 struct Callback : GenericCallback {
     std::function<void(const TopicType&)> function;
-    Callback(std::function<void(const TopicType&)> function) : function(function) { }
+    Callback(std::function<void(const TopicType&)> fun) : function(fun) { }
 };
 
 typedef std::multimap<std::type_index, std::shared_ptr<GenericCallback> > Listeners;
