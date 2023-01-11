@@ -120,7 +120,7 @@ else()
   target_compile_features(manager PRIVATE cxx_std_17)
 endif()
 
-target_compile_options(manager PUBLIC -Wall -pedantic -Wno-unused)
+target_compile_options(manager PRIVATE $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>: -Wall -pedantic -Wno-unused> $<$<CXX_COMPILER_ID:MSVC>: /W4>)
 
 set(OPENDDS_TARGETS
   OpenDDS::Dcps
