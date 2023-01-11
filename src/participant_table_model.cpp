@@ -61,7 +61,7 @@ QVariant ParticipantTableModel::data(const QModelIndex& index, int role) const
     const int row = index.row();
 
     // Make sure the data row is valid
-    if (row < 0 || row >= m_data.size())
+    if (row < 0 || row >= static_cast<int>(m_data.size()))
     {
         return QVariant();
     }

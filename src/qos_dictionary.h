@@ -1,10 +1,16 @@
 #ifndef __DDSMAN_QOS_DICTIONARY_H__
 #define __DDSMAN_QOS_DICTIONARY_H__
 
+#ifdef WIN32
 #pragma warning(push, 0)  //No DDS warnings
+#endif
+
 #include "dds/DdsDcpsCoreC.h"
 #include "dds/DCPS/Serializer.h"
+
+#ifdef WIN32
 #pragma warning(pop)
+#endif
 
 /**
  * @brief Methods for accessing shared QoS settings.

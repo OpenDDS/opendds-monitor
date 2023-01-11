@@ -1,9 +1,15 @@
 #include "participant_monitor.h"
 
+#ifdef WIN32
 #pragma warning(push, 0)  //No DDS warnings
+#endif
+
 #include <dds/DCPS/BuiltInTopicUtils.h>
 #include <dds/OpenddsDcpsExtTypeSupportImpl.h> //new in 3.19, defines ParticipantLocationBuiltinTopicDataSeq
+
+#ifdef WIN32
 #pragma warning(pop)
+#endif
 
 #include <iostream>
 #include <chrono>

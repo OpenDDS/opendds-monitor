@@ -1,12 +1,17 @@
 #ifndef __DDS_LISTENERS__
 #define __DDS_LISTENERS__
 
+#ifdef WIN32
 #pragma warning(push, 0)  //No DDS warnings
+#endif
+
 #include <dds/DdsDcpsTopicC.h>
 #include <dds/DdsDcpsPublicationC.h>
 #include <dds/DdsDcpsSubscriptionC.h>
-#pragma warning(pop)
 
+#ifdef WIN32
+#pragma warning(pop)
+#endif
 
 class DDSWriterListenerStatusHandler {
 public:

@@ -13,7 +13,7 @@ class ParticipantTableModel;
  */
 class ParticipantPage : public QWidget, public Ui::ParticipantPage
 {
-    Q_OBJECT;
+    Q_OBJECT
 
 public:
 

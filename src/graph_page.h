@@ -66,7 +66,7 @@
  */
 class GraphPage : public QWidget, public Ui::GraphPage
 {
-    Q_OBJECT;
+    Q_OBJECT
 
 public:
 

@@ -16,8 +16,8 @@ TopicMonitor::TopicMonitor(const QString& topicName) :
                            m_filter(""),
                            m_typeCode(nullptr),
                            m_listener(OpenDDS::DCPS::make_rch<RecorderListener>(OpenDDS::DCPS::ref(*this))),
-                           m_dr_listener(*this),
                            m_recorder(nullptr),
+                           m_dr_listener(*this),
                            m_topic(nullptr),
                            m_paused(false)
 {
