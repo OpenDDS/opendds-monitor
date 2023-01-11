@@ -2,6 +2,7 @@
 
 #include "testTypeSupportImpl.h"
 
+#include <dds/DCPS/NetworkResource.h>
 #include <dds/DCPS/ValueDispatcher.h>
 
 #include <ace/OS_main.h>
@@ -136,7 +137,8 @@ int main(int argc, char* argv[])
 
     bool run = true;
 
-    const std::string id = std::string(argv[0]) + '-' + to_str(std::this_thread::get_id());
+    const std::string ex = std::string(argv[0]);
+    const std::string id = ex.substr(ex.find_last_of("/\\") + 1) + '-' + OpenDDS::DCPS::get_fully_qualified_hostname() + "-" + to_str(ACE_OS::getpid());
     CORBA::ULongLong count = 0;
 
     std::thread thread([&](){

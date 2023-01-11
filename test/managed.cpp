@@ -5,6 +5,7 @@
 
 #include <dds_manager.h>
 
+#include <dds/DCPS/NetworkResource.h>
 #include <dds/DCPS/ValueDispatcher.h>
 
 #include <ace/OS_main.h>
@@ -18,15 +19,21 @@ const char complex_topic_name[] = "Managed-Complex";
 
 int main(int argc, char* argv[])
 {
+  ACE_UNUSED_ARG(argc);
+
   const int domain_id = 4;
   std::cout << "Testing..." << std::endl;
   std::unique_ptr<DDSManager> dds_manager = std::make_unique<DDSManager>();
 
+  std::set<std::string> mpg;
+  std::mutex mpgm;
+  using mpgl = std::unique_lock<std::mutex>;
+
   bool join_result =
     dds_manager->joinDomain(domain_id,
                             "",
-                            [](const ParticipantInfo& info) { std::cout << "Adding Participant" << std::endl; },
-                            [](const ParticipantInfo& info) { std::cout << "Removing Participant" << std::endl; });
+                            [&](const ParticipantInfo& info) { mpgl lock(mpgm); if (mpg.insert(info.guid).second) { std::cout << "Adding Participant   : " << info.guid << std::endl; } },
+                            [&](const ParticipantInfo& info) { mpgl lock(mpgm); if (mpg.erase(info.guid)) { std::cout << "Removing Participant : " << info.guid << std::endl; } });
   OPENDDS_ASSERT(join_result);
 
   bool enable_result = dds_manager->enableDomain();
@@ -46,7 +53,8 @@ int main(int argc, char* argv[])
 
   bool run = true;
 
-  const std::string id = std::string(argv[0]) + '-' + to_str(std::this_thread::get_id());
+  const std::string ex = std::string(argv[0]);
+  const std::string id = ex.substr(ex.find_last_of("/\\") + 1) + '-' + OpenDDS::DCPS::get_fully_qualified_hostname() + "-" + to_str(ACE_OS::getpid());
   CORBA::ULongLong count = 0;
 
   std::thread thread([&](){
