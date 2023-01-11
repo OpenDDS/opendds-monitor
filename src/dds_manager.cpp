@@ -390,11 +390,11 @@ bool DDSManager::joinDomain(const int& domainID, const std::string& config, std:
     // standard. See 9.6.1.3 in the RTPS 2.2 protocol specification.
     const uint16_t PB = 7400;
     const uint16_t DG = 250;
-    const uint16_t PG = 2;
-    const uint16_t D0 = 0;
-    const uint16_t D1 = 10;
+    //const uint16_t PG = 2;
+    //const uint16_t D0 = 0;
+    //const uint16_t D1 = 10;
     const uint16_t D2 = 1;
-    const uint16_t D3 = 111;
+    //const uint16_t D3 = 111;
     uint16_t rtpsPort = PB + DG * static_cast<uint16_t>(domainID) + D2;
     //if(!newRtpsTransport->use_multicast_)
     //{
