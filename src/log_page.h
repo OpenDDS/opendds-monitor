@@ -13,7 +13,7 @@
  */
 class LogPage : public QWidget, public Ui::LogPage
 {
-    Q_OBJECT;
+    Q_OBJECT
 
 public:
 

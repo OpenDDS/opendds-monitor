@@ -8,12 +8,18 @@
 #include <vector>
 #include <string>
 
+#ifdef WIN32
 #pragma warning(push, 0)  //No DDS warnings
+#endif
+
 #include <dds/DCPS/TypeSupportImpl.h>
 #include <dds/DCPS/Serializer.h>
 #include <tao/AnyTypeCode/Any.h>
 #include <dds/DCPS/Service_Participant.h>
+
+#ifdef WIN32
 #pragma warning(pop)
+#endif
 
 //User must supply this by compiling std_qos.idl.
 #include "std_qosC.h"
@@ -140,7 +146,7 @@ bool DDSManager::registerTopic(const std::string& topicName, const STD_QOS::QosT
 
         // Copy the type code CDR after the header
         memcpy(&topicGroup->topicQos.topic_data.value[headerSize],
-            (unsigned char*)topicTypeCDR.buffer(),
+            (const unsigned char*)topicTypeCDR.buffer(),
             typeCodeSize);
     }
 

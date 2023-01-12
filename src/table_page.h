@@ -20,7 +20,7 @@ class TopicMonitor;
  */
 class TablePage : public QWidget, public Ui::TablePageForm
 {
-    Q_OBJECT;
+    Q_OBJECT
 
 public:
 

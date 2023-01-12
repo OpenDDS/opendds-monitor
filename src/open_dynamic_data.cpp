@@ -19,11 +19,11 @@ OpenDynamicData::OpenDynamicData(const CORBA::TypeCode* typeCode,
                                  const OpenDDS::DCPS::Encoding::Kind encodingKind, 
                                  const OpenDDS::DCPS::Extensibility extensibility,
                                  const std::weak_ptr<OpenDynamicData> parent) :
-                                 m_encodingKind(encodingKind),
-                                 m_extensibility(extensibility),
                                  m_parent(parent),
                                  m_name("EMPTY_NAME"),
                                  m_typeCode(typeCode), 
+                                 m_encodingKind(encodingKind),
+                                 m_extensibility(extensibility),
                                  m_containsComplexTypes(false)
 {
     if (!m_typeCode)

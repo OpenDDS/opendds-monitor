@@ -1,11 +1,17 @@
 #ifndef __DDS_MANAGER_H__
 #define __DDS_MANAGER_H__
 
+#ifdef WIN32
 #pragma warning(push, 0)  //No DDS warnings
+#endif
+
 #include <dds/DdsDcpsCoreC.h>
 #include <dds/DdsDcpsDomainC.h>
 #include <dds/DCPS/EventDispatcher.h>
+
+#ifdef WIN32
 #pragma warning(pop)
+#endif
 
 #include <vector>
 #include <string>

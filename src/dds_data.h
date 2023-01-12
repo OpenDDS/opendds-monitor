@@ -5,12 +5,17 @@
 
 #include <cstdint>
 
-
+#ifdef WIN32
 #pragma warning(push, 0)  //No DDS warnings
+#endif
+
 #include <dds/DCPS/Serializer.h>
 #include <dds/DdsDcpsCoreC.h>
 #include <dds/DdsDynamicDataC.h>
+
+#ifdef WIN32
 #pragma warning(pop)
+#endif
 
 #include <QStringList>
 #include <QVariant>
