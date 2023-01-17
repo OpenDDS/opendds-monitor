@@ -68,13 +68,20 @@ jobs:
         if: runner.os == 'macOS'
         run: |-
           brew install xerces-c qt5 qwt-qt5
+      - name: setup for run-vcpkg
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
+          echo { "name": "opendds", "version-string": "github-actions", "dependencies": [ "qt5-base", "openssl", "xerces-c", "qwt" ] } > vcpkg.json
+          echo VCPKG_DEFAULT_TRIPLET=x64-windows>> %GITHUB_ENV%
+          echo VCPKG_INSTALLED_DIR=${{ github.workspace }}\vcpkg\installed>> %GITHUB_ENV%
       - name: 'Install openssl, xerces, qt5, and qwt (Windows)'
         if: runner.os == 'Windows'
-        uses: lukka/run-vcpkg@v7
+        uses: lukka/run-vcpkg@v10
         with:
+          vcpkgDirectory: '${{ github.workspace }}/vcpkg'
           vcpkgGitCommitId: b86c0c35b88e2bf3557ff49dc831689c2f085090
-          vcpkgArguments: --recurse openssl xerces-c qt5 qwt
-          vcpkgTriplet: x64-windows
+          runVcpkgInstall: true
 
       # Set Up Build Environments
       - name: 'Set Up MSVC Environment'
@@ -113,7 +120,7 @@ jobs:
           echo "TAO_ROOT=$GITHUB_WORKSPACE\\ACE_TAO\\TAO" >> $GITHUB_ENV
           echo "DDS_ROOT=$GITHUB_WORKSPACE\\OpenDDS" >> $GITHUB_ENV
           echo "MPC_ROOT=$GITHUB_WORKSPACE\\MPC" >> $GITHUB_ENV
-          CONFIG_OPTIONS+=" --no-tests --std=c++17 --ipv6 --security --xerces3=\"$VCPKG_ROOT\\installed\\x64-windows\" --openssl=\"$VCPKG_ROOT\\installed\\x64-windows\""
+          CONFIG_OPTIONS+=" --no-tests --std=c++17 --ipv6 --security --xerces3=\"$VCPKG_INSTALLED_DIR\\x64-windows\" --openssl=\"$VCPKG_INSTALLED_DIR\\x64-windows\""
           echo "CONFIG_OPTIONS=$CONFIG_OPTIONS" >> $GITHUB_ENV
           export COMPILER_VERSION=$("C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -property catalog_productDisplayVersion)
           echo "COMPILER_VERSION=$COMPILER_VERSION" >> $GITHUB_ENV
@@ -228,6 +235,6 @@ jobs:
           cd ..
           mkdir build
           cd build
-          cmake -DCMAKE_PREFIX_PATH=%VCPKG_ROOT%\installed\x64-windows ..
+          cmake -DCMAKE_PREFIX_PATH=%VCPKG_INSTALLED_DIR%\x64-windows ..
           cmake --build .
           cmake --build test -t managed_testapp -t unmanaged_testapp
