@@ -72,7 +72,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: cmd
         run: |
-          echo { "name": "opendds", "version-string": "github-actions", "dependencies": [ "qt5-base", "openssl", "xerces-c", "qwt" ] } > vcpkg.json
+          echo { "name": "opendds", "version-string": "github-actions", "dependencies": [ "qt5-base", "openssl", "xerces-c" ] } > vcpkg.json
           echo VCPKG_DEFAULT_TRIPLET=x64-windows>> %GITHUB_ENV%
           echo VCPKG_INSTALLED_DIR=${{ github.workspace }}\vcpkg\installed>> %GITHUB_ENV%
       - name: 'Install openssl, xerces, qt5, and qwt (Windows)'
@@ -80,7 +80,7 @@ jobs:
         uses: lukka/run-vcpkg@v10
         with:
           vcpkgDirectory: '${{ github.workspace }}/vcpkg'
-          vcpkgGitCommitId: 2c102ee932e38799d4152da09359b3633e5993b8
+          vcpkgGitCommitId: 688ece714204fb5e9ad790ad9ad6d9f571d2b032
           runVcpkgInstall: true
 
       # Set Up Build Environments
@@ -226,6 +226,11 @@ jobs:
           fi
           cmake $CMAKE_ARGS ..
           cmake --build . -t all -t managed_testapp -t unmanaged_testapp
+      - name: 'Build Qwt (Windows)'
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |-
+          cmake -DBUILD_TYPE=debug -DVCPKG_INSTALLED_DIR=%VCPKG_INSTALLED_DIR% -DVCPKG_DEFAULT_TRIPLET=%VCPKG_DEFAULT_TRIPLET% -P BuildQwt.cmake
       - name: 'Build opendds-monitor (Windows)'
         if: runner.os == 'Windows'
         shell: cmd
@@ -235,6 +240,6 @@ jobs:
           cd ..
           mkdir build
           cd build
-          cmake -DCMAKE_PREFIX_PATH=%VCPKG_INSTALLED_DIR%\x64-windows ..
+          cmake -DQWT_IS_LOCAL=ON -DCMAKE_PREFIX_PATH=%VCPKG_INSTALLED_DIR%\x64-windows ..
           cmake --build .
           cmake --build test -t managed_testapp -t unmanaged_testapp
