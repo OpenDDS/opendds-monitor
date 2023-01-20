@@ -146,7 +146,7 @@ void TopicReplayer::publishSample(const std::shared_ptr<OpenDynamicData> sample)
     //OpenDDS::DCPS::PublicationId pub_id =
     //    disc->bit_key_to_repo_id(partipant_, BUILT_IN_PUBLICATION_TOPIC, data.key);
 
-    OpenDDS::DCPS::PublicationId pubID = OpenDDS::DCPS::GUID_UNKNOWN; //RJ TODO Reference writer here?
+    OpenDDS::DCPS::GUID_t pubID = OpenDDS::DCPS::GUID_UNKNOWN; //RJ TODO Reference writer here?
 
     //3.18.1 added DataSampleHeader. Not sure what to do with it yet. My belief is that it will be populated in DataWriterImpl::create_sample_data_message, called by ReplayerImpl::write
     OpenDDS::DCPS::DataSampleHeader sampleHdr;

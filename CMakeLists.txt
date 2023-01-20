@@ -12,8 +12,14 @@ endif()
 
 find_package(Qt5 REQUIRED COMPONENTS Core Widgets Gui PrintSupport Svg OpenGL OPTIONAL_COMPONENTS ${qt_optional_components})
 
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}) # FindQwt.cmake is in this directory
-find_package(Qwt MODULE REQUIRED)
+if(${QWT_IS_LOCAL})
+  set(QWT_LIBRARY ${CMAKE_SOURCE_DIR}/qwt/lib/qwt$<$<CONFIG:DEBUG>:d>.lib)
+  set(QWT_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/qwt/src)
+else()
+  # FindQwt.cmake is in this directory
+  list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR})
+  find_package(Qwt MODULE REQUIRED)
+endif()
 
 set(CMAKE_AUTOMOC FALSE)
 
