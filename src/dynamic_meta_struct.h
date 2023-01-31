@@ -2,6 +2,7 @@
 #define __DYNAMIC_META_STRUCT_H__
 
 #include <dds/DCPS/FilterEvaluator.h> // For OpenDDS::DCPS::MetaStruct
+#include <dds/DCPS/TypeSupportImpl.h>
 
 class OpenDynamicData;
 
@@ -47,7 +48,16 @@ public:
      * @param[in] unusedSerializer Unused but required by MetaStruct.
      * @param[in] fieldSpec The topic member name.
      */
-    OpenDDS::DCPS::Value getValue(OpenDDS::DCPS::Serializer& unusedSerializer, const char* fieldSpec) const;
+    OpenDDS::DCPS::Value getValue(OpenDDS::DCPS::Serializer& unusedSerializer, const char* fieldSpec, const OpenDDS::DCPS::TypeSupportImpl*) const;
+
+    /**
+     * @brief OpenDDS before version 3.24 uses a 2-argument getValue()
+     *
+     */
+    OpenDDS::DCPS::Value getValue(OpenDDS::DCPS::Serializer& unusedSerializer, const char* fieldSpec) const
+    {
+      return getValue(unusedSerializer, fieldSpec, 0);
+    }
 
     /**
      * @brief This function does nothing, but is required by MetaStruct.
