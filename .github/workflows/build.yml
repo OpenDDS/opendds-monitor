@@ -241,5 +241,4 @@ jobs:
           mkdir build
           cd build
           cmake -DQWT_IS_LOCAL=ON -DCMAKE_PREFIX_PATH=%VCPKG_INSTALLED_DIR%\x64-windows ..
-          cmake --build .
-          cmake --build test -t managed_testapp -t unmanaged_testapp
+          cmake --build . && cmake --build test -t managed_testapp -t unmanaged_testapp
