@@ -228,8 +228,13 @@ void TopicMonitor::on_sample_data_received(OpenDDS::DCPS::Recorder*,
             DynamicMetaStruct metaInfo(sample);
 
             const DDS::StringSeq noParams;
+#if OPENDDS_MAJOR_VERSION == 3 && OPENDDS_MINOR_VERSION < 24
             pass = filterTest.eval(rawSample.sample_.get(), false, false, metaInfo, noParams, m_extensibility);
-
+#else
+            OpenDDS::DCPS::Encoding encoding;
+            FilterTypeSupport typeSupport(metaInfo, m_extensibility);
+            pass = filterTest.eval(rawSample.sample_.get(), encoding, typeSupport, noParams);
+#endif
         }
         catch (const std::exception& e)
         {
@@ -297,6 +302,65 @@ void TopicMonitor::unpause()
     m_paused = false;
 }
 
+
+#if OPENDDS_MAJOR_VERSION == 3 && OPENDDS_MINOR_VERSION >= 24
+TopicMonitor::FilterTypeSupport::FilterTypeSupport(const DynamicMetaStruct& metastruct, OpenDDS::DCPS::Extensibility exten)
+  : meta_(metastruct)
+  , ext_(exten)
+{}
+
+const OpenDDS::DCPS::MetaStruct&
+TopicMonitor::FilterTypeSupport::getMetaStructForType() const
+{
+  return meta_;
+}
+
+OpenDDS::DCPS::SerializedSizeBound
+TopicMonitor::FilterTypeSupport::serialized_size_bound(const OpenDDS::DCPS::Encoding&) const
+{
+  return OpenDDS::DCPS::SerializedSizeBound();
+}
+
+OpenDDS::DCPS::SerializedSizeBound
+TopicMonitor::FilterTypeSupport::key_only_serialized_size_bound(const OpenDDS::DCPS::Encoding&) const
+{
+  return OpenDDS::DCPS::SerializedSizeBound();
+}
+
+OpenDDS::DCPS::Extensibility
+TopicMonitor::FilterTypeSupport::max_extensibility() const
+{
+  return OpenDDS::DCPS::FINAL;
+}
+
+OpenDDS::XTypes::TypeIdentifier&
+TopicMonitor::FilterTypeSupport::getMinimalTypeIdentifier() const
+{
+  static OpenDDS::XTypes::TypeIdentifier ti;
+  return ti;
+}
+
+const OpenDDS::XTypes::TypeMap&
+TopicMonitor::FilterTypeSupport::getMinimalTypeMap() const
+{
+  static OpenDDS::XTypes::TypeMap tm;
+  return tm;
+}
+
+const OpenDDS::XTypes::TypeIdentifier&
+TopicMonitor::FilterTypeSupport::getCompleteTypeIdentifier() const
+{
+  static OpenDDS::XTypes::TypeIdentifier ti;
+  return ti;
+}
+
+const OpenDDS::XTypes::TypeMap&
+TopicMonitor::FilterTypeSupport::getCompleteTypeMap() const
+{
+  static OpenDDS::XTypes::TypeMap tm;
+  return tm;
+}
+#endif
 
 /**
  * @}
