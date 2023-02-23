@@ -1,3 +1,5 @@
+set(RAPIDJSON_INCLUDE_DIR $ENV{RAPIDJSON_ROOT}/include)
+
 add_executable(managed_testapp
   managed.cpp
 )
@@ -18,6 +20,7 @@ target_link_libraries(managed_testapp
 
 target_include_directories(managed_testapp PRIVATE
   ../src
+  ${RAPIDJSON_INCLUDE_DIR}
 )
 
 add_executable(unmanaged_testapp
@@ -40,4 +43,5 @@ target_link_libraries(unmanaged_testapp
 
 target_include_directories(unmanaged_testapp PRIVATE
   ../src
+  ${RAPIDJSON_INCLUDE_DIR}
 )

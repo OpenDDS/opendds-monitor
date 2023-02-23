@@ -15,9 +15,9 @@ TopicMonitor::TopicMonitor(const QString& topicName) :
                            m_topicName(topicName),
                            m_filter(""),
                            m_typeCode(nullptr),
-                           m_listener(OpenDDS::DCPS::make_rch<RecorderListener>(OpenDDS::DCPS::ref(*this))),
+                           m_recorder_listener(OpenDDS::DCPS::make_rch<RecorderListener>(OpenDDS::DCPS::ref(*this))),
                            m_recorder(nullptr),
-                           m_dr_listener(*this),
+                           m_dr_listener(new DataReaderListenerImpl(*this)),
                            m_topic(nullptr),
                            m_paused(false)
 {
@@ -36,12 +36,12 @@ TopicMonitor::TopicMonitor(const QString& topicName) :
     OpenDDS::DCPS::Service_Participant* service = TheServiceParticipant;
     DDS::DomainParticipant_var participant;
     if (CommonData::m_ddsManager) {
-      participant = CommonData::m_ddsManager->getDomainParticipant();
+        participant = CommonData::m_ddsManager->getDomainParticipant();
     }
 
     if (!participant) {
-      std::cerr << "No domain participant" << std::endl;
-      return;
+        std::cerr << "No domain participant" << std::endl;
+        return;
     }
 
     if (topicInfo->typeCode) {
@@ -64,7 +64,7 @@ TopicMonitor::TopicMonitor(const QString& topicName) :
                                               m_topic,
                                               topicInfo->subQos,
                                               topicInfo->readerQos,
-                                              m_listener);
+                                              m_recorder_listener);
         if (!m_recorder) {
             std::cerr << "Failed to created recorder for topic " << topicInfo->name << std::endl;
             return;
@@ -94,7 +94,7 @@ TopicMonitor::TopicMonitor(const QString& topicName) :
 
         m_dr = subscriber->create_datareader(m_topic,
                                              topicInfo->readerQos,
-                                             &m_dr_listener,
+                                             m_dr_listener,
                                              OpenDDS::DCPS::DEFAULT_STATUS_MASK);
         if (!m_dr) {
             std::cerr << "Failed to create data reader for topic " << topicInfo->name << std::endl;
@@ -251,8 +251,8 @@ void TopicMonitor::on_sample_data_received(OpenDDS::DCPS::Recorder*,
 
 
     QDateTime dataTime = QDateTime::fromMSecsSinceEpoch(
-    (static_cast<unsigned long long>(rawSample.source_timestamp_.sec) * 1000) +
-    (static_cast<unsigned long long>(rawSample.source_timestamp_.nanosec) * 1e-6));
+        (static_cast<unsigned long long>(rawSample.source_timestamp_.sec) * 1000) +
+        (static_cast<unsigned long long>(rawSample.source_timestamp_.nanosec) * 1e-6));
 
     QString sampleName = dataTime.toString("HH:mm:ss.zzz");
     CommonData::storeSample(m_topicName, sampleName, sample);
@@ -280,8 +280,8 @@ void TopicMonitor::on_data_available(DDS::DataReader_ptr dr)
         if (infos[i].valid_data) {
             // TODO: Apply content filtering when it's supported.
             QDateTime dataTime = QDateTime::fromMSecsSinceEpoch(
-              (static_cast<unsigned long long>(infos[i].source_timestamp.sec) * 1000) +
-              (static_cast<unsigned long long>(infos[i].source_timestamp.nanosec) * 1e-6));
+                (static_cast<unsigned long long>(infos[i].source_timestamp.sec) * 1000) +
+                (static_cast<unsigned long long>(infos[i].source_timestamp.nanosec) * 1e-6));
             QString sampleName = dataTime.toString("HH:mm:ss.zzz");
             CommonData::storeDynamicSample(m_topicName, sampleName,
                                            DDS::DynamicData::_duplicate(messages[i].in()));

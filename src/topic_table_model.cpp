@@ -662,43 +662,43 @@ void TopicTableModel::setDataRow(DataRow* const data_row,
         // When @bit_bound is supported, update this to call the right interface.
         CORBA::Long value;
         if (check_rc(data->get_int32_value(value, id), "get enum value failed")) {
-  	    DDS::DynamicType_var type = data->type();
-	    const OpenDDS::XTypes::TypeKind tk = type->get_kind();
-	    DDS::DynamicType_var enum_dt;
-	    if (tk == OpenDDS::XTypes::TK_STRUCTURE || tk == OpenDDS::XTypes::TK_UNION) {
-	        DDS::DynamicTypeMember_var enum_dtm;
-		if (type->get_member(enum_dtm, id) != DDS::RETCODE_OK) {
-		    std::cerr << "get_member failed for enum member with Id "
-			      << id << std::endl;
-		    break;
-		}
-		DDS::MemberDescriptor_var enum_md;
-		if (enum_dtm->get_descriptor(enum_md) != DDS::RETCODE_OK) {
-		    std::cerr << "get_descriptor failed for enum member with Id "
-			      << id << std::endl;
-		    break;
-		}
-		enum_dt = DDS::DynamicType::_duplicate(enum_md->type());
-	    } else if (tk == OpenDDS::XTypes::TK_SEQUENCE || tk == OpenDDS::XTypes::TK_ARRAY) {
-	        DDS::TypeDescriptor_var td;
-		if (type->get_descriptor(td) != DDS::RETCODE_OK) {
-		    std::cerr << "get_descriptor failed" << std::endl;
-		    break;
-		}
-		enum_dt = OpenDDS::XTypes::get_base_type(td->element_type());
-	    }
+            DDS::DynamicType_var type = data->type();
+            const OpenDDS::XTypes::TypeKind tk = type->get_kind();
+            DDS::DynamicType_var enum_dt;
+            if (tk == OpenDDS::XTypes::TK_STRUCTURE || tk == OpenDDS::XTypes::TK_UNION) {
+                DDS::DynamicTypeMember_var enum_dtm;
+                if (type->get_member(enum_dtm, id) != DDS::RETCODE_OK) {
+                    std::cerr << "get_member failed for enum member with Id "
+                          << id << std::endl;
+                    break;
+                }
+                DDS::MemberDescriptor_var enum_md;
+                if (enum_dtm->get_descriptor(enum_md) != DDS::RETCODE_OK) {
+                    std::cerr << "get_descriptor failed for enum member with Id "
+                          << id << std::endl;
+                    break;
+                }
+                enum_dt = DDS::DynamicType::_duplicate(enum_md->type());
+            } else if (tk == OpenDDS::XTypes::TK_SEQUENCE || tk == OpenDDS::XTypes::TK_ARRAY) {
+                DDS::TypeDescriptor_var td;
+                if (type->get_descriptor(td) != DDS::RETCODE_OK) {
+                    std::cerr << "get_descriptor failed" << std::endl;
+                    break;
+                }
+                enum_dt = OpenDDS::XTypes::get_base_type(td->element_type());
+            }
 
-	    DDS::DynamicTypeMember_var enum_lit_dtm;
-	    if (enum_dt->get_member(enum_lit_dtm, value) != DDS::RETCODE_OK) {
- 	        std::cerr << "get_member failed for enum literal with value " << value << std::endl;
-		break;
-	    }
-	    DDS::MemberDescriptor_var enum_lit_md;
-	    if (enum_lit_dtm->get_descriptor(enum_lit_md) != DDS::RETCODE_OK) {
- 	        std::cerr << "get_descriptor failed for enum literal with value " << value << std::endl;
-		break;
-	    }
-	    data_row->value = enum_lit_md->name();
+            DDS::DynamicTypeMember_var enum_lit_dtm;
+            if (enum_dt->get_member(enum_lit_dtm, value) != DDS::RETCODE_OK) {
+                std::cerr << "get_member failed for enum literal with value " << value << std::endl;
+                break;
+            }
+            DDS::MemberDescriptor_var enum_lit_md;
+            if (enum_lit_dtm->get_descriptor(enum_lit_md) != DDS::RETCODE_OK) {
+                std::cerr << "get_descriptor failed for enum literal with value " << value << std::endl;
+                break;
+            }
+            data_row->value = enum_lit_md->name();
         }
         break;
     }
@@ -740,8 +740,8 @@ void TopicTableModel::parseCollection(const DDS::DynamicData_var& data, const st
             if (ret != DDS::RETCODE_OK) {
                 std::cerr << "get_complex_value for element at index " << i << " failed" << std::endl;
             } else {
-	        std::string scoped_elem_name = namePrefix + "[" + std::to_string(i) + "]";
-		parseData(nested_data, scoped_elem_name);
+                std::string scoped_elem_name = namePrefix + "[" + std::to_string(i) + "]";
+                parseData(nested_data, scoped_elem_name);
             }
             continue;
         }
@@ -751,8 +751,8 @@ void TopicTableModel::parseCollection(const DDS::DynamicData_var& data, const st
         DataRow* data_row = new DataRow;
         data_row->type = typekind_to_tckind(elem_tk);
         data_row->isOptional = false; // TODO: Get the right value from the containing type
-	std::string scoped_elem_name = namePrefix + "[" + std::to_string(i) + "]";
-	data_row->name = scoped_elem_name.c_str();
+        std::string scoped_elem_name = namePrefix + "[" + std::to_string(i) + "]";
+        data_row->name = scoped_elem_name.c_str();
         data_row->isKey = false; // TODO: Get the right value from the containing type
 
         // Update the current editor delegate
@@ -793,8 +793,10 @@ void TopicTableModel::parseAggregated(const DDS::DynamicData_var& data, const st
             continue;
         }
 
-	std::string scoped_member_name = namePrefix.empty() ? md->name() : namePrefix + "." + md->name();
-        const OpenDDS::XTypes::TypeKind member_tk = OpenDDS::XTypes::get_base_type(md->type())->get_kind();
+        std::string scoped_member_name = namePrefix.empty() ? md->name() : namePrefix + "." + md->name();
+        const DDS::DynamicType_var type = md->type();
+        const DDS::DynamicType_var base_type = OpenDDS::XTypes::get_base_type(type.in());
+        const OpenDDS::XTypes::TypeKind member_tk = base_type->get_kind();
         switch (member_tk) {
         case OpenDDS::XTypes::TK_SEQUENCE:
         case OpenDDS::XTypes::TK_ARRAY:
@@ -805,7 +807,7 @@ void TopicTableModel::parseAggregated(const DDS::DynamicData_var& data, const st
             if (ret != DDS::RETCODE_OK) {
                 std::cerr << "get_complex_value for member Id " << id << " failed" << std::endl;
             } else {
-		parseData(nested_data, scoped_member_name);
+                parseData(nested_data, scoped_member_name);
             }
             continue;
         }
