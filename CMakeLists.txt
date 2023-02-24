@@ -4,8 +4,7 @@ project(opendds-monitor VERSION 0.0.1 LANGUAGES CXX)
 
 find_package(OpenDDS REQUIRED)
 
-set(OPENDDW_ROOT ${CMAKE_SOURCE_DIR}/thirdparty/OpenDDW)
-include(${CMAKE_SOURCE_DIR}/thirdparty/OpenDDW/CMakeLists.txt)
+add_subdirectory(thirdparty/OpenDDW)
 
 if(WIN32)
   set(qt_optional_components "")
@@ -28,6 +27,7 @@ set(CMAKE_AUTOMOC FALSE)
 
 set(HEADER
   src/dds_data.h
+  src/dynamic_meta_struct.h
   src/editor_delegates.h
   src/first_define.h
   src/graph_page.h
@@ -47,6 +47,7 @@ set(HEADER
 
 set(SOURCE
   src/dds_data.cpp
+  src/dynamic_meta_struct.cpp
   src/editor_delegates.cpp
   src/graph_page.cpp
   src/log_page.cpp
@@ -110,10 +111,10 @@ else()
   target_compile_features(monitor PRIVATE cxx_std_17)
 endif()
 
-add_dependencies(monitor manager)
+add_dependencies(monitor OpenDDW)
 
 target_link_libraries(monitor
-  OpenDDS::Dcps
+  OpenDDW
   ${QWT_LIBRARY}
   Qt5::PrintSupport
   Qt5::Widgets
@@ -125,8 +126,6 @@ target_link_libraries(monitor
 )
 
 target_include_directories(monitor PRIVATE
-  ${OPENDDW_GENERATED_DIRECTORY}
-  ${OPENDDW_INCLUDE_DIR}
   ${QWT_INCLUDE_DIR}
   ${CMAKE_BINARY_DIR}
 )
