@@ -37,6 +37,8 @@ jobs:
       # Clone git repositories
       - name: 'Checkout opendds-monitor'
         uses: actions/checkout@v3
+        with:
+          submodules: true
       - name: 'Checkout MPC'
         uses: actions/checkout@v3
         with:
