@@ -111,6 +111,8 @@ else()
   target_compile_features(monitor PRIVATE cxx_std_17)
 endif()
 
+target_compile_options(monitor PRIVATE $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>: -Wall -Wextra -Wpedantic -Wno-unused> $<$<CXX_COMPILER_ID:MSVC>: /W4>)
+
 add_dependencies(monitor OpenDDW)
 
 target_link_libraries(monitor
