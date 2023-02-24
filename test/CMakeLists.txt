@@ -1,3 +1,7 @@
+cmake_minimum_required(VERSION 3.0)
+
+project(opendds-monitor-tests VERSION 0.0.1 LANGUAGES CXX)
+
 add_executable(managed_testapp
   managed.cpp
 )
