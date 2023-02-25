@@ -206,6 +206,13 @@ jobs:
           cd OpenDDS
           perl tools/scripts/show_build_config.pl
 
+      # Build Qwt (Windows Only)
+      - name: 'Build Qwt (Windows)'
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |-
+          cmake -DBUILD_TYPE=debug -DVCPKG_INSTALLED_DIR=%VCPKG_INSTALLED_DIR% -DVCPKG_DEFAULT_TRIPLET=%VCPKG_DEFAULT_TRIPLET% -P BuildQwt.cmake
+
       # Build opendds-monitor
       - name: 'Set Up Problem Matcher (Windows)'
         if: runner.os == 'Windows'
@@ -228,11 +235,6 @@ jobs:
           fi
           cmake $CMAKE_ARGS ..
           cmake --build . -t all -t managed_testapp -t unmanaged_testapp
-      - name: 'Build Qwt (Windows)'
-        if: runner.os == 'Windows'
-        shell: cmd
-        run: |-
-          cmake -DBUILD_TYPE=debug -DVCPKG_INSTALLED_DIR=%VCPKG_INSTALLED_DIR% -DVCPKG_DEFAULT_TRIPLET=%VCPKG_DEFAULT_TRIPLET% -P BuildQwt.cmake
       - name: 'Build opendds-monitor (Windows)'
         if: runner.os == 'Windows'
         shell: cmd
