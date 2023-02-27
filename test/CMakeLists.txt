@@ -2,7 +2,12 @@ cmake_minimum_required(VERSION 3.0)
 
 project(opendds-monitor-tests VERSION 0.0.1 LANGUAGES CXX)
 
-set(RAPIDJSON_INCLUDE_DIR $ENV{RAPIDJSON_ROOT}/include)
+if ("$ENV{RAPIDJSON_ROOT}" STREQUAL "")
+  set(RAPIDJSON_ROOT $ENV{DDS_ROOT}/tools/rapidjson)
+else()
+  set(RAPIDJSON_ROOT $ENV{RAPIDJSON_ROOT})
+endif()
+set(RAPIDJSON_INCLUDE_DIR ${RAPIDJSON_ROOT}/include)
 
 add_executable(managed_testapp
   managed.cpp
@@ -20,6 +25,7 @@ OPENDDS_TARGET_SOURCES(managed_testapp test.idl OPENDDS_IDL_OPTIONS "-Gxtypes-co
 
 target_link_libraries(managed_testapp
   OpenDDW
+  OpenDDS::Dcps
 )
 
 target_include_directories(managed_testapp PRIVATE
@@ -43,7 +49,6 @@ target_compile_options(unmanaged_testapp PRIVATE $<$<OR:$<CXX_COMPILER_ID:Clang>
 
 target_link_libraries(unmanaged_testapp
   OpenDDS::Dcps
-  ${OPENDDS_TARGETS}
 )
 
 target_include_directories(unmanaged_testapp PRIVATE
