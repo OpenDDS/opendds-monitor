@@ -38,7 +38,7 @@ LogPage::~LogPage()
 }
 
 
-void LogPage::timerEvent(QTimerEvent* event)
+void LogPage::timerEvent(QTimerEvent* /*event*/)
 {
     std::lock_guard<std::mutex> lk(newMessageMutex);
     for (const auto& message : newMessages) {

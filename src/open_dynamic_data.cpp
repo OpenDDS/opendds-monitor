@@ -119,8 +119,11 @@ OpenDynamicData& OpenDynamicData::operator=(const OpenDynamicData& other)
             break;
         case CORBA::tk_sequence:
             thisChild->setLength(otherChild->getLength());
-            // Fallthrough to add children
+            *thisChild = *otherChild;
+            break;
         case CORBA::tk_struct:
+            *thisChild = *otherChild;
+            break;
         case CORBA::tk_array:
             *thisChild = *otherChild;
             break;
@@ -255,8 +258,19 @@ bool OpenDynamicData::operator==(const OpenDynamicData& other)
             {
                 return false;
             }
-            // Fallthrough to add children
+            //Recurse
+            if (*thisChild != *otherChild)
+            {
+                return false;
+            }
+            break;
         case CORBA::tk_struct:
+            //Recurse
+            if (*thisChild != *otherChild)
+            {
+                return false;
+            }
+            break;
         case CORBA::tk_array:
             //Recurse
             if (*thisChild != *otherChild)
