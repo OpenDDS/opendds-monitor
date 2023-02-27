@@ -70,8 +70,8 @@ public:
             m_monitor.on_sample_data_received(recorder, rawSample);
         }
 
-        void on_recorder_matched(OpenDDS::DCPS::Recorder* recorder,
-                                 const DDS::SubscriptionMatchedStatus& status) override {}
+        void on_recorder_matched(OpenDDS::DCPS::Recorder* /*recorder*/,
+                                 const DDS::SubscriptionMatchedStatus& /*status*/) override {}
     private:
         TopicMonitor& m_monitor;
     };

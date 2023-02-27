@@ -4,6 +4,8 @@ project(opendds-monitor VERSION 0.0.1 LANGUAGES CXX)
 
 find_package(OpenDDS REQUIRED)
 
+add_subdirectory(thirdparty/OpenDDW)
+
 if(WIN32)
   set(qt_optional_components "")
 else()
@@ -23,29 +25,10 @@ endif()
 
 set(CMAKE_AUTOMOC FALSE)
 
-set(MANAGER_HEADER
-  src/dds_callback.h
-  src/dds_listeners.h
-  src/dds_logging.h
-  src/dds_manager.h
-  src/participant_monitor.h
-  src/qos_dictionary.h
-)
-
-set(MANAGER_SOURCE
-  src/dds_callback.cpp
-  src/dds_listeners.cpp
-  src/dds_logging.cpp
-  src/dds_manager.cpp
-  src/participant_monitor.cpp
-  src/qos_dictionary.cpp
-)
-
 set(HEADER
   src/dds_data.h
   src/dynamic_meta_struct.h
   src/editor_delegates.h
-  src/filesystem.hpp
   src/first_define.h
   src/graph_page.h
   src/log_page.h
@@ -53,7 +36,6 @@ set(HEADER
   src/open_dynamic_data.h
   src/participant_page.h
   src/participant_table_model.h
-  src/platformIndependent.h
   src/publication_monitor.h
   src/recorder_dialog.h
   src/subscription_monitor.h
@@ -115,32 +97,6 @@ qt5_wrap_cpp(MOC_SOURCE
 
 qt5_wrap_ui(UI_SOURCE ${UI})
 
-add_library(manager
-  ${MANAGER_HEADER}
-  ${MANAGER_SOURCE}
-)
-
-if (MSVC)
-  target_compile_definitions(manager PRIVATE _CRT_SECURE_NO_WARNINGS)
-else()
-  target_compile_features(manager PRIVATE cxx_std_17)
-endif()
-
-target_compile_options(manager PRIVATE $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>: -Wall -pedantic -Wno-unused> $<$<CXX_COMPILER_ID:MSVC>: /W4>)
-
-set(OPENDDS_TARGETS
-  OpenDDS::Dcps
-  OpenDDS::Rtps
-  OpenDDS::Rtps_Udp
-)
-
-target_link_libraries(manager
-  ${OPENDDS_TARGETS}
-  Threads::Threads
-)
-
-OPENDDS_TARGET_SOURCES(manager idl/std_qos.idl)
-
 add_executable(monitor
   ${SOURCE}
   ${HEADER}
@@ -155,8 +111,12 @@ else()
   target_compile_features(monitor PRIVATE cxx_std_17)
 endif()
 
+target_compile_options(monitor PRIVATE $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>: -Wall -Wextra -Wpedantic -Wno-unused -Wunused-parameter> $<$<CXX_COMPILER_ID:MSVC>: /W4>)
+
+add_dependencies(monitor OpenDDW)
+
 target_link_libraries(monitor
-  manager
+  OpenDDW
   ${QWT_LIBRARY}
   Qt5::PrintSupport
   Qt5::Widgets

@@ -1,0 +1,3 @@
+[submodule "thirdparty/OpenDDW"]
+	path = thirdparty/OpenDDW
+	url = https://github.com/OpenDDS/OpenDDW.git

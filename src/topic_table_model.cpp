@@ -1072,17 +1072,17 @@ bool TopicTableModel::DataRow::setValue(const QVariant& newValue)
             newValue.toDouble(&pass);
             break;
         case CORBA::tk_boolean:
-        if (newValue.toString() == "0" || newValue.toString() == "1")
-        {
-            pass = true;
+            if (newValue.toString() == "0" || newValue.toString() == "1")
+            {
+                pass = true;
+            }
             break;
-        }
         case CORBA::tk_char:
-        if (newValue.canConvert(QMetaType::Char))
-        {
-            pass = true;
+            if (newValue.canConvert(QMetaType::Char))
+            {
+                pass = true;
+            }
             break;
-        }
         case CORBA::tk_octet:
         {
             bool tmpPass = false;
