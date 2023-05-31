@@ -105,10 +105,10 @@ add_executable(monitor
   ${UI_SOURCE}
 )
 
+target_compile_features(monitor PRIVATE cxx_std_17)
+
 if (MSVC)
-  target_compile_definitions(monitor PRIVATE _CRT_SECURE_NO_WARNINGS)
-else()
-  target_compile_features(monitor PRIVATE cxx_std_17)
+  target_compile_definitions(monitor PRIVATE _CRT_SECURE_NO_WARNINGS _HAS_AUTO_PTR_ETC=1)  
 endif()
 
 target_compile_options(monitor PRIVATE $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>: -Wall -Wextra -Wpedantic -Wno-unused -Wunused-parameter> $<$<CXX_COMPILER_ID:MSVC>: /W4>)
@@ -129,9 +129,11 @@ target_link_libraries(monitor
 
 target_include_directories(monitor PRIVATE
   ${QWT_INCLUDE_DIR}
-  ${CMAKE_BINARY_DIR}
+  ${CMAKE_BINARY_DIR}/opendds-monitor
 )
 
 configure_file(opendds.ini . COPYONLY)
 
 add_subdirectory(test EXCLUDE_FROM_ALL)
+
+
