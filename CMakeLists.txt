@@ -108,7 +108,17 @@ add_executable(monitor
 target_compile_features(monitor PRIVATE cxx_std_17)
 
 if (MSVC)
-  target_compile_definitions(monitor PRIVATE _CRT_SECURE_NO_WARNINGS _HAS_AUTO_PTR_ETC=1)  
+  target_compile_definitions(monitor PRIVATE _CRT_SECURE_NO_WARNINGS _HAS_AUTO_PTR_ETC=1)
+  
+  target_compile_options(monitor PRIVATE
+    /W4 # Set the warning level to "Level4"
+    /wd4251 #Must have dll-interface to be used by clients of struct.
+    /wd4244 #Conversion warning from ACE.
+	/wd4250 #inherits via dominance
+	/wd4275 #non dll-interface class used as base for dll-interface class
+    /WX # Warnings are errors!!!!
+  )
+  
 endif()
 
 target_compile_options(monitor PRIVATE $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>: -Wall -Wextra -Wpedantic -Wno-unused -Wunused-parameter> $<$<CXX_COMPILER_ID:MSVC>: /W4>)

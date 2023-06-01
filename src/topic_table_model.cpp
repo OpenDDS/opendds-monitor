@@ -801,7 +801,7 @@ void TopicTableModel::parseAggregated(const DDS::DynamicData_var& data, const st
         case OpenDDS::XTypes::TK_STRUCTURE:
         case OpenDDS::XTypes::TK_UNION: {
             DDS::DynamicData_var nested_data;
-            DDS::ReturnCode_t ret = data->get_complex_value(nested_data, id);
+            ret = data->get_complex_value(nested_data, id);
             if (ret != DDS::RETCODE_OK) {
                 std::cerr << "get_complex_value for member Id " << id << " failed" << std::endl;
             } else {
