@@ -23,8 +23,6 @@ else()
   find_package(Qwt MODULE REQUIRED)
 endif()
 
-set(CMAKE_AUTOMOC FALSE)
-
 set(HEADER
   src/dds_data.h
   src/dynamic_meta_struct.h
@@ -105,11 +103,14 @@ add_executable(monitor
   ${UI_SOURCE}
 )
 
+set_property(TARGET monitor PROPERTY AUTOUIC TRUE)
+set_property(TARGET monitor APPEND PROPERTY AUTOUIC_SEARCH_PATHS "${CMAKE_CURRENT_SOURCE_DIR}/ui")
+
 target_compile_features(monitor PRIVATE cxx_std_17)
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   target_compile_definitions(monitor PRIVATE _CRT_SECURE_NO_WARNINGS _HAS_AUTO_PTR_ETC=1)
-  
+
   target_compile_options(monitor PRIVATE
     /W4 # Set the warning level to "Level4"
     /wd4251 #Must have dll-interface to be used by clients of struct.
@@ -137,12 +138,10 @@ target_link_libraries(monitor
 )
 
 target_include_directories(monitor PRIVATE
+  ${CMAKE_CURRENT_BINARY_DIR}
   ${QWT_INCLUDE_DIR}
-  ${CMAKE_BINARY_DIR}/opendds-monitor
 )
 
 configure_file(opendds.ini . COPYONLY)
 
 add_subdirectory(test EXCLUDE_FROM_ALL)
-
-
