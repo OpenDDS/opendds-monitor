@@ -93,8 +93,6 @@ qt5_wrap_cpp(MOC_SOURCE
   src/topic_table_model.h
 )
 
-qt5_wrap_ui(UI_SOURCE ${UI})
-
 add_executable(monitor
   ${SOURCE}
   ${HEADER}
