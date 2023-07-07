@@ -136,7 +136,6 @@ target_link_libraries(monitor
 )
 
 target_include_directories(monitor PRIVATE
-  ${CMAKE_CURRENT_BINARY_DIR}
   ${QWT_INCLUDE_DIR}
 )
 
