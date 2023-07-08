@@ -1,6 +1,6 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.20)
 
-project(opendds-monitor VERSION 0.0.1 LANGUAGES CXX)
+project(monitor VERSION 0.0.1 LANGUAGES CXX)
 
 find_package(OpenDDS REQUIRED)
 
@@ -22,8 +22,6 @@ else()
   list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR})
   find_package(Qwt MODULE REQUIRED)
 endif()
-
-set(CMAKE_AUTOMOC FALSE)
 
 set(HEADER
   src/dds_data.h
@@ -95,8 +93,6 @@ qt5_wrap_cpp(MOC_SOURCE
   src/topic_table_model.h
 )
 
-qt5_wrap_ui(UI_SOURCE ${UI})
-
 add_executable(monitor
   ${SOURCE}
   ${HEADER}
@@ -105,10 +101,22 @@ add_executable(monitor
   ${UI_SOURCE}
 )
 
-if (MSVC)
-  target_compile_definitions(monitor PRIVATE _CRT_SECURE_NO_WARNINGS)
-else()
-  target_compile_features(monitor PRIVATE cxx_std_17)
+set_property(TARGET monitor PROPERTY AUTOUIC TRUE)
+set_property(TARGET monitor APPEND PROPERTY AUTOUIC_SEARCH_PATHS "${CMAKE_CURRENT_SOURCE_DIR}/ui")
+
+target_compile_features(monitor PRIVATE cxx_std_17)
+
+if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+  target_compile_definitions(monitor PRIVATE _CRT_SECURE_NO_WARNINGS _HAS_AUTO_PTR_ETC=1)
+
+  target_compile_options(monitor PRIVATE
+    /W4 # Set the warning level to "Level4"
+    /wd4251 #Must have dll-interface to be used by clients of struct.
+    /wd4244 #Conversion warning from ACE.
+    /wd4250 #inherits via dominance
+    /wd4275 #non dll-interface class used as base for dll-interface class
+    /WX # Warnings are errors!!!!
+  )
 endif()
 
 target_compile_options(monitor PRIVATE $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>: -Wall -Wextra -Wpedantic -Wno-unused -Wunused-parameter> $<$<CXX_COMPILER_ID:MSVC>: /W4>)
@@ -129,7 +137,6 @@ target_link_libraries(monitor
 
 target_include_directories(monitor PRIVATE
   ${QWT_INCLUDE_DIR}
-  ${CMAKE_BINARY_DIR}
 )
 
 configure_file(opendds.ini . COPYONLY)
