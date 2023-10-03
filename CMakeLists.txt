@@ -15,11 +15,11 @@ endif()
 find_package(Qt5 REQUIRED COMPONENTS Core Widgets Gui PrintSupport Svg OpenGL OPTIONAL_COMPONENTS ${qt_optional_components})
 
 if(${QWT_IS_LOCAL})
-  set(QWT_LIBRARY ${CMAKE_SOURCE_DIR}/qwt/lib/qwt$<$<CONFIG:DEBUG>:d>.lib)
-  set(QWT_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/qwt/src)
+  set(QWT_LIBRARY ${PROJECT_SOURCE_DIR}/qwt/lib/qwt$<$<CONFIG:DEBUG>:d>.lib)
+  set(QWT_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/qwt/src)
 else()
   # FindQwt.cmake is in this directory
-  list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR})
+  list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR})
   find_package(Qwt MODULE REQUIRED)
 endif()
 
@@ -137,6 +137,7 @@ target_link_libraries(monitor
 
 target_include_directories(monitor PRIVATE
   ${QWT_INCLUDE_DIR}
+  ${PROJECT_SOURCE_DIR}/thirdparty/OpenDDW/src
 )
 
 configure_file(opendds.ini . COPYONLY)
