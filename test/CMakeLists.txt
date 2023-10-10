@@ -46,5 +46,4 @@ target_link_libraries(unmanaged_testapp
 
 target_include_directories(unmanaged_testapp PRIVATE
   ../src
-  ../thirdparty/OpenDDW/src
 )
