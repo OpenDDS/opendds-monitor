@@ -22,6 +22,7 @@ target_link_libraries(managed_testapp
 
 target_include_directories(managed_testapp PRIVATE
   ../src
+  ../thirdparty/OpenDDW/src
 )
 
 add_executable(unmanaged_testapp
