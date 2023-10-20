@@ -137,7 +137,6 @@ target_link_libraries(monitor
 
 target_include_directories(monitor PRIVATE
   ${QWT_INCLUDE_DIR}
-  ${PROJECT_SOURCE_DIR}/thirdparty/OpenDDW/src
 )
 
 configure_file(opendds.ini . COPYONLY)
