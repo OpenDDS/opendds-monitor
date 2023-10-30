@@ -14,7 +14,7 @@
    <string>DDS Monitor</string>
   </property>
   <property name="windowIcon">
-   <iconset resource="ddsmon.qrc">
+   <iconset resource="../ddsmon.qrc">
     <normaloff>:/images/find.png</normaloff>:/images/find.png</iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
@@ -77,7 +77,7 @@
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionNewTable">
    <property name="icon">
-    <iconset resource="ddsmon.qrc">
+    <iconset resource="../ddsmon.qrc">
      <normaloff>:/images/stock_data-new-table.png</normaloff>:/images/stock_data-new-table.png</iconset>
    </property>
    <property name="text">
@@ -86,7 +86,7 @@
   </action>
   <action name="actionNewPlot">
    <property name="icon">
-    <iconset resource="ddsmon.qrc">
+    <iconset resource="../ddsmon.qrc">
      <normaloff>:/images/monitor.png</normaloff>:/images/monitor.png</iconset>
    </property>
    <property name="text">
@@ -95,7 +95,7 @@
   </action>
  </widget>
  <resources>
-  <include location="ddsmon.qrc"/>
+  <include location="../ddsmon.qrc"/>
  </resources>
  <connections/>
 </ui>

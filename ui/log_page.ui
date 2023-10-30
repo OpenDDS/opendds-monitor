@@ -14,7 +14,7 @@
    <string>Logs</string>
   </property>
   <property name="windowIcon">
-   <iconset resource="ddsmon.qrc">
+   <iconset resource="../ddsmon.qrc">
     <normaloff>:/images/terminal.png</normaloff>:/images/terminal.png</iconset>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
@@ -41,7 +41,7 @@
         <string>Clear</string>
        </property>
        <property name="icon">
-        <iconset resource="ddsmon.qrc">
+        <iconset resource="../ddsmon.qrc">
          <normaloff>:/images/edit-clear.png</normaloff>:/images/edit-clear.png</iconset>
        </property>
       </widget>
@@ -65,7 +65,7 @@
         <string>Print</string>
        </property>
        <property name="icon">
-        <iconset resource="ddsmon.qrc">
+        <iconset resource="../ddsmon.qrc">
          <normaloff>:/images/print.png</normaloff>:/images/print.png</iconset>
        </property>
       </widget>
@@ -76,7 +76,7 @@
         <string>Save</string>
        </property>
        <property name="icon">
-        <iconset resource="ddsmon.qrc">
+        <iconset resource="../ddsmon.qrc">
          <normaloff>:/images/filesave.png</normaloff>:/images/filesave.png</iconset>
        </property>
       </widget>
@@ -86,7 +86,7 @@
   </layout>
  </widget>
  <resources>
-  <include location="ddsmon.qrc"/>
+  <include location="../ddsmon.qrc"/>
  </resources>
  <connections/>
 </ui>

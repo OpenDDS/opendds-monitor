@@ -14,7 +14,7 @@
    <string>Variable Graph</string>
   </property>
   <property name="windowIcon">
-   <iconset resource="ddsmon.qrc">
+   <iconset resource="../ddsmon.qrc">
     <normaloff>:/images/monitor.png</normaloff>:/images/monitor.png</iconset>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
@@ -91,7 +91,7 @@
           <string/>
          </property>
          <property name="icon">
-          <iconset resource="ddsmon.qrc">
+          <iconset resource="../ddsmon.qrc">
            <normaloff>:/images/player-pause.png</normaloff>:/images/player-pause.png</iconset>
          </property>
         </widget>
@@ -108,7 +108,7 @@
           <string/>
          </property>
          <property name="icon">
-          <iconset resource="ddsmon.qrc">
+          <iconset resource="../ddsmon.qrc">
            <normaloff>:/images/player-rew.png</normaloff>:/images/player-rew.png</iconset>
          </property>
         </widget>
@@ -125,7 +125,7 @@
           <string/>
          </property>
          <property name="icon">
-          <iconset resource="ddsmon.qrc">
+          <iconset resource="../ddsmon.qrc">
            <normaloff>:/images/player-ff.png</normaloff>:/images/player-ff.png</iconset>
          </property>
         </widget>
@@ -142,7 +142,7 @@
           <string/>
          </property>
          <property name="icon">
-          <iconset resource="ddsmon.qrc">
+          <iconset resource="../ddsmon.qrc">
            <normaloff>:/images/player-next.png</normaloff>:/images/player-next.png</iconset>
          </property>
         </widget>
@@ -159,7 +159,7 @@
           <string/>
          </property>
          <property name="icon">
-          <iconset resource="ddsmon.qrc">
+          <iconset resource="../ddsmon.qrc">
            <normaloff>:/images/flush.png</normaloff>:/images/flush.png</iconset>
          </property>
         </widget>
@@ -176,7 +176,7 @@
           <string/>
          </property>
          <property name="icon">
-          <iconset resource="ddsmon.qrc">
+          <iconset resource="../ddsmon.qrc">
            <normaloff>:/images/scale.png</normaloff>:/images/scale.png</iconset>
          </property>
         </widget>
@@ -193,7 +193,7 @@
           <string/>
          </property>
          <property name="icon">
-          <iconset resource="ddsmon.qrc">
+          <iconset resource="../ddsmon.qrc">
            <normaloff>:/images/plus.png</normaloff>:/images/plus.png</iconset>
          </property>
         </widget>
@@ -210,7 +210,7 @@
           <string/>
          </property>
          <property name="icon">
-          <iconset resource="ddsmon.qrc">
+          <iconset resource="../ddsmon.qrc">
            <normaloff>:/images/trashcan.png</normaloff>:/images/trashcan.png</iconset>
          </property>
         </widget>
@@ -227,7 +227,7 @@
           <string/>
          </property>
          <property name="icon">
-          <iconset resource="ddsmon.qrc">
+          <iconset resource="../ddsmon.qrc">
            <normaloff>:/images/save.png</normaloff>:/images/save.png</iconset>
          </property>
         </widget>
@@ -244,7 +244,7 @@
           <string/>
          </property>
          <property name="icon">
-          <iconset resource="ddsmon.qrc">
+          <iconset resource="../ddsmon.qrc">
            <normaloff>:/images/printer.png</normaloff>:/images/printer.png</iconset>
          </property>
         </widget>
@@ -258,7 +258,7 @@
           <string/>
          </property>
          <property name="icon">
-          <iconset resource="ddsmon.qrc">
+          <iconset resource="../ddsmon.qrc">
            <normaloff>:/images/tool.png</normaloff>:/images/tool.png</iconset>
          </property>
         </widget>
@@ -272,7 +272,7 @@
           <string/>
          </property>
          <property name="icon">
-          <iconset resource="ddsmon.qrc">
+          <iconset resource="../ddsmon.qrc">
            <normaloff>:/images/player-eject.png</normaloff>:/images/player-eject.png</iconset>
          </property>
         </widget>
@@ -286,7 +286,7 @@
           <string/>
          </property>
          <property name="icon">
-          <iconset resource="ddsmon.qrc">
+          <iconset resource="../ddsmon.qrc">
            <normaloff>:/images/download.png</normaloff>:/images/download.png</iconset>
          </property>
         </widget>
@@ -321,7 +321,7 @@
   <tabstop>ejectButton</tabstop>
  </tabstops>
  <resources>
-  <include location="ddsmon.qrc"/>
+  <include location="../ddsmon.qrc"/>
  </resources>
  <connections/>
 </ui>
