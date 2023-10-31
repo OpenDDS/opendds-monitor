@@ -14,7 +14,7 @@
    <string>Graph Properties</string>
   </property>
   <property name="windowIcon">
-   <iconset resource="ddsmon.qrc">
+   <iconset resource="../ddsmon.qrc">
     <normaloff>:/images/tool.png</normaloff>:/images/tool.png</iconset>
   </property>
   <layout class="QGridLayout" name="gridLayout_4">
@@ -39,7 +39,7 @@
         <string>Close</string>
        </property>
        <property name="icon">
-        <iconset resource="ddsmon.qrc">
+        <iconset resource="../ddsmon.qrc">
          <normaloff>:/images/close.png</normaloff>:/images/close.png</iconset>
        </property>
       </widget>
@@ -326,7 +326,7 @@
   </layout>
  </widget>
  <resources>
-  <include location="ddsmon.qrc"/>
+  <include location="../ddsmon.qrc"/>
  </resources>
  <connections>
   <connection>
