@@ -151,7 +151,7 @@ jobs:
       # Configure and build OpenDDS (using cache)
       - name: 'Check Build Cache'
         id: cache-build
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ env.MATRIX_MD5 }}.tar.xz
           key: c01_${{ env.MATRIX_MD5 }}_${{ env.COMPILER_MD5 }}_${{ env.ACE_COMMIT }}_${{ env.DDS_COMMIT }}_${{ env.CONFIG_MD5 }}
