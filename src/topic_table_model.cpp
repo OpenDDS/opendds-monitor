@@ -794,8 +794,7 @@ void TopicTableModel::parseAggregated(const DDS::DynamicData_var& data, const st
         }
 
         std::string scoped_member_name = namePrefix.empty() ? md->name() : namePrefix + "." + md->name();
-        const DDS::DynamicType_var type = md->type();
-        const DDS::DynamicType_var base_type = OpenDDS::XTypes::get_base_type(type.in());
+        const DDS::DynamicType_var base_type = OpenDDS::XTypes::get_base_type(md->type());
         const OpenDDS::XTypes::TypeKind member_tk = base_type->get_kind();
         switch (member_tk) {
         case OpenDDS::XTypes::TK_SEQUENCE:
