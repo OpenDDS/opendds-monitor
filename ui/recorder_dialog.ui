@@ -14,7 +14,7 @@
    <string>DDS Data Recorder</string>
   </property>
   <property name="windowIcon">
-   <iconset resource="ddsmon.qrc">
+   <iconset resource="../ddsmon.qrc">
     <normaloff>:/images/media-record.png</normaloff>:/images/media-record.png</iconset>
   </property>
   <property name="sizeGripEnabled">
@@ -487,7 +487,7 @@
         <string>Record</string>
        </property>
        <property name="icon">
-        <iconset resource="ddsmon.qrc">
+        <iconset resource="../ddsmon.qrc">
          <normaloff>:/images/media-record.png</normaloff>:/images/media-record.png</iconset>
        </property>
       </widget>
@@ -498,7 +498,7 @@
         <string>Stop</string>
        </property>
        <property name="icon">
-        <iconset resource="ddsmon.qrc">
+        <iconset resource="../ddsmon.qrc">
          <normaloff>:/images/media-playback-stop.png</normaloff>:/images/media-playback-stop.png</iconset>
        </property>
       </widget>
@@ -509,7 +509,7 @@
         <string>Close</string>
        </property>
        <property name="icon">
-        <iconset resource="ddsmon.qrc">
+        <iconset resource="../ddsmon.qrc">
          <normaloff>:/images/close.png</normaloff>:/images/close.png</iconset>
        </property>
       </widget>
@@ -616,7 +616,7 @@ Columns</string>
   <tabstop>closeButton</tabstop>
  </tabstops>
  <resources>
-  <include location="ddsmon.qrc"/>
+  <include location="../ddsmon.qrc"/>
  </resources>
  <connections>
   <connection>
