@@ -42,18 +42,21 @@ FIND_PATH(QWT_INCLUDE_DIR NAMES qwt.h PATHS
   PATH_SUFFIXES qwt-qt5 qwt qwt6 qt5/qwt
 )
 
-IF (QWT_INCLUDE_DIR AND QWT_LIBRARY)
-  SET(QWT_FOUND TRUE)
-ENDIF (QWT_INCLUDE_DIR AND QWT_LIBRARY)
+if(QWT_INCLUDE_DIR AND QWT_LIBRARY)
+  set(Qwt_FOUND TRUE)
 
-IF (QWT_FOUND)
   FILE(READ ${QWT_INCLUDE_DIR}/qwt_global.h qwt_header)
   STRING(REGEX REPLACE "^.*QWT_VERSION_STR +\"([^\"]+)\".*$" "\\1" QWT_VERSION_STR "${qwt_header}")
-  IF (NOT QWT_FIND_QUIETLY)
+
+  if(NOT Qwt_FIND_QUIETLY)
     MESSAGE(STATUS "Found Qwt: ${QWT_LIBRARY} (${QWT_VERSION_STR})")
-  ENDIF (NOT QWT_FIND_QUIETLY)
-ELSE (QWT_FOUND)
-  IF (QWT_FIND_REQUIRED)
-    MESSAGE(FATAL_ERROR "Could not find Qwt")
-  ENDIF (QWT_FIND_REQUIRED)
-ENDIF (QWT_FOUND)
+  endif()
+else()
+  set(Qwt_FOUND FALSE)
+
+  if(Qwt_FIND_REQUIRED)
+    message(FATAL_ERROR "Could not find required Qwt")
+  elseif(NOT Qwt_FIND_QUIETLY)
+    message(STATUS "Could not find optional Qwt")
+  endif()
+endif()

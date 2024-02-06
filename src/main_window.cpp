@@ -53,7 +53,7 @@ DDSMonitorMainWindow::DDSMonitorMainWindow() :
     {
         // Prompt the user for the domain selection
         domainID = settings.value("domainID").toInt();
-        
+
         domainID = QInputDialog::getInt(
             this, "Join Domain", "Join DDS Domain:", domainID, -1, 232, 1, &ok);
     }
@@ -67,7 +67,8 @@ DDSMonitorMainWindow::DDSMonitorMainWindow() :
         // Join the DDS domain
         CommonData::m_ddsManager = std::make_unique<DDSManager>();
         m_participantPage = new ParticipantPage(mainTabWidget);
-        CommonData::m_ddsManager->joinDomain(domainID, "", [page = m_participantPage](const ParticipantInfo& info) {page->addParticipant(info); }, 
+        CommonData::m_ddsManager->joinDomain(domainID, "",
+            [page = m_participantPage](const ParticipantInfo& info) {page->addParticipant(info); },
             [page = m_participantPage](const ParticipantInfo& info) {page->removeParticipant(info); });
         m_publicationMonitor = std::make_unique<PublicationMonitor>();
         m_subscriptionMonitor = std::make_unique<SubscriptionMonitor>();
@@ -375,7 +376,11 @@ void DDSMonitorMainWindow::reportConfig() const
             //const uint16_t userMulicastPort = pb + (dg * domainID) + d2;
 
             std::cout << "\nDiscovery multicast:             "
-                      << rtpsInfo->default_multicast_group(domainID).to_addr().get_host_addr()
+                      << rtpsInfo->default_multicast_group(
+#if OPENDDS_VERSION_AT_LEAST(3, 27, 0)
+                        domainID).to_addr(
+#endif
+                        ).get_host_addr()
                       << ":"
                       << discoveryMulicastPort
                       //<< "\nDiscovery unicast:               "
@@ -438,7 +443,11 @@ void DDSMonitorMainWindow::reportConfig() const
         const OpenDDS::DCPS::TransportInst_rch transportInstance =
             transportConfig->instances_[i];
 
-        std::cout << transportInstance->dump_to_str(domainID) << "\n";
+        std::cout << transportInstance->dump_to_str(
+#if OPENDDS_VERSION_AT_LEAST(3, 27, 0)
+          domainID
+#endif
+        ) << "\n";
     }
 
 } // End DDSMonitorMainWindow::reportConfig
