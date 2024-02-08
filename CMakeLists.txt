@@ -14,7 +14,7 @@ endif()
 
 find_package(Qt5 REQUIRED COMPONENTS Core Widgets Gui PrintSupport Svg OpenGL OPTIONAL_COMPONENTS ${qt_optional_components})
 
-if(${QWT_IS_LOCAL})
+if(QWT_IS_LOCAL)
   set(QWT_LIBRARY ${PROJECT_SOURCE_DIR}/qwt/lib/qwt$<$<CONFIG:DEBUG>:d>.lib)
   set(QWT_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/qwt/src)
 else()
@@ -120,8 +120,6 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 endif()
 
 target_compile_options(monitor PRIVATE $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>: -Wall -Wextra -Wpedantic -Wno-unused -Wunused-parameter> $<$<CXX_COMPILER_ID:MSVC>: /W4>)
-
-add_dependencies(monitor OpenDDW)
 
 target_link_libraries(monitor
   OpenDDW

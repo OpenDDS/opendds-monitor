@@ -53,7 +53,7 @@ DDSMonitorMainWindow::DDSMonitorMainWindow() :
     {
         // Prompt the user for the domain selection
         domainID = settings.value("domainID").toInt();
-        
+
         domainID = QInputDialog::getInt(
             this, "Join Domain", "Join DDS Domain:", domainID, -1, 232, 1, &ok);
     }
@@ -358,18 +358,18 @@ void DDSMonitorMainWindow::reportConfig() const
     if (discoveryMap.find(discoveryKey) != discoveryMap.end())
     {
         const OpenDDS::DCPS::Discovery_rch discoveryInfo = discoveryMap.at(discoveryKey);
-        const OpenDDS::RTPS::RtpsDiscovery* rtspInfo =
+        const OpenDDS::RTPS::RtpsDiscovery* rtpsInfo =
             dynamic_cast<const OpenDDS::RTPS::RtpsDiscovery*>
             (discoveryInfo.in());
 
         // Only care about RTPS for now
-        if (rtspInfo)
+        if (rtpsInfo)
         {
             // Ports are defined from RTPS discovery spec
-            const uint16_t pb = rtspInfo->pb(); // Port base [7400]
-            const uint16_t dg = rtspInfo->dg(); // Domain ID gain [250]
+            const uint16_t pb = rtpsInfo->pb(); // Port base [7400]
+            const uint16_t dg = rtpsInfo->dg(); // Domain ID gain [250]
             //const uint16_t pg = rtspInfo->pg(); // Participant ID gain [2]
-            const uint16_t d0 = rtspInfo->d0(); // Discovery multicast port offset [0]
+            const uint16_t d0 = rtpsInfo->d0(); // Discovery multicast port offset [0]
             //const uint16_t d1 = rtspInfo->d1(); // Discovery unicast port offset [10]
             //const uint16_t d2 = 1; // User data multicast port offset
             //const uint16_t d3 = 11; // User data unicast port offset
@@ -381,7 +381,11 @@ void DDSMonitorMainWindow::reportConfig() const
             //const uint16_t userMulicastPort = pb + (dg * domainID) + d2;
 
             std::cout << "\nDiscovery multicast:             "
-                      << rtspInfo->default_multicast_group().get_host_addr()
+                      << rtpsInfo->default_multicast_group(
+#if OPENDDS_VERSION_AT_LEAST(3, 27, 0)
+                        domainID).to_addr(
+#endif
+                        ).get_host_addr()
                       << ":"
                       << discoveryMulicastPort
                       //<< "\nDiscovery unicast:               "
@@ -405,11 +409,11 @@ void DDSMonitorMainWindow::reportConfig() const
                       //<< "\nGUID interface:                  "
                       //<< rtspInfo->guid_interface()
                       << "\nSupports liveliness:             "
-                      << rtspInfo->supports_liveliness()
+                      << rtpsInfo->supports_liveliness()
                       << "\nResend period:                   "
-                      << rtspInfo->resend_period().to_dds_duration().sec
+                      << rtpsInfo->resend_period().to_dds_duration().sec
                       << "\nTTL:                             "
-                      << static_cast<int>(rtspInfo->ttl())
+                      << static_cast<int>(rtpsInfo->ttl())
                       //<< "\nPB:                              " << pb
                       //<< "\nDG:                              " << dg
                       //<< "\nPG:                              " << pg
@@ -444,7 +448,11 @@ void DDSMonitorMainWindow::reportConfig() const
         const OpenDDS::DCPS::TransportInst_rch transportInstance =
             transportConfig->instances_[i];
 
-        std::cout << transportInstance->dump_to_str() << "\n";
+        std::cout << transportInstance->dump_to_str(
+#if OPENDDS_VERSION_AT_LEAST(3, 27, 0)
+          domainID
+#endif
+        ) << "\n";
     }
 
 } // End DDSMonitorMainWindow::reportConfig
