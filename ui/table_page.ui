@@ -95,7 +95,7 @@
         <string/>
        </property>
        <property name="icon">
-        <iconset resource="ddsmon.qrc">
+        <iconset resource="../ddsmon.qrc">
          <normaloff>:/images/edit-clear.png</normaloff>:/images/edit-clear.png</iconset>
        </property>
       </widget>
@@ -115,7 +115,7 @@
         <string/>
        </property>
        <property name="icon">
-        <iconset resource="ddsmon.qrc">
+        <iconset resource="../ddsmon.qrc">
          <normaloff>:/images/filter.png</normaloff>:/images/filter.png</iconset>
        </property>
       </widget>
@@ -135,7 +135,7 @@
         <string/>
        </property>
        <property name="icon">
-        <iconset resource="ddsmon.qrc">
+        <iconset resource="../ddsmon.qrc">
          <normaloff>:/images/prevfuzzy.png</normaloff>:/images/prevfuzzy.png</iconset>
        </property>
        <property name="checkable">
@@ -161,7 +161,7 @@
         <string/>
        </property>
        <property name="icon">
-        <iconset resource="ddsmon.qrc">
+        <iconset resource="../ddsmon.qrc">
          <normaloff>:/images/unlock.png</normaloff>:/images/unlock.png</iconset>
        </property>
       </widget>
@@ -181,7 +181,7 @@
         <string/>
        </property>
        <property name="icon">
-        <iconset resource="ddsmon.qrc">
+        <iconset resource="../ddsmon.qrc">
          <normaloff>:/images/lock.png</normaloff>:/images/lock.png</iconset>
        </property>
       </widget>
@@ -201,7 +201,7 @@
         <string/>
        </property>
        <property name="icon">
-        <iconset resource="ddsmon.qrc">
+        <iconset resource="../ddsmon.qrc">
          <normaloff>:/images/exportdoc.png</normaloff>:/images/exportdoc.png</iconset>
        </property>
       </widget>
@@ -221,7 +221,7 @@
         <string/>
        </property>
        <property name="icon">
-        <iconset resource="ddsmon.qrc">
+        <iconset resource="../ddsmon.qrc">
          <normaloff>:/images/revert.png</normaloff>:/images/revert.png</iconset>
        </property>
       </widget>
@@ -241,7 +241,7 @@
         <string/>
        </property>
        <property name="icon">
-        <iconset resource="ddsmon.qrc">
+        <iconset resource="../ddsmon.qrc">
          <normaloff>:/images/monitor_new.png</normaloff>:/images/monitor_new.png</iconset>
        </property>
       </widget>
@@ -261,7 +261,7 @@
         <string/>
        </property>
        <property name="icon">
-        <iconset resource="ddsmon.qrc">
+        <iconset resource="../ddsmon.qrc">
          <normaloff>:/images/monitor_attach.png</normaloff>:/images/monitor_attach.png</iconset>
        </property>
       </widget>
@@ -281,7 +281,7 @@
         <string/>
        </property>
        <property name="icon">
-        <iconset resource="ddsmon.qrc">
+        <iconset resource="../ddsmon.qrc">
          <normaloff>:/images/media-record.png</normaloff>:/images/media-record.png</iconset>
        </property>
       </widget>
@@ -358,7 +358,7 @@
         <string/>
        </property>
        <property name="icon">
-        <iconset resource="ddsmon.qrc">
+        <iconset resource="../ddsmon.qrc">
          <normaloff>:/images/exports.png</normaloff>:/images/exports.png</iconset>
        </property>
       </widget>
@@ -368,7 +368,7 @@
   </layout>
  </widget>
  <resources>
-  <include location="ddsmon.qrc"/>
+  <include location="../ddsmon.qrc"/>
  </resources>
  <connections/>
 </ui>

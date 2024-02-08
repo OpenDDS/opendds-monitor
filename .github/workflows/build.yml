@@ -36,29 +36,30 @@ jobs:
     steps:
       # Clone git repositories
       - name: 'Checkout opendds-monitor'
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: true
       - name: 'Checkout MPC'
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: DOCGroup/MPC
           path: MPC
           fetch-depth: 1
       - name: 'Checkout ACE_TAO'
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: DOCGroup/ACE_TAO
           ref: ace6tao2
           path: ACE_TAO
           fetch-depth: 1
       - name: 'Checkout OpenDDS'
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: OpenDDS/OpenDDS
           ref: ${{ matrix.opendds_branch }}
           path: OpenDDS
           fetch-depth: 1
+          submodules: true
 
       # Get 3rd-party Dependencies
       - name: 'Install openssl, xerces, qt5, and qwt (Linux)'
@@ -82,7 +83,7 @@ jobs:
         uses: lukka/run-vcpkg@v11
         with:
           vcpkgDirectory: '${{ github.workspace }}/vcpkg'
-          vcpkgGitCommitId: 688ece714204fb5e9ad790ad9ad6d9f571d2b032
+          vcpkgGitCommitId: 53bef8994c541b6561884a8395ea35715ece75db
           runVcpkgInstall: true
 
       # Set Up Build Environments
@@ -150,7 +151,7 @@ jobs:
       # Configure and build OpenDDS (using cache)
       - name: 'Check Build Cache'
         id: cache-build
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ env.MATRIX_MD5 }}.tar.xz
           key: c01_${{ env.MATRIX_MD5 }}_${{ env.COMPILER_MD5 }}_${{ env.ACE_COMMIT }}_${{ env.DDS_COMMIT }}_${{ env.CONFIG_MD5 }}
@@ -218,10 +219,10 @@ jobs:
       # Build opendds-monitor
       - name: 'Set Up Problem Matcher (Windows)'
         if: runner.os == 'Windows'
-        uses: ammaraskar/msvc-problem-matcher@0.2.0
+        uses: ammaraskar/msvc-problem-matcher@0.3.0
       - name: 'Set Up Problem Matcher (Linux / macOS)'
         if: runner.os == 'Linux' || runner.os == 'macOS'
-        uses: ammaraskar/gcc-problem-matcher@0.2.0
+        uses: ammaraskar/gcc-problem-matcher@0.3.0
       - name: 'Build opendds-monitor (Linux / macOS)'
         if: runner.os == 'Linux' || runner.os == 'macOS'
         shell: bash
