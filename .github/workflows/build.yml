@@ -160,6 +160,8 @@ jobs:
         shell: bash
         run: |
           tar xvfJ ${{ env.MATRIX_MD5 }}.tar.xz
+          cd OpenDDS
+          git submodule init && git submodule update
       - name: 'Configure & Build OpenDDS (Linux / macOS)'
         if: steps.cache-build.outputs.cache-hit != 'true' && (runner.os == 'Linux' || runner.os == 'macOS')
         shell: bash
