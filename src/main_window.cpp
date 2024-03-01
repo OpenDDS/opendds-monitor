@@ -213,7 +213,7 @@ void DDSMonitorMainWindow::on_topicTree_itemClicked(QTreeWidgetItem* item, int)
     if (!selectedPartition.isEmpty())
     {
         partitionInfo.name.length(1);
-        partitionInfo.name[0] = selectedPartition.toUtf8().data();
+        partitionInfo.name[0] = selectedPartition.toStdString().c_str();
     }
 
     topicInfo->subQos.partition = partitionInfo;
