@@ -1,4 +1,5 @@
 #include "common.h"
+#include "json_conversion.h"
 
 #include "testTypeSupportImpl.h"
 #include "std_qosC.h"
@@ -57,33 +58,53 @@ int main(int argc, char* argv[])
   const std::string id = ex.substr(ex.find_last_of("/\\") + 1) + '-' + OpenDDS::DCPS::get_fully_qualified_hostname() + "-" + to_str(ACE_OS::getpid());
   CORBA::ULongLong count = 0;
 
+  std::cout << "Creating write thread." << std::endl;
+
   std::thread thread([&](){
+
+    std::cout << "Write thread started." << std::endl << std::endl;
+
+    const std::mt19937::result_type seed = static_cast<std::mt19937::result_type>(time(0));
     std::mt19937 mt;
-    mt.seed(static_cast<std::mt19937::result_type>(time(0)));
+    mt.seed(seed);
+
+    std::cout << "reproducible seed = " << seed;
 
     while (run) {
+
+      // Start with sleep to give monitor time to connect and open topic window
+      std::this_thread::sleep_for(std::chrono::seconds(10));
+
       test::BasicMessage basic_message{};
       basic_message.origin = id.c_str();
 
       test::ComplexMessage complex_message{};
       complex_message.origin = id.c_str();
 
-      generate_samples(mt, count, basic_message, complex_message);
+      generate_samples(mt, 3, count, basic_message, complex_message);
+
+      std::stringstream ss;
+      if (idl_2_json(complex_message, ss)) {
+        std::cout << std::endl << "Writing complex sample: " << ss.str() << std::endl;
+      } else {
+        std::cerr << "Error: failure to convert complex sample to json" << std::endl;
+      }
 
       dds_manager->writeSample(basic_message, basic_topic_name);
 
       dds_manager->writeSample(complex_message, complex_topic_name);
 
       ++count;
-
-      std::this_thread::sleep_for(std::chrono::seconds(5));
     }
+    std::cout << "Write thread stopped." << std::endl;
   });
 
   std::string line;
   std::getline(std::cin, line);
 
   run = false;
+
+  std::cout << "Joining write thread." << std::endl;
 
   thread.join();
 

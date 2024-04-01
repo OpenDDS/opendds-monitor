@@ -13,7 +13,7 @@ std::string to_str(const T& t)
   return oss.str();
 }
 
-void generate_bt(std::mt19937& mt, test::BasicTypes& bt)
+void generate_bt(std::mt19937& mt, std::mt19937::result_type /*recursion_limit*/, test::BasicTypes& bt)
 {
   const std::string str = std::string("A basic string ") + to_str(mt());
 
@@ -34,23 +34,29 @@ void generate_bt(std::mt19937& mt, test::BasicTypes& bt)
   bt.str = str.c_str();
 }
 
-void generate_bts(std::mt19937& mt, test::BasicTypesSeq& bts)
+void generate_bts(std::mt19937& mt, std::mt19937::result_type recursion_limit, test::BasicTypesSeq& bts)
 {
-  bts.length((mt() % 3));
-  for (CORBA::ULong i = 0; i < bts.length(); ++i) {
-    generate_bt(mt, bts[i]);
+  const CORBA::ULong len = mt() % recursion_limit;
+  if (len) {
+    bts.length(len);
+  }
+  for (CORBA::ULong i = 0; i < len; ++i) {
+    generate_bt(mt, recursion_limit - 1, bts[i]);
   }
 }
 
-void generate_btss(std::mt19937& mt, test::BasicTypesSeqSeq& btss)
+void generate_btss(std::mt19937& mt, std::mt19937::result_type recursion_limit, test::BasicTypesSeqSeq& btss)
 {
-  btss.length((mt() % 3));
-  for (CORBA::ULong i = 0; i < btss.length(); ++i) {
-    generate_bts(mt, btss[i]);
+  const CORBA::ULong len = mt() % recursion_limit;
+  if (len) {
+    btss.length(len);
+  }
+  for (CORBA::ULong i = 0; i < len; ++i) {
+    generate_bts(mt, recursion_limit - 1, btss[i]);
   }
 }
 
-void generate_ut(std::mt19937& mt, test::UnionType& ut)
+void generate_ut(std::mt19937& mt, std::mt19937::result_type recursion_limit, test::UnionType& ut)
 {
   std::mt19937::result_type res = 1 + mt() % 4;
   switch (res) {
@@ -62,27 +68,27 @@ void generate_ut(std::mt19937& mt, test::UnionType& ut)
     case 2: {
       test::BasicTypes bt;
       ut.bt(bt);
-      generate_bt(mt, ut.bt());
+      generate_bt(mt, recursion_limit, ut.bt());
       break;
     }
     case 3: {
       test::BasicTypesSeq bts;
       ut.bts(bts);
-      generate_bts(mt, ut.bts());
+      generate_bts(mt, recursion_limit, ut.bts());
       break;
     }
     case 4: {
       test::BasicTypesSeqSeq btss;
       ut.btss(btss);
-      generate_btss(mt, ut.btss());
+      generate_btss(mt, recursion_limit, ut.btss());
       break;
     }
   }
 }
 
-void generate_tns(std::mt19937& mt, test::TreeNodeSeq& tns);
+void generate_tns(std::mt19937& mt, std::mt19937::result_type recursion_limit, test::TreeNodeSeq& tns);
 
-void generate_tn(std::mt19937& mt, test::TreeNode& tn)
+void generate_tn(std::mt19937& mt, std::mt19937::result_type recursion_limit, test::TreeNode& tn)
 {
   switch (1 + mt() % 4) {
     case 1: tn.et = test::one; break;
@@ -90,19 +96,22 @@ void generate_tn(std::mt19937& mt, test::TreeNode& tn)
     case 3: tn.et = test::three; break;
     case 4: tn.et = test::four; break;
   }
-  generate_ut(mt, tn.ut);
-  generate_tns(mt, tn.tns);
+  generate_ut(mt, recursion_limit, tn.ut);
+  generate_tns(mt, recursion_limit, tn.tns);
 }
 
-void generate_tns(std::mt19937& mt, test::TreeNodeSeq& tns)
+void generate_tns(std::mt19937& mt, std::mt19937::result_type recursion_limit, test::TreeNodeSeq& tns)
 {
-  tns.length((mt() % 3));
-  for (CORBA::ULong i = 0; i < tns.length(); ++i) {
-    generate_tn(mt, tns[i]);
+  const CORBA::ULong len = mt() % recursion_limit;
+  if (len) {
+    tns.length(len);
+  }
+  for (CORBA::ULong i = 0; i < len; ++i) {
+    generate_tn(mt, recursion_limit - 1, tns[i]);
   }
 }
 
-void generate_cut(std::mt19937& mt, test::ComplexUnionType& cut)
+void generate_cut(std::mt19937& mt, std::mt19937::result_type recursion_limit, test::ComplexUnionType& cut)
 {
   std::mt19937::result_type res = 1 + mt() % 4;
   switch (res) {
@@ -114,33 +123,36 @@ void generate_cut(std::mt19937& mt, test::ComplexUnionType& cut)
     case 2: {
       test::UnionType ut;
       cut.ut(ut);
-      generate_ut(mt, cut.ut());
+      generate_ut(mt, recursion_limit, cut.ut());
       break;
     }
     case 3: {
       test::TreeNode tn;
       cut.tn(tn);
-      generate_tn(mt, cut.tn());
+      generate_tn(mt, recursion_limit, cut.tn());
       break;
     }
     case 4: {
       test::TreeNodeSeq tns;
       cut.tns(tns);
-      generate_tns(mt, cut.tns());
+      generate_tns(mt, recursion_limit, cut.tns());
       break;
     }
   }
 }
 
-void generate_cuts(std::mt19937& mt, test::ComplexUnionTypeSeq& cuts)
+void generate_cuts(std::mt19937& mt, std::mt19937::result_type recursion_limit, test::ComplexUnionTypeSeq& cuts)
 {
-  cuts.length((mt() % 3));
-  for (CORBA::ULong i = 0; i < cuts.length(); ++i) {
-    generate_cut(mt, cuts[i]);
+  const CORBA::ULong len = mt() % recursion_limit;
+  if (len) {
+    cuts.length(len);
+  }
+  for (CORBA::ULong i = 0; i < len; ++i) {
+    generate_cut(mt, recursion_limit - 1, cuts[i]);
   }
 }
 
-void generate_samples(std::mt19937& mt, CORBA::ULongLong count, test::BasicMessage& bm, test::ComplexMessage& cm)
+void generate_samples(std::mt19937& mt, std::mt19937::result_type recursion_limit, CORBA::ULongLong count, test::BasicMessage& bm, test::ComplexMessage& cm)
 {
   const std::string count_str = std::string("The current count is ") + to_str(count);
 
@@ -178,6 +190,6 @@ void generate_samples(std::mt19937& mt, CORBA::ULongLong count, test::BasicMessa
   cm.ct.bt.wc = 'Z' - (count % 26);
   bm.bt.str = count_str.c_str();
 
-  generate_cuts(mt, cm.ct.cuts);
+  generate_cuts(mt, recursion_limit, cm.ct.cuts);
 }
 

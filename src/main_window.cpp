@@ -65,13 +65,18 @@ DDSMonitorMainWindow::DDSMonitorMainWindow() :
         activateWindow();
 
         // Join the DDS domain
-        CommonData::m_ddsManager = std::make_unique<DDSManager>();
-        m_participantPage = new ParticipantPage(mainTabWidget);
-        CommonData::m_ddsManager->joinDomain(domainID, "",
-            [page = m_participantPage](const ParticipantInfo& info) {page->addParticipant(info); },
-            [page = m_participantPage](const ParticipantInfo& info) {page->removeParticipant(info); });
-        m_publicationMonitor = std::make_unique<PublicationMonitor>();
-        m_subscriptionMonitor = std::make_unique<SubscriptionMonitor>();
+        try {
+            CommonData::m_ddsManager = std::make_unique<DDSManager>();
+            m_participantPage = new ParticipantPage(mainTabWidget);
+            CommonData::m_ddsManager->joinDomain(domainID, "", [page = m_participantPage](const ParticipantInfo& info) {page->addParticipant(info); },
+                [page = m_participantPage](const ParticipantInfo& info) {page->removeParticipant(info); });
+            m_publicationMonitor = std::make_unique<PublicationMonitor>();
+            m_subscriptionMonitor = std::make_unique<SubscriptionMonitor>();
+        }
+        catch (std::runtime_error &e) {
+            QMessageBox::information(nullptr, "Error Starting Open DDS", e.what());
+            exit(1);
+        }
 
         // Send DDS configuration to the log screen
         reportConfig();
@@ -208,7 +213,7 @@ void DDSMonitorMainWindow::on_topicTree_itemClicked(QTreeWidgetItem* item, int)
     if (!selectedPartition.isEmpty())
     {
         partitionInfo.name.length(1);
-        partitionInfo.name[0] = selectedPartition.toUtf8().data();
+        partitionInfo.name[0] = selectedPartition.toStdString().c_str();
     }
 
     topicInfo->subQos.partition = partitionInfo;

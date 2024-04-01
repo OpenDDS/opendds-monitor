@@ -135,13 +135,13 @@ private:
     const CORBA::TypeCode* m_typeCode;
 
     /// Listener for the recorder, calls back into this object
-    OpenDDS::DCPS::RcHandle<RecorderListener> m_listener;
+    OpenDDS::DCPS::RcHandle<RecorderListener> m_recorder_listener;
 
     /// Stores the recorder object for this monitor.
     OpenDDS::DCPS::Recorder* m_recorder;
 
     /// Listener for a dynamic reader
-    DataReaderListenerImpl m_dr_listener;
+    DDS::DataReaderListener_var m_dr_listener;
 
     /// A dynamic data reader for this topic
     DDS::DataReader_var m_dr;
