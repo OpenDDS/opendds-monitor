@@ -33,7 +33,7 @@ OpenDDS::DCPS::Value DynamicMetaStruct::getValue(const void*, const char*) const
 
 //------------------------------------------------------------------------------
 OpenDDS::DCPS::Value DynamicMetaStruct::getValue(
-    OpenDDS::DCPS::Serializer&, const char* fieldSpec, const OpenDDS::DCPS::TypeSupportImpl*) const
+    OpenDDS::DCPS::Serializer&, const char* fieldSpec, OpenDDS::DCPS::TypeSupportImpl*) const
 {
     if (!m_sample)
     {
