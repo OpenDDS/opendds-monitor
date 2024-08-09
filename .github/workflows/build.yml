@@ -10,6 +10,7 @@ on:
       - latest-release
   schedule:
     - cron: '10 0 * * 0'
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -70,7 +71,7 @@ jobs:
       - name: 'Install xerces, qt5, and qwt (macOS)'
         if: runner.os == 'macOS'
         run: |-
-          brew install xerces-c qt5 qwt-qt5
+          brew install xerces-c qt@5 qwt-qt5
       - name: setup for run-vcpkg
         if: runner.os == 'Windows'
         shell: cmd
@@ -234,7 +235,7 @@ jobs:
           cd build
           CMAKE_ARGS=""
           if [ '${{ runner.os }}' == 'macOS' ]; then
-            CMAKE_ARGS+=" -DQt5_DIR=$(brew --prefix qt5)/lib/cmake/Qt5"
+            CMAKE_ARGS+=" -DQt5_DIR=$(brew --prefix qt@5)/lib/cmake/Qt5"
           fi
           cmake $CMAKE_ARGS ..
           cmake --build . -t all -t managed_testapp -t unmanaged_testapp

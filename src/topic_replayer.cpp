@@ -4,6 +4,8 @@
 #include "dds_data.h"
 #include "qos_dictionary.h"
 
+#include <dds/DCPS/EncapsulationHeader.h>
+
 #include <QDateTime>
 #include <iostream>
 

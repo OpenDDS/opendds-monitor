@@ -48,7 +48,8 @@ public:
      * @param[in] unusedSerializer Unused but required by MetaStruct.
      * @param[in] fieldSpec The topic member name.
      */
-    OpenDDS::DCPS::Value getValue(OpenDDS::DCPS::Serializer& unusedSerializer, const char* fieldSpec, const OpenDDS::DCPS::TypeSupportImpl*) const;
+    OpenDDS::DCPS::Value getValue(OpenDDS::DCPS::Serializer& unusedSerializer, const char* fieldSpec,
+                                  OpenDDS::DCPS::TypeSupportImpl*) const;
 
     /**
      * @brief OpenDDS before version 3.24 uses a 2-argument getValue()
