@@ -21,6 +21,7 @@ find_library(QWT_LIBRARY
     /usr/local/opt/qwt-qt5/lib
     /usr/local/lib
     /usr/local/lib/qt5
+    "$ENV{QWT_DIR}/lib"
     "$ENV{LIB_DIR}/lib"
     "$ENV{LIB}"
 )
@@ -37,6 +38,7 @@ FIND_PATH(QWT_INCLUDE_DIR NAMES qwt.h PATHS
   /usr/local/opt/qwt-qt5/include
   /usr/local/include
   /usr/local/include/qt5
+  "$ENV{QWT_DIR}/src"
   "$ENV{LIB_DIR}/include"
   "$ENV{INCLUDE}"
   PATH_SUFFIXES qwt-qt5 qwt qwt6 qt5/qwt
