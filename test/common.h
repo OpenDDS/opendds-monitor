@@ -66,19 +66,19 @@ void generate_ut(std::mt19937& mt, std::mt19937::result_type recursion_limit, te
       break;
     }
     case 2: {
-      test::BasicTypes bt;
+      test::BasicTypes bt{};
       ut.bt(bt);
       generate_bt(mt, recursion_limit, ut.bt());
       break;
     }
     case 3: {
-      test::BasicTypesSeq bts;
+      test::BasicTypesSeq bts{};
       ut.bts(bts);
       generate_bts(mt, recursion_limit, ut.bts());
       break;
     }
     case 4: {
-      test::BasicTypesSeqSeq btss;
+      test::BasicTypesSeqSeq btss{};
       ut.btss(btss);
       generate_btss(mt, recursion_limit, ut.btss());
       break;
@@ -121,19 +121,19 @@ void generate_cut(std::mt19937& mt, std::mt19937::result_type recursion_limit, t
       break;
     }
     case 2: {
-      test::UnionType ut;
+      test::UnionType ut{};
       cut.ut(ut);
       generate_ut(mt, recursion_limit, cut.ut());
       break;
     }
     case 3: {
-      test::TreeNode tn;
+      test::TreeNode tn{};
       cut.tn(tn);
       generate_tn(mt, recursion_limit, cut.tn());
       break;
     }
     case 4: {
-      test::TreeNodeSeq tns;
+      test::TreeNodeSeq tns{};
       cut.tns(tns);
       generate_tns(mt, recursion_limit, cut.tns());
       break;
