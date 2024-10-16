@@ -86,7 +86,6 @@ QVariant CommonData::readValue(const QString& topicName,
     QVariant value;
     QMutexLocker locker(&m_sampleMutex);
 
-
     // Make sure the index is valid
     QList<std::shared_ptr<OpenDynamicData>>& sampleList = m_samples[topicName];
     if ((int)index >= sampleList.count())
@@ -239,17 +238,12 @@ void CommonData::storeSample(const QString& topicName,
 {
     QMutexLocker locker(&m_sampleMutex);
 
-    // Create the initial sample list if this is the first sample
-    if (!m_samples.contains(topicName))
-    {
-       m_samples[topicName];
-    }
-
     QList<std::shared_ptr<OpenDynamicData>>& sampleList = m_samples[topicName];
+    QStringList& timesList = m_sampleTimes[topicName];
 
     // Store a pointer to the new sample
-    m_samples[topicName].push_front(sample);
-    m_sampleTimes[topicName].push_front(sampleName);
+    sampleList.push_front(sample);
+    timesList.push_front(sampleName);
 
     // Cleanup
     while (sampleList.size() > MAX_SAMPLES)
@@ -257,9 +251,9 @@ void CommonData::storeSample(const QString& topicName,
        //delete sampleList.back();
        //sampleList.back() = nullptr;
        sampleList.pop_back();
-       m_sampleTimes[topicName].pop_back();
+       timesList.pop_back();
     }
-} // End CommonData::storeSample
+}
 
 //------------------------------------------------------------------------------
 void CommonData::storeDynamicSample(const QString& topic_name,
@@ -269,26 +263,28 @@ void CommonData::storeDynamicSample(const QString& topic_name,
     QMutexLocker locker(&m_dynamicSamplesMutex);
 
     QList<DDS::DynamicData_var>& sample_list = m_dynamicSamples[topic_name];
+    QStringList& times_list = m_sampleTimes[topic_name];
+
     // Add new sample
     sample_list.push_front(sample);
-    m_sampleTimes[topic_name].push_front(sample_name);
+    times_list.push_front(sample_name);
 
     // Cleanup
     while (sample_list.size() > MAX_SAMPLES) {
         sample_list.pop_back();
-        m_sampleTimes[topic_name].pop_back();
+        times_list.pop_back();
     }
 }
 
 //------------------------------------------------------------------------------
 std::shared_ptr<OpenDynamicData> CommonData::copySample(const QString& topicName,
-                                        const unsigned int& index)
+                                                        const unsigned int& index)
 {
     std::shared_ptr<OpenDynamicData> newSample;
     QMutexLocker locker(&m_sampleMutex);
 
     if (m_samples.contains(topicName) &&
-       m_samples.value(topicName).size() > (int)index)
+        m_samples.value(topicName).size() > (int)index)
     {
         // Don't copy the sample, just point to the shared pointer
         newSample = m_samples.value(topicName).at(index);
@@ -350,19 +346,18 @@ void CommonData::clearSamples(const QString& topicName)
 
 
 //------------------------------------------------------------------------------
-TopicInfo::TopicInfo() : hasKey(true), typeCode(nullptr)
+TopicInfo::TopicInfo()
+  : hasKey(true)
+  , typeCodeLength(0)
+  , typeCode(nullptr)
 {
     topicQos = QosDictionary::Topic::bestEffort();
-
     writerQos = QosDictionary::DataWriter::bestEffort();
-
     readerQos = QosDictionary::DataReader::bestEffort();
-
     pubQos = QosDictionary::Publisher::defaultQos();
     subQos = QosDictionary::Subscriber::defaultQos();
-
     extensibility = OpenDDS::DCPS::Extensibility::APPENDABLE; //Set in TopicInfo::storeUserData
-} // End TopicInfo::TopicInfo
+}
 
 
 //------------------------------------------------------------------------------
@@ -377,11 +372,10 @@ void TopicInfo::addPartitions(const DDS::PartitionQosPolicy& partitionQos)
     bool changeFound = false;
 
     // Add any new partitions to the partition list for this topic
-    DDS::StringSeq partitionNames = partitionQos.name;
+    const DDS::StringSeq& partitionNames = partitionQos.name;
     for (CORBA::ULong i = 0; i < partitionNames.length(); i++)
     {
-        const char* partitionStringC = partitionNames[i];
-        QString partitionString = partitionStringC;
+        QString partitionString = partitionNames[i];
         if (!partitions.contains(partitionString))
         {
             partitions.push_back(partitionString);
@@ -400,9 +394,7 @@ void TopicInfo::addPartitions(const DDS::PartitionQosPolicy& partitionQos)
 void TopicInfo::setDurabilityPolicy(const DDS::DurabilityQosPolicy& policy)
 {
     topicQos.durability = policy;
-    //pubQos
     writerQos.durability = policy;
-    //subQos
     readerQos.durability = policy;
 }
 
@@ -411,10 +403,7 @@ void TopicInfo::setDurabilityPolicy(const DDS::DurabilityQosPolicy& policy)
 void TopicInfo::setDurabilityServicePolicy(const DDS::DurabilityServiceQosPolicy& policy)
 {
     topicQos.durability_service = policy;
-    //pubQos
     writerQos.durability_service = policy;
-    //subQos
-    //readerQos
 }
 
 
@@ -422,9 +411,7 @@ void TopicInfo::setDurabilityServicePolicy(const DDS::DurabilityServiceQosPolicy
 void TopicInfo::setDeadlinePolicy(const DDS::DeadlineQosPolicy& policy)
 {
     topicQos.deadline = policy;
-    //pubQos
     writerQos.deadline = policy;
-    //subQos
     readerQos.deadline = policy;
 }
 
@@ -433,9 +420,7 @@ void TopicInfo::setDeadlinePolicy(const DDS::DeadlineQosPolicy& policy)
 void TopicInfo::setLatencyBudgePolicy(const DDS::LatencyBudgetQosPolicy& policy)
 {
     topicQos.latency_budget = policy;
-    //pubQos
     writerQos.latency_budget = policy;
-    //subQos
     readerQos.latency_budget = policy;
 }
 
@@ -444,10 +429,7 @@ void TopicInfo::setLatencyBudgePolicy(const DDS::LatencyBudgetQosPolicy& policy)
 void TopicInfo::setLifespanPolicy(const DDS::LifespanQosPolicy& policy)
 {
     topicQos.lifespan = policy;
-    //pubQos
     writerQos.lifespan = policy;
-    //subQos
-    //readerQos
 }
 
 
@@ -455,9 +437,7 @@ void TopicInfo::setLifespanPolicy(const DDS::LifespanQosPolicy& policy)
 void TopicInfo::setLivelinessPolicy(const DDS::LivelinessQosPolicy& policy)
 {
     topicQos.liveliness = policy;
-    //pubQos
     writerQos.liveliness = policy;
-    //subQos
     readerQos.liveliness = policy;
 }
 
@@ -466,9 +446,7 @@ void TopicInfo::setLivelinessPolicy(const DDS::LivelinessQosPolicy& policy)
 void TopicInfo::setReliabilityPolicy(const DDS::ReliabilityQosPolicy& policy)
 {
     topicQos.reliability = policy;
-    //pubQos
     writerQos.reliability = policy;
-    //subQos
     readerQos.reliability = policy;
 }
 
@@ -477,9 +455,7 @@ void TopicInfo::setReliabilityPolicy(const DDS::ReliabilityQosPolicy& policy)
 void TopicInfo::setOwnershipPolicy(const DDS::OwnershipQosPolicy& policy)
 {
     topicQos.ownership = policy;
-    //pubQos
     writerQos.ownership = policy;
-    //subQos
     readerQos.ownership = policy;
 }
 
@@ -488,9 +464,7 @@ void TopicInfo::setOwnershipPolicy(const DDS::OwnershipQosPolicy& policy)
 void TopicInfo::setDestinationOrderPolicy(const DDS::DestinationOrderQosPolicy& policy)
 {
     topicQos.destination_order = policy;
-    //pubQos
     writerQos.destination_order = policy;
-    //subQos
     readerQos.destination_order = policy;
 }
 
@@ -498,27 +472,29 @@ void TopicInfo::setDestinationOrderPolicy(const DDS::DestinationOrderQosPolicy& 
 //------------------------------------------------------------------------------
 void TopicInfo::setPresentationPolicy(const DDS::PresentationQosPolicy& policy)
 {
-    //topicQos
     pubQos.presentation = policy;
-    //writerQos
     subQos.presentation = policy;
-    //readerQos
 }
 
 //------------------------------------------------------------------------------
 void TopicInfo::fixHistory()
 {
-    if((topicQos.durability.kind == DDS::VOLATILE_DURABILITY_QOS) && (topicQos.reliability.kind == DDS::RELIABLE_RELIABILITY_QOS))
+    if (topicQos.durability.kind == DDS::VOLATILE_DURABILITY_QOS &&
+        topicQos.reliability.kind == DDS::RELIABLE_RELIABILITY_QOS)
     {
         //std::cout << "DEBUG STRICT RELIABLE TOPIC" << std::endl;
         topicQos.history.kind = DDS::KEEP_ALL_HISTORY_QOS;
     }
-    if((readerQos.durability.kind == DDS::VOLATILE_DURABILITY_QOS) && (readerQos.reliability.kind == DDS::RELIABLE_RELIABILITY_QOS))
+
+    if (readerQos.durability.kind == DDS::VOLATILE_DURABILITY_QOS &&
+        readerQos.reliability.kind == DDS::RELIABLE_RELIABILITY_QOS)
     {
         //std::cout << "DEBUG STRICT RELIABLE TOPIC" << std::endl;
         readerQos.history.kind = DDS::KEEP_ALL_HISTORY_QOS;
     }
-    if((writerQos.durability.kind == DDS::VOLATILE_DURABILITY_QOS) && (writerQos.reliability.kind == DDS::RELIABLE_RELIABILITY_QOS))
+
+    if (writerQos.durability.kind == DDS::VOLATILE_DURABILITY_QOS &&
+        writerQos.reliability.kind == DDS::RELIABLE_RELIABILITY_QOS)
     {
         //std::cout << "DEBUG STRICT RELIABLE WRITER" << std::endl;
         writerQos.history.kind = DDS::KEEP_ALL_HISTORY_QOS;
