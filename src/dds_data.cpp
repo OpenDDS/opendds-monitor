@@ -375,7 +375,7 @@ void TopicInfo::addPartitions(const DDS::PartitionQosPolicy& partitionQos)
     const DDS::StringSeq& partitionNames = partitionQos.name;
     for (CORBA::ULong i = 0; i < partitionNames.length(); i++)
     {
-        QString partitionString = partitionNames[i];
+        QString partitionString = (const char*)partitionNames[i];
         if (!partitions.contains(partitionString))
         {
             partitions.push_back(partitionString);
