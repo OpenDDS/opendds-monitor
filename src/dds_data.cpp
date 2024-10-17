@@ -6,6 +6,7 @@
 #include <QMutexLocker>
 
 #include <dds/DCPS/Service_Participant.h>
+#include <dds/DCPS/XTypes/Utils.h>
 
 #include <tao/AnyTypeCode/Any.h>
 
@@ -312,7 +313,7 @@ QVariant CommonData::readDynamicMember(const QString& topicName,
           CORBA::LongLong tmp;
           rc = sample->get_int64_value(tmp, id);
           if (rc == DDS::RETCODE_OK) {
-              value = tmp;
+              value = static_cast<qlonglong>(tmp);
               failed = false;
           }
           break;
@@ -322,7 +323,7 @@ QVariant CommonData::readDynamicMember(const QString& topicName,
           CORBA::ULongLong tmp;
           rc = sample->get_uint64_value(tmp, id);
           if (rc == DDS::RETCODE_OK) {
-              value = tmp;
+              value = static_cast<qulonglong>(tmp);
               failed = false;
           }
           break;
@@ -369,15 +370,28 @@ QVariant CommonData::readDynamicMember(const QString& topicName,
       }
     case OpenDDS::XTypes::TK_STRING8:
       {
-          char* tmp;
+          CORBA::String_var tmp;
           rc = sample->get_string_value(tmp, id);
           if (rc == DDS::RETCODE_OK) {
-              value = tmp;
+              value = tmp.in();
               failed = false;
           }
           break;
       }
     case OpenDDS::XTypes::TK_ENUM:
+      {
+          CORBA::Long tmp;
+          rc = sample->get_int32_value(tmp, id);
+          if (rc == DDS::RETCODE_OK) {
+              DDS::String8_var name;
+              rc = OpenDDS::XTypes::get_enumerator_name(name, tmp, md->type());
+              if (rc == DDS::RETCODE_OK) {
+                  value = name.in();
+                  failed = false;
+              }
+          }
+          break;
+      }
     default:
         break;
     }
