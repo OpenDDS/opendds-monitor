@@ -6,6 +6,7 @@
 #include <QMutexLocker>
 
 #include <dds/DCPS/Service_Participant.h>
+#include <dds/DCPS/XTypes/Utils.h>
 
 #include <tao/AnyTypeCode/Any.h>
 
@@ -78,10 +79,9 @@ std::shared_ptr<TopicInfo> CommonData::getTopicInfo(const QString& topicName)
     return topicInfo;
 }
 
-//------------------------------------------------------------------------------
-QVariant CommonData::readValue(const QString& topicName,
-                               const QString& memberName,
-                               const unsigned int& index)
+QVariant CommonData::readMember(const QString& topicName,
+                                const QString& memberName,
+                                unsigned int index)
 {
     QVariant value;
     QMutexLocker locker(&m_sampleMutex);
@@ -110,7 +110,6 @@ QVariant CommonData::readValue(const QString& topicName,
         value = "NULL";
         return value;
     }
-
 
     // Store the value into a QVariant
     // The tmpValue may seem redundant, but it's very helpful for debug
@@ -208,8 +207,213 @@ QVariant CommonData::readValue(const QString& topicName,
     } // End targetMember type switch
 
     return value;
+}
 
-} // End CommonData::readValue
+QVariant CommonData::readDynamicMember(const QString& topicName,
+                                       const QString& memberName,
+                                       unsigned int index)
+{
+    QVariant value;
+    QMutexLocker locker(&m_dynamicSamplesMutex);
+
+    if (!m_dynamicSamples.contains(topicName)) {
+        value = "NULL";
+        return value;
+    }
+
+    const QList<DDS::DynamicData_var>& sampleList = m_dynamicSamples[topicName];
+    if ((int)index >= sampleList.count()) {
+        value = "NULL";
+        return value;
+    }
+
+    DDS::DynamicData_var sample = sampleList.at(index);
+    DDS::DynamicType_var topic_type = sample->type();
+    DDS::DynamicTypeMember_var dtm;
+    DDS::ReturnCode_t rc = topic_type->get_member_by_name(dtm, memberName.toStdString().c_str());
+    if (rc != DDS::RETCODE_OK) {
+        value = "NULL";
+        return value;
+    }
+
+    DDS::MemberDescriptor_var md;
+    rc = dtm->get_descriptor(md);
+    if (rc != DDS::RETCODE_OK) {
+        value = "NULL";
+        return value;
+    }
+
+    const DDS::TypeKind member_tk = md->type()->get_kind();
+    const DDS::MemberId id = md->id();
+
+    bool failed = true;
+    switch (member_tk) {
+    case OpenDDS::XTypes::TK_BOOLEAN:
+      {
+          CORBA::Boolean tmp;
+          rc = sample->get_boolean_value(tmp, id);
+          if (rc == DDS::RETCODE_OK) {
+              value = tmp;
+              failed = false;
+          }
+          break;
+      }
+    case OpenDDS::XTypes::TK_BYTE:
+      {
+          CORBA::Octet tmp;
+          rc = sample->get_byte_value(tmp, id);
+          if (rc == DDS::RETCODE_OK) {
+              value = tmp;
+              failed = false;
+          }
+          break;
+      }
+    case OpenDDS::XTypes::TK_INT16:
+      {
+          CORBA::Short tmp;
+          rc = sample->get_int16_value(tmp, id);
+          if (rc == DDS::RETCODE_OK) {
+              value = tmp;
+              failed = false;
+          }
+          break;
+      }
+    case OpenDDS::XTypes::TK_UINT16:
+      {
+          CORBA::UShort tmp;
+          rc = sample->get_uint16_value(tmp, id);
+          if (rc == DDS::RETCODE_OK) {
+              value = tmp;
+              failed = false;
+          }
+          break;
+      }
+    case OpenDDS::XTypes::TK_INT32:
+      {
+          CORBA::Long tmp;
+          rc = sample->get_int32_value(tmp, id);
+          if (rc == DDS::RETCODE_OK) {
+              value = tmp;
+              failed = false;
+          }
+          break;
+      }
+    case OpenDDS::XTypes::TK_UINT32:
+      {
+          CORBA::UShort tmp;
+          rc = sample->get_uint16_value(tmp, id);
+          if (rc == DDS::RETCODE_OK) {
+              value = tmp;
+              failed = false;
+          }
+          break;
+      }
+    case OpenDDS::XTypes::TK_INT64:
+      {
+          CORBA::LongLong tmp;
+          rc = sample->get_int64_value(tmp, id);
+          if (rc == DDS::RETCODE_OK) {
+              value = static_cast<qlonglong>(tmp);
+              failed = false;
+          }
+          break;
+      }
+    case OpenDDS::XTypes::TK_UINT64:
+      {
+          CORBA::ULongLong tmp;
+          rc = sample->get_uint64_value(tmp, id);
+          if (rc == DDS::RETCODE_OK) {
+              value = static_cast<qulonglong>(tmp);
+              failed = false;
+          }
+          break;
+      }
+    case OpenDDS::XTypes::TK_FLOAT32:
+      {
+          CORBA::Float tmp;
+          rc = sample->get_float32_value(tmp, id);
+          if (rc == DDS::RETCODE_OK) {
+              value = tmp;
+              failed = false;
+          }
+          break;
+      }
+    case OpenDDS::XTypes::TK_FLOAT64:
+      {
+          CORBA::Double tmp;
+          rc = sample->get_float64_value(tmp, id);
+          if (rc == DDS::RETCODE_OK) {
+              value = tmp;
+              failed = false;
+          }
+          break;
+      }
+    case OpenDDS::XTypes::TK_CHAR8:
+      {
+          CORBA::Char tmp;
+          rc = sample->get_char8_value(tmp, id);
+          if (rc == DDS::RETCODE_OK) {
+              value = tmp;
+              failed = false;
+          }
+          break;
+      }
+    case OpenDDS::XTypes::TK_CHAR16:
+      {
+          CORBA::WChar tmp;
+          rc = sample->get_char16_value(tmp, id);
+          if (rc == DDS::RETCODE_OK) {
+              value = tmp;
+              failed = false;
+          }
+          break;
+      }
+    case OpenDDS::XTypes::TK_STRING8:
+      {
+          CORBA::String_var tmp;
+          rc = sample->get_string_value(tmp, id);
+          if (rc == DDS::RETCODE_OK) {
+              value = tmp.in();
+              failed = false;
+          }
+          break;
+      }
+    case OpenDDS::XTypes::TK_ENUM:
+      {
+          CORBA::Long tmp;
+          rc = sample->get_int32_value(tmp, id);
+          if (rc == DDS::RETCODE_OK) {
+              DDS::String8_var name;
+              rc = OpenDDS::XTypes::get_enumerator_name(name, tmp, md->type());
+              if (rc == DDS::RETCODE_OK) {
+                  value = name.in();
+                  failed = false;
+              }
+          }
+          break;
+      }
+    default:
+        break;
+    }
+
+    if (failed) {
+        value = "NULL";
+    }
+    return value;
+}
+
+//------------------------------------------------------------------------------
+QVariant CommonData::readValue(const QString& topicName,
+                               const QString& memberName,
+                               unsigned int index)
+{
+    const QVariant value = readMember(topicName, memberName, index);
+    if (value.toString() != "NULL") {
+      return value;
+    }
+
+    return readDynamicMember(topicName, memberName, index);
+}
 
 
 //------------------------------------------------------------------------------

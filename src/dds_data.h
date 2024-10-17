@@ -243,7 +243,7 @@ public:
      */
     static QVariant readValue(const QString& topicName,
                               const QString& memberName,
-                              const unsigned int& index = 0);
+                              unsigned int index = 0);
 
     /**
      * @brief Delete all data samples for a specified topic.
@@ -293,12 +293,20 @@ public:
 
 private:
 
+    static QVariant readMember(const QString& topicName,
+                               const QString& memberName,
+                               unsigned int index = 0);
+
+    static QVariant readDynamicMember(const QString& topicName,
+                                      const QString& memberName,
+                                      unsigned int index = 0);
+
     /**
      * @brief Stores the data samples from DDS.
      * @details The key is the topic name and the value is the data sample. The
      *          first sample is always the latest and the last sample is last.
      */
-    static QMap<QString, QList<std::shared_ptr<OpenDynamicData> > > m_samples;
+    static QMap<QString, QList<std::shared_ptr<OpenDynamicData>>> m_samples;
 
     /**
      * @brief Stores the data sample times.
@@ -316,7 +324,7 @@ private:
 
     /// Store list of DynamicData objects for each topic.
     /// We are storing the timestamps for these samples also in m_sampleTimes.
-    static QMap<QString, QList<DDS::DynamicData_var> > m_dynamicSamples;
+    static QMap<QString, QList<DDS::DynamicData_var>> m_dynamicSamples;
 
     /// Mutex for protecting access to m_samples.
     static QMutex m_sampleMutex;
