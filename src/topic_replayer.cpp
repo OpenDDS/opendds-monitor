@@ -5,7 +5,7 @@
 #include "qos_dictionary.h"
 
 #include <dds/DCPS/EncapsulationHeader.h>
-
+#include <dds/DCPS/XTypes/DynamicTypeSupport.h>
 #include <QDateTime>
 #include <iostream>
 
@@ -28,16 +28,6 @@ TopicReplayer::TopicReplayer(const QString& topicName) :
         return;
     }
 
-    // Make sure the type code is valid
-    m_typeCode = topicInfo->typeCode;
-    if (m_typeCode == nullptr)
-    {
-        std::cerr << "Unable to find type code information for "
-                  << topicName.toStdString()
-                  << std::endl;
-        return;
-    }
-
     //store extensibility
     m_extensibility = topicInfo->extensibility;
 
@@ -45,6 +35,8 @@ TopicReplayer::TopicReplayer(const QString& topicName) :
     OpenDDS::DCPS::Service_Participant* service = TheServiceParticipant;
     DDS::DomainParticipant* domain = CommonData::m_ddsManager->getDomainParticipant();
 
+  if (topicInfo->typeCode) {
+    m_typeCode = topicInfo->typeCode;
     m_topic = service->create_typeless_topic(domain,
         topicInfo->name.c_str(),
         topicInfo->typeName.c_str(),
@@ -72,6 +64,35 @@ TopicReplayer::TopicReplayer(const QString& topicName) :
         std::cerr << "Failed to created replayer" << std::endl;
         return;
     }
+  } else {
+    // Use DynamicDataWriter instead.
+
+    m_topic = domain->create_topic(topicInfo->name.c_str(),
+                                              topicInfo->typeName.c_str(),
+                                              topicInfo->topicQos,
+                                              0,
+                                              0);
+    if (!m_topic) {
+      std::cerr << "Failed to create topic " << topicInfo->name << " in replayer" << std::endl;
+      return;
+    }
+
+    DDS::Publisher_var publisher = domain->create_publisher(topicInfo->pubQos,0,
+                                                                       0);
+    if (!publisher) {
+      std::cerr << "Failed to create publisher for topic " << topicInfo->name << std::endl;
+      return;
+    }
+
+    m_dw = publisher->create_datawriter(m_topic,
+                                        topicInfo->writerQos,
+                                        DDS::DataWriterListener::_nil(),
+                                        OpenDDS::DCPS::DEFAULT_STATUS_MASK);
+    if (!m_dw) {
+      std::cerr << "Failed to create data writer for topic " << topicInfo->name << std::endl;
+      return;
+    }
+  }
     //std::cout << "DEBUG Created Replayer" << std::endl;
 } // End TopicReplayer::TopicReplayer
 
@@ -174,6 +195,19 @@ void TopicReplayer::publishSample(const std::shared_ptr<OpenDynamicData> sample)
 
 } // End TopicReplayer::publishSample
 
+//------------------------------------------------------------------------------
+void TopicReplayer::publishSample(const DDS::DynamicData_var sample) {
+  DDS::DynamicDataWriter_var w = DDS::DynamicDataWriter::_narrow(m_dw);
+  if (!w) {
+    std::cerr << "DataWriter narrowing failed, m_dw is invalid" << std::endl;
+    return;
+  }
+  DDS::ReturnCode_t response = w->write(sample, DDS::HANDLE_NIL);
+  if (response != DDS::RETCODE_OK) {
+
+    std::cout << "write() failed; response: " << response << std::endl;
+  }
+}
 
 //------------------------------------------------------------------------------
 TopicReplayer::~TopicReplayer()

@@ -291,13 +291,14 @@ void TablePage::on_revertButton_clicked()
 void TablePage::on_publishButton_clicked()
 {
     const std::shared_ptr<OpenDynamicData> sample = m_tableModel->commitSample();
-    if (!sample)
-    {
-        return;
-    }
-
+    const DDS::DynamicData_var dynamicSample = m_tableModel->commitDynamicSample();
+  if (dynamicSample) {
+    m_topicReplayer->publishSample(dynamicSample);
+    revertButton->setEnabled(false);
+  } else if (sample) {
     m_topicReplayer->publishSample(sample);
     revertButton->setEnabled(false);
+  }
 }
 
 

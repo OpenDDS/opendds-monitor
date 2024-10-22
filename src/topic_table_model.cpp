@@ -138,6 +138,39 @@ const std::shared_ptr<OpenDynamicData> TopicTableModel::commitSample()
     return newSample;
 }
 
+//------------------------------------------------------------------------------
+const DDS::DynamicData_var TopicTableModel::commitDynamicSample()
+{
+  // Reset the edited state
+  for (size_t i = 0; i < m_data.size(); i++)
+  {
+    m_data.at(i)->edited = false;
+  }
+
+  // Get sample topicInfo
+  std::shared_ptr<TopicInfo> topicInfo = CommonData::getTopicInfo(m_topicName);
+  if (!topicInfo || topicInfo->typeCode)
+  {
+    return nullptr;
+  }
+
+  // Create a copy of the current sample
+  DDS::DynamicData_var newDynamicSample = m_dynamicsample->clone();
+  if(!newDynamicSample) {
+    std::cerr << "Copy of current sample invalid" << std::endl;
+  }
+
+  // Populate the new sample from the user-edited changes
+  for (size_t i = 0; i < m_data.size(); i++)
+  {
+    populateSample(newDynamicSample, m_data.at(i));
+  }
+
+  // Replace and delete the old sample
+  setSample(newDynamicSample);
+
+  return newDynamicSample;
+}
 
 //------------------------------------------------------------------------------
 int TopicTableModel::rowCount(const QModelIndex &) const
@@ -1029,6 +1062,212 @@ bool TopicTableModel::populateSample(std::shared_ptr<OpenDynamicData> const samp
 
 } // End TopicTableModel::populateSample
 
+//------------------------------------------------------------------------------
+bool TopicTableModel::populateSample(DDS::DynamicData_var memberData,
+                                     DataRow* const dataInfo)
+{
+  bool pass = false;
+  if (!memberData || !dataInfo)
+  {
+    return false;
+  }
+
+  const QString memberName = dataInfo->name.toUtf8().data();
+  DDS::MemberId memberId = CommonData::getNestedMemberAndIdByName(memberData, memberName);///need to make sure this changes targetSampleDynamic values!!
+  OpenDDS::XTypes::TypeKind tk = CommonData::getMemberTypeKindById(memberData, memberId);
+  std::cout << "DEBUG: tk: " << OpenDDS::XTypes::typekind_to_string(tk) << std::endl;
+  if (!memberData)
+  {
+    std::cerr << "TopicTableModel::populateSample: "
+              << "Unable to find member named "
+              << memberName.toStdString()
+              << std::endl;
+
+    return false;
+  }
+
+  DDS::ReturnCode_t rc = DDS::RETCODE_OK;
+  std::cout << "DEBUG: memberId: " << memberId << std::endl;
+  switch (dataInfo->type)
+  {
+    case CORBA::tk_long:
+    {
+      int32_t tmpValue = dataInfo->value.toInt(&pass);
+      if (pass)
+      {
+        rc = memberData->set_int32_value(memberId, tmpValue);
+      }
+      std::cout << "DEBUG: " << dataInfo->type << " " << tmpValue << std::endl; //debug
+      break;
+    }
+    case CORBA::tk_short:
+    {
+      CORBA::Int16 tmpValue = dataInfo->value.toInt(&pass);
+      short temp; //debug
+      memberData->get_int16_value(temp, memberId); //debug
+      std::cout << "DEBUG: get_int16_value before: " << temp << std::endl; //debug
+      if (pass)
+      {
+        rc = memberData->set_int16_value(memberId, tmpValue);
+        memberData->get_int16_value(temp, memberId);
+        std::cout << "DEBUG: get_int16_value after attempted set: " << temp << std::endl; //debug
+      }
+      std::cout << "DEBUG: " << dataInfo->type << " " << tmpValue << std::endl; //debug
+      break;
+    }
+    case CORBA::tk_ushort:
+    {
+      uint16_t tmpValue = dataInfo->value.toUInt(&pass);
+      if (pass)
+      {
+        rc = memberData->set_uint16_value(memberId, tmpValue);
+      }
+      std::cout << "DEBUG: " << dataInfo->type << " " << tmpValue << std::endl; //debug
+      break;
+    }
+    case CORBA::tk_ulong:
+    {
+      uint32_t tmpValue = dataInfo->value.toUInt(&pass);
+      if (pass)
+      {
+        rc = memberData->set_uint32_value(memberId, tmpValue);
+      }
+      std::cout << "DEBUG: " << dataInfo->type << " " << tmpValue << std::endl; //debug
+      break;
+    }
+    case CORBA::tk_float:
+    {
+      float tmpValue = dataInfo->value.toFloat(&pass);
+      if (pass)
+      {
+        rc = memberData->set_float32_value(memberId, tmpValue);
+      }
+      std::cout << "DEBUG: " << dataInfo->type << " " << tmpValue << std::endl; //debug
+      break;
+    }
+    case CORBA::tk_double:
+    {
+      double tmpValue = dataInfo->value.toDouble(&pass);
+      if (pass)
+      {
+        rc = memberData->set_float64_value(memberId, tmpValue);
+      }
+      std::cout << "DEBUG: " << dataInfo->type << " " << tmpValue << std::endl; //debug
+      break;
+    }
+    case CORBA::tk_boolean:
+    {
+      if (dataInfo->value.canConvert(QMetaType::Bool))
+      {
+        bool tmpValue = dataInfo->value.toBool();
+        rc = memberData->set_boolean_value(memberId, tmpValue);
+        pass = true;
+        std::cout << "DEBUG: " << dataInfo->type << " " << tmpValue << std::endl; //debug
+      }
+      break;
+    }
+    case CORBA::tk_char:
+    {
+      if (dataInfo->value.canConvert(QMetaType::Char))
+      {
+        char tmpValue = dataInfo->value.toChar().toLatin1();
+        rc = memberData->set_char8_value(memberId, tmpValue);
+        pass = true;
+        std::cout << "DEBUG: " << dataInfo->type << " " << tmpValue << std::endl; //debug
+      }
+      break;
+    }
+    case CORBA::tk_wchar:
+    {
+      if (dataInfo->value.canConvert(QMetaType::Char))
+      {
+        char tmpValue = dataInfo->value.toChar().toLatin1();
+        rc = memberData->set_char16_value(memberId, tmpValue);
+        pass = true;
+        std::cout << "DEBUG: " << dataInfo->type << " " << tmpValue << std::endl; //debug
+      }
+      break;
+    }
+    case CORBA::tk_octet:
+    {
+      bool tmpPass = false;
+      int32_t octetTestVar = dataInfo->value.toInt(&tmpPass);
+      if (tmpPass && octetTestVar >= 0 && octetTestVar <= 255)
+      {
+        uint8_t tmpValue = static_cast<uint8_t>(octetTestVar);
+        rc = memberData->set_uint8_value(memberId, tmpValue);
+        pass = true;
+        std::cout << "DEBUG: " << dataInfo->type << " " << tmpValue << std::endl; //debug
+      }
+      break;
+    }
+    case CORBA::tk_longlong:
+    {
+      int64_t tmpValue = dataInfo->value.toLongLong(&pass);
+      if (pass)
+      {
+        rc = memberData->set_int64_value(memberId, tmpValue);
+      }
+      std::cout << "DEBUG: " << dataInfo->type << " " << tmpValue << std::endl; //debug
+      break;
+    }
+    case CORBA::tk_ulonglong:
+    {
+      uint64_t tmpValue = dataInfo->value.toULongLong(&pass);
+      if (pass)
+      {
+        rc = memberData->set_uint64_value(memberId, tmpValue);
+      }
+      std::cout << "DEBUG: " << dataInfo->type << " " << tmpValue << std::endl; //debug
+      break;
+    }
+    case CORBA::tk_string:
+    {
+      rc = memberData->set_string_value(memberId, dataInfo->value.toString().toUtf8().data());
+      pass = true;
+      std::cout << "DEBUG: "  << dataInfo->type << " " << dataInfo->value.toString().toUtf8().data() << std::endl; //debug
+      CORBA::String_var temp = ""; //debug
+      memberData->get_string_value(temp.out(), memberId); //debug
+      std::cout << "DEBUG: get_string_value after attempted set: " << temp << std::endl; //debug
+      break;
+    }
+    case CORBA::tk_enum:
+    {
+      std::cout << "Enum - figure out later" << std::endl; //TODO - other errors are occurring first
+      int64_t tmpValue = dataInfo->value.toUInt(&pass);
+      rc = memberData->set_uint32_value(memberId, tmpValue);
+//      memberData->setStringValue(dataInfo->value.toString().toUtf8().data());
+      std::cout << "DEBUG: " << dataInfo->type << " " << tmpValue << std::endl; //debug
+      pass = true;
+//      const QString enumStringValue = dataInfo->value.toString();
+//      const CORBA::TypeCode* enumTypeCode = memberData->getTypeCode();
+//      const CORBA::ULong enumMemberCount = enumTypeCode->member_count();
+//
+//      // Find the enum int value of this enum string
+//      for (CORBA::ULong enumIndex = 0; enumIndex < enumMemberCount; enumIndex++)
+//      {
+//        QString searchValue = enumTypeCode->member_name(enumIndex);
+//        if (searchValue == enumStringValue)
+//        {
+//          memberData->setValue(enumIndex);
+//          pass = true;
+//          break;
+//        }
+//      }
+      break;
+    } // End enum block
+    default:
+      std::cerr << "TopicTableModel::populateSample "
+                << "Skipped "
+                << memberName.toStdString()
+                << std::endl;
+      break;
+
+  } // End child type switch
+  std::cout << "return code: " << rc << std::endl;
+  return pass;
+
+} // End TopicTableModel::populateSample
 
 //------------------------------------------------------------------------------
 TopicTableModel::DataRow::DataRow() : type(CORBA::tk_null),
