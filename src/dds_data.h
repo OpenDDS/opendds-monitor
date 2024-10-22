@@ -26,7 +26,7 @@
 
 #include <memory>
 #include <string>
-
+#include <dds/DCPS/XTypes/TypeObject.h>
 
 class DDSManager;
 class OpenDynamicData;
@@ -244,6 +244,24 @@ public:
     static QVariant readValue(const QString& topicName,
                               const QString& memberName,
                               const unsigned int& index = 0);
+
+    /**
+    * @brief Get a dynamic data member's typeKind.
+    * @param[in] currentData The data sample of the topic (final level if nested).
+    * @param[in] memberId MemberId of interest.
+    * @return A OpenDDS::XTypes::TypeKind containing the member's typekind.
+    */
+    static OpenDDS::XTypes::TypeKind getMemberTypeKindById(const DDS::DynamicData_var& currentData,
+                                                           const DDS::MemberId memberId);
+
+    /**
+    * @brief Get a dynamic data member's memberId from its full name path.
+    * @param[in] currentData The data sample of the topic - this will be edited to point to the final level of a nested sample.
+    * @param[in] memberId The member's full path/name, including parents (ie with periods).
+    * @return A DDS::MemberId containing the member's ID.
+    */
+    static DDS::MemberId getNestedMemberAndIdByName(DDS::DynamicData_var& currentData,
+                                                    const QString& memberName);
 
     /**
      * @brief Delete all data samples for a specified topic.
