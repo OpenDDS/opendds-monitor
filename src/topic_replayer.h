@@ -34,6 +34,7 @@ public:
      * @param[in] sample Publish this data sample.
      */
     void publishSample(const std::shared_ptr<OpenDynamicData> sample);
+    void publishSample(const DDS::DynamicData_var sample);
 
     /**
     * @brief Destructor for the DDS topic replayer.
@@ -56,6 +57,9 @@ private:
 
     /// The topic extensibility
     OpenDDS::DCPS::Extensibility m_extensibility;
+
+    /// A dynamic data writer for this topic
+    DDS::DataWriter_var m_dw;
 };
 
 #endif

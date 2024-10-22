@@ -79,6 +79,61 @@ std::shared_ptr<TopicInfo> CommonData::getTopicInfo(const QString& topicName)
 }
 
 //------------------------------------------------------------------------------
+OpenDDS::XTypes::TypeKind CommonData::getMemberTypeKindById(const DDS::DynamicData_var& currentData,
+                                                            const DDS::MemberId memberId)
+{
+  DDS::ReturnCode_t rc = DDS::RETCODE_OK;
+  DDS::DynamicType_var memberType = currentData->type();
+  DDS::DynamicTypeMember_var dtm;
+  rc = memberType->get_member(dtm, memberId);
+  if (rc != DDS::RETCODE_OK) {
+    std::cerr << "Failed to get DynamicTypeMember for member Id " << memberId << std::endl;
+  }
+  DDS::MemberDescriptor_var md;
+  rc = dtm->get_descriptor(md);
+  if (rc != DDS::RETCODE_OK) {
+    std::cerr << "Failed to get MemberDescriptor for member Id " << memberId << std::endl;
+  }
+  const DDS::DynamicType_var base_type = OpenDDS::XTypes::get_base_type(md->type());
+  return base_type->get_kind();
+}
+
+//------------------------------------------------------------------------------
+DDS::MemberId CommonData::getNestedMemberAndIdByName(DDS::DynamicData_var& currentData,
+                                                     const QString& memberName)
+{
+  // Split memberName by '.'
+  QStringList memberPath = memberName.split('.');
+  DDS::ReturnCode_t rc = DDS::RETCODE_OK;
+  DDS::MemberId memberId = currentData->get_member_id_by_name(memberName.toUtf8().data());
+
+  // Traverse through the structure according to the member path
+  for (int i = 0; i < memberPath.size(); ++i) {
+    const QString& currentMemberName = memberPath.at(i);
+
+    // Find the target member within this sample
+    memberId = currentData->get_member_id_by_name(currentMemberName.toUtf8().data());
+    if (memberId == OpenDDS::XTypes::MEMBER_ID_INVALID) {
+      std::cerr << "Invalid member ID for: " << currentMemberName.toStdString() << std::endl;
+    }
+
+    // If it's the last part of the member path, retrieve the value
+    if (i == memberPath.size() - 1) {
+      break;
+    } else {
+      // If it's not the last part, treat it as a nested structure (complex type) and keep going
+      DDS::DynamicData_var nextData;
+      rc = currentData->get_complex_value(nextData, memberId);
+      if (rc != DDS::RETCODE_OK) {
+        std::cerr << "Failed to get complex value for: " << currentMemberName.toStdString() << std::endl;
+      }
+      currentData = nextData;  // Move to the next level of the nested structure
+    }
+  }
+  return memberId;
+}
+
+//------------------------------------------------------------------------------
 QVariant CommonData::readValue(const QString& topicName,
                                const QString& memberName,
                                const unsigned int& index)
@@ -90,9 +145,141 @@ QVariant CommonData::readValue(const QString& topicName,
     QList<std::shared_ptr<OpenDynamicData>>& sampleList = m_samples[topicName];
     if ((int)index >= sampleList.count())
     {
-        value = "NULL";
+        // Check for dynamic data instead
+
+        locker.unlock();
+        QMutexLocker lockerDyn(&m_dynamicSamplesMutex);
+
+        // Make sure the index is valid
+        QList<DDS::DynamicData_var>& sampleListDynamic = (m_dynamicSamples[topicName]);
+        if ((int)index >= sampleListDynamic.count()) {
+          value = "NULL";
+          return value;
+        }
+
+        DDS::DynamicData_var targetSampleDynamic = sampleListDynamic.at(index);
+        if (!targetSampleDynamic) {
+          value = "NULL";
+          return value;
+        }
+
+        DDS::MemberId memberId = getNestedMemberAndIdByName(targetSampleDynamic, memberName);
+        OpenDDS::XTypes::TypeKind member_type_kind = getMemberTypeKindById(targetSampleDynamic, memberId);
+        // Check the type and get the value accordingly
+        switch (member_type_kind) {
+          case OpenDDS::XTypes::TK_INT8: {
+            int8_t tmpValue;
+            if (targetSampleDynamic->get_int8_value(tmpValue, memberId) == DDS::RETCODE_OK) {
+              value = tmpValue;
+            }
+            break;
+          }
+          case OpenDDS::XTypes::TK_INT16: {
+            int16_t tmpValue;
+            if (targetSampleDynamic->get_int16_value(tmpValue, memberId) == DDS::RETCODE_OK) {
+              value = tmpValue;
+            }
+            break;
+          }
+          case OpenDDS::XTypes::TK_INT32: {
+            int32_t tmpValue;
+            if (targetSampleDynamic->get_int32_value(tmpValue, memberId) == DDS::RETCODE_OK) {
+              value = tmpValue;
+            }
+            break;
+          }
+          case OpenDDS::XTypes::TK_INT64: {
+            int64_t tmpValue;
+            if (targetSampleDynamic->get_int64_value(tmpValue, memberId) == DDS::RETCODE_OK) {
+              value = tmpValue;
+            }
+            break;
+          }
+          case OpenDDS::XTypes::TK_UINT8: {
+            uint8_t tmpValue;
+            if (targetSampleDynamic->get_uint8_value(tmpValue, memberId) == DDS::RETCODE_OK) {
+              value = tmpValue;
+            }
+            break;
+          }
+          case OpenDDS::XTypes::TK_UINT16: {
+            uint16_t tmpValue;
+            if (targetSampleDynamic->get_uint16_value(tmpValue, memberId) == DDS::RETCODE_OK) {
+              value = tmpValue;
+            }
+            break;
+          }
+          case OpenDDS::XTypes::TK_UINT32: {
+            uint32_t tmpValue;
+            if (targetSampleDynamic->get_uint32_value(tmpValue, memberId) == DDS::RETCODE_OK) {
+              value = tmpValue;
+            }
+            break;
+          }
+          case OpenDDS::XTypes::TK_UINT64: {
+            uint64_t tmpValue;
+            if (targetSampleDynamic->get_uint64_value(tmpValue, memberId) == DDS::RETCODE_OK) {
+              value = tmpValue;
+            }
+            break;
+          }
+          case OpenDDS::XTypes::TK_FLOAT32: {
+            float tmpValue;
+            if (targetSampleDynamic->get_float32_value(tmpValue, memberId) == DDS::RETCODE_OK) {
+              value = tmpValue;
+            }
+            break;
+          }
+          case OpenDDS::XTypes::TK_FLOAT64: {
+            double tmpValue;
+            if (targetSampleDynamic->get_float64_value(tmpValue, memberId) == DDS::RETCODE_OK) {
+              value = tmpValue;
+            }
+            break;
+          }
+          case OpenDDS::XTypes::TK_BOOLEAN: {
+            bool tmpValue;
+            if (targetSampleDynamic->get_boolean_value(tmpValue, memberId) == DDS::RETCODE_OK) {
+              value = tmpValue;
+            }
+            break;
+          }
+          case OpenDDS::XTypes::TK_CHAR8: {
+            char tmpValue;
+            if (targetSampleDynamic->get_char8_value(tmpValue, memberId) == DDS::RETCODE_OK) {
+              value = tmpValue;
+            }
+            break;
+          }
+          case OpenDDS::XTypes::TK_CHAR16: {
+            wchar_t tmpValue;
+            if (targetSampleDynamic->get_char16_value(tmpValue, memberId) == DDS::RETCODE_OK) {
+              value = tmpValue;
+            }
+            break;
+          }
+          case OpenDDS::XTypes::TK_STRING8: {
+            CORBA::String_var tmpValue;
+            if (targetSampleDynamic->get_string_value(tmpValue.out(), memberId) == DDS::RETCODE_OK) {
+              value = QString::fromUtf8(tmpValue);
+            }
+            break;
+          }
+          case OpenDDS::XTypes::TK_ENUM: {
+            uint32_t tmpValue;
+            if (targetSampleDynamic->get_uint32_value(tmpValue, memberId) == DDS::RETCODE_OK) {
+              value = tmpValue;
+            }
+            break;
+          }
+          default:
+            std::cerr << "TypeKind '" << OpenDDS::XTypes::typekind_to_string(member_type_kind) << "' not handled in switch" << std::endl;
+            value = "NULL";
+            break;
+        }
         return value;
     }
+    // If it gets to here, it's not dynamic data
 
     const std::shared_ptr<OpenDynamicData> targetSample = sampleList.at(index);
     if (!targetSample)

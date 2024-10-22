@@ -51,6 +51,7 @@ public:
      * @remarks The returned value is the user-edited sample data to publish.
      */
     const std::shared_ptr<OpenDynamicData> commitSample();
+    const DDS::DynamicData_var commitDynamicSample();
 
     /**
      * @brief Standard row count for table.
@@ -200,6 +201,7 @@ private:
      */
     bool populateSample(std::shared_ptr<OpenDynamicData> const sample,
                         DataRow *dataInfo);
+    bool populateSample(DDS::DynamicData_var const sample, DataRow *dataInfo);
 
     /// The table view using this model
     QTableView* m_tableView;
