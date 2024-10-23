@@ -214,7 +214,6 @@ QVariant CommonData::readDynamicMember(const QString& topicName,
                                        unsigned int index)
 {
     const char* error = "NULL";
-    QVariant value;
     QMutexLocker locker(&m_dynamicSamplesMutex);
 
     if (!m_dynamicSamples.contains(topicName)) {
@@ -255,7 +254,6 @@ QVariant CommonData::readDynamicMember(const QString& topicName,
     }
 
     const DDS::TypeKind member_tk = md->type()->get_kind();
-    bool failed = true;
     DDS::ReturnCode_t rc = DDS::RETCODE_OK;
 
     switch (member_tk) {
@@ -264,8 +262,7 @@ QVariant CommonData::readDynamicMember(const QString& topicName,
           CORBA::Boolean tmp;
           rc = parent_data->get_boolean_value(tmp, id);
           if (rc == DDS::RETCODE_OK) {
-              value = tmp;
-              failed = false;
+              return tmp;
           }
           break;
       }
@@ -274,8 +271,7 @@ QVariant CommonData::readDynamicMember(const QString& topicName,
           CORBA::Octet tmp;
           rc = parent_data->get_byte_value(tmp, id);
           if (rc == DDS::RETCODE_OK) {
-              value = tmp;
-              failed = false;
+              return tmp;
           }
           break;
       }
@@ -284,8 +280,7 @@ QVariant CommonData::readDynamicMember(const QString& topicName,
           CORBA::Short tmp;
           rc = parent_data->get_int16_value(tmp, id);
           if (rc == DDS::RETCODE_OK) {
-              value = tmp;
-              failed = false;
+              return tmp;
           }
           break;
       }
@@ -294,8 +289,7 @@ QVariant CommonData::readDynamicMember(const QString& topicName,
           CORBA::UShort tmp;
           rc = parent_data->get_uint16_value(tmp, id);
           if (rc == DDS::RETCODE_OK) {
-              value = tmp;
-              failed = false;
+              return tmp;
           }
           break;
       }
@@ -304,8 +298,7 @@ QVariant CommonData::readDynamicMember(const QString& topicName,
           CORBA::Long tmp;
           rc = parent_data->get_int32_value(tmp, id);
           if (rc == DDS::RETCODE_OK) {
-              value = tmp;
-              failed = false;
+              return tmp;
           }
           break;
       }
@@ -314,8 +307,7 @@ QVariant CommonData::readDynamicMember(const QString& topicName,
           CORBA::ULong tmp;
           rc = parent_data->get_uint32_value(tmp, id);
           if (rc == DDS::RETCODE_OK) {
-              value = tmp;
-              failed = false;
+              return tmp;
           }
           break;
       }
@@ -324,8 +316,7 @@ QVariant CommonData::readDynamicMember(const QString& topicName,
           CORBA::LongLong tmp;
           rc = parent_data->get_int64_value(tmp, id);
           if (rc == DDS::RETCODE_OK) {
-              value = static_cast<qlonglong>(tmp);
-              failed = false;
+              return static_cast<qlonglong>(tmp);
           }
           break;
       }
@@ -334,8 +325,7 @@ QVariant CommonData::readDynamicMember(const QString& topicName,
           CORBA::ULongLong tmp;
           rc = parent_data->get_uint64_value(tmp, id);
           if (rc == DDS::RETCODE_OK) {
-              value = static_cast<qulonglong>(tmp);
-              failed = false;
+              return static_cast<qulonglong>(tmp);
           }
           break;
       }
@@ -344,8 +334,7 @@ QVariant CommonData::readDynamicMember(const QString& topicName,
           CORBA::Float tmp;
           rc = parent_data->get_float32_value(tmp, id);
           if (rc == DDS::RETCODE_OK) {
-              value = tmp;
-              failed = false;
+              return tmp;
           }
           break;
       }
@@ -354,8 +343,7 @@ QVariant CommonData::readDynamicMember(const QString& topicName,
           CORBA::Double tmp;
           rc = parent_data->get_float64_value(tmp, id);
           if (rc == DDS::RETCODE_OK) {
-              value = tmp;
-              failed = false;
+              return tmp;
           }
           break;
       }
@@ -364,8 +352,7 @@ QVariant CommonData::readDynamicMember(const QString& topicName,
           CORBA::Char tmp;
           rc = parent_data->get_char8_value(tmp, id);
           if (rc == DDS::RETCODE_OK) {
-              value = tmp;
-              failed = false;
+              return tmp;
           }
           break;
       }
@@ -374,8 +361,7 @@ QVariant CommonData::readDynamicMember(const QString& topicName,
           CORBA::WChar tmp;
           rc = parent_data->get_char16_value(tmp, id);
           if (rc == DDS::RETCODE_OK) {
-              value = tmp;
-              failed = false;
+              return tmp;
           }
           break;
       }
@@ -384,8 +370,7 @@ QVariant CommonData::readDynamicMember(const QString& topicName,
           CORBA::String_var tmp;
           rc = parent_data->get_string_value(tmp, id);
           if (rc == DDS::RETCODE_OK) {
-              value = tmp.in();
-              failed = false;
+              return tmp.in();
           }
           break;
       }
@@ -397,8 +382,7 @@ QVariant CommonData::readDynamicMember(const QString& topicName,
               DDS::String8_var name;
               rc = OpenDDS::XTypes::get_enumerator_name(name, tmp, md->type());
               if (rc == DDS::RETCODE_OK) {
-                  value = name.in();
-                  failed = false;
+                  return name.in();
               }
           }
           break;
@@ -407,10 +391,7 @@ QVariant CommonData::readDynamicMember(const QString& topicName,
         break;
     }
 
-    if (failed) {
-        value = error;
-    }
-    return value;
+    return error;
 }
 
 //------------------------------------------------------------------------------
@@ -418,11 +399,11 @@ QVariant CommonData::readValue(const QString& topicName,
                                const QString& memberName,
                                unsigned int index)
 {
-    const QVariant value = readMember(topicName, memberName, index);
+    const QVariant value = readDynamicMember(topicName, memberName, index);
     if (value.toString() != "NULL") {
-      return value;
+        return value;
     }
-    return readDynamicMember(topicName, memberName, index);
+    return readMember(topicName, memberName, index);
 }
 
 
