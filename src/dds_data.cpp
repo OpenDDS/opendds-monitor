@@ -213,7 +213,7 @@ QVariant CommonData::readDynamicMember(const QString& topicName,
                                        const QString& memberName,
                                        unsigned int index)
 {
-    const char* error = "NULL";
+    const QVariant error;
     QMutexLocker locker(&m_dynamicSamplesMutex);
 
     if (!m_dynamicSamples.contains(topicName)) {
@@ -228,7 +228,7 @@ QVariant CommonData::readDynamicMember(const QString& topicName,
     DDS::DynamicData_var sample = sampleList.at(index);
     DDS::DynamicType_var topic_type = sample->type();
     OpenDDS::XTypes::MemberPath member_path;
-    if (member_path.resolve_string_path(topic_type, memberName.toStdString().c_str()) != DDS::RETCODE_OK) {
+    if (member_path.resolve_string_path(topic_type, memberName.toStdString()) != DDS::RETCODE_OK) {
         return error;
     }
 
@@ -400,7 +400,7 @@ QVariant CommonData::readValue(const QString& topicName,
                                unsigned int index)
 {
     const QVariant value = readDynamicMember(topicName, memberName, index);
-    if (value.toString() != "NULL") {
+    if (!value.isNull()) {
         return value;
     }
     return readMember(topicName, memberName, index);
