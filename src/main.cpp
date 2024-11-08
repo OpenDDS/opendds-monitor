@@ -29,10 +29,10 @@ int main(int argc, char** argv)
             std::cout << message;
         }
 #else
-		if (mt == LogMessageType::DDS_ERROR)
-		{
-			std::cerr << message;
-		}
+        if (mt == LogMessageType::DDS_ERROR)
+        {
+            std::cerr << message;
+        }
 #endif
     };
 
