@@ -2,7 +2,10 @@
 
 #include "main_window.h"
 
+#include <iostream>
 #include <memory>
+#include <dds_logging.h>
+
 
 /**
  * @brief Main function for the DDS Monitor application.
@@ -15,6 +18,26 @@
 int main(int argc, char** argv)
 {
     QApplication app(argc, argv);
+    
+	auto aceLogging = [](LogMessageType mt, const std::string& message) {
+#ifdef _DEBUG
+        if (mt == LogMessageType::DDS_ERROR)
+        {
+            std::cerr << message;
+        }
+        else {
+            std::cout << message;
+        }
+#else
+        if (mt == LogMessageType::DDS_ERROR)
+        {
+            std::cerr << message;
+        }
+#endif
+    };
+
+	SetACELogger(aceLogging);
+
     auto mainWindow = std::make_unique <DDSMonitorMainWindow>();
 
     int returnCode = 2;
