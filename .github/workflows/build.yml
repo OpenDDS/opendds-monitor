@@ -221,13 +221,15 @@ jobs:
         run: |-
           cmake -DBUILD_TYPE=debug -DVCPKG_INSTALLED_DIR=%VCPKG_INSTALLED_DIR% -DVCPKG_DEFAULT_TRIPLET=%VCPKG_DEFAULT_TRIPLET% -P BuildQwt.cmake
 
-      # Build opendds-monitor
-      - name: 'Set Up Problem Matcher (Windows)'
-        if: runner.os == 'Windows'
-        uses: ammaraskar/msvc-problem-matcher@0.3.0
+      # Set up problem matchers
       - name: 'Set Up Problem Matcher (Linux / macOS)'
         if: runner.os == 'Linux' || runner.os == 'macOS'
         uses: ammaraskar/gcc-problem-matcher@0.3.0
+      - name: 'Set Up Problem Matcher (Windows)'
+        if: runner.os == 'Windows'
+        uses: ammaraskar/msvc-problem-matcher@0.3.0
+
+      # Build opendds-monitor
       - name: 'Build opendds-monitor (Linux / macOS)'
         if: runner.os == 'Linux' || runner.os == 'macOS'
         shell: bash
@@ -240,6 +242,7 @@ jobs:
           CMAKE_ARGS=""
           if [ '${{ runner.os }}' == 'macOS' ]; then
             # CMAKE_ARGS+=" -DQt5_DIR=$(brew --prefix qt@5)/lib/cmake/Qt5"
+            export QWT_DIR=$(brew --prefix qwt-qt5)
             CMAKE_ARGS+=" -DCMAKE_PREFIX_PATH=$(brew --prefix qt@5)"
           fi
           cmake $CMAKE_ARGS ..
