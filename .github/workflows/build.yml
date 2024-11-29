@@ -105,8 +105,7 @@ jobs:
             if [ '${{ matrix.runner }}' == 'macos-13' ]; then
               CONFIG_OPTIONS+=" --xerces3=$(brew --prefix xerces-c) --openssl=/usr/local/opt/openssl@1.1"
             else
-              ls -la /usr/local
-              CONFIG_OPTIONS+=" --xerces3=$(brew --prefix xerces-c) --openssl=/usr/local/openssl@3"
+              CONFIG_OPTIONS+=" --xerces3=$(brew --prefix xerces-c) --openssl=$(brew --prefix openssl)"
             fi
           fi
           echo "CONFIG_OPTIONS=$CONFIG_OPTIONS" >> $GITHUB_ENV
