@@ -279,7 +279,11 @@ void DDSMonitorMainWindow::parseCmd()
     for (int i = 1; i < argList.count(); i++)
     {
         argString = argList.at(i);
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
         argString.remove(QRegExp("^-*")); // Remove any - prefix
+#else
+        argString.remove(QRegularExpression("^-*")); // Remove any - prefix
+#endif
 
         // Help!
         if (argString == "h" || argString == "help")

@@ -3,10 +3,12 @@
 
 #include <QFileDialog>
 #include <QMessageBox>
-#include <QTextCodec>
 #include <QSettings>
 #include <QTime>
 
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
+#include <QTextCodec>
+#endif
 
 //------------------------------------------------------------------------------
 RecorderDialog::RecorderDialog(const QString& topicName,
@@ -152,7 +154,11 @@ void RecorderDialog::on_recordButton_clicked()
 
     // Prepare the output stream
     m_outputStream.setDevice(&m_outputFile);
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
     m_outputStream.setCodec(QTextCodec::codecForName("UTF-8"));
+#else
+    m_outputStream.setEncoding(QStringConverter::Utf8);
+#endif
     m_outputStream.setRealNumberNotation(QTextStream::FixedNotation);
     m_outputStream.setRealNumberPrecision(6);
 
