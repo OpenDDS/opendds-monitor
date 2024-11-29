@@ -235,7 +235,8 @@ jobs:
           cd build
           CMAKE_ARGS=""
           if [ '${{ runner.os }}' == 'macOS' ]; then
-            CMAKE_ARGS+=" -DQt5_DIR=$(brew --prefix qt@5)/lib/cmake/Qt5"
+            # CMAKE_ARGS+=" -DQt5_DIR=$(brew --prefix qt@5)/lib/cmake/Qt5"
+            CMAKE_ARGS+=" -DCMAKE_PREFIX_PATH=$(brew --prefix qt@5)"
           fi
           cmake $CMAKE_ARGS ..
           cmake --build . -t all -t managed_testapp -t unmanaged_testapp
