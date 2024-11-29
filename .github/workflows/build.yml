@@ -101,8 +101,10 @@ jobs:
           echo "MPC_ROOT=$GITHUB_WORKSPACE/MPC" >> $GITHUB_ENV
           echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/ACE_TAO/ACE/lib:$GITHUB_WORKSPACE/OpenDDS/lib" >> $GITHUB_ENV
           CONFIG_OPTIONS+=" --no-tests --std=c++17 --ipv6 --security"
-          if [ '${{ runner.os }}' == 'macOS' ]; then
+          if [ '${{ matrix.runner }}' == 'macos-13' ]; then
             CONFIG_OPTIONS+=" --xerces3=$(brew --prefix xerces-c) --openssl=/usr/local/opt/openssl@1.1"
+          else
+            CONFIG_OPTIONS+=" --xerces3=$(brew --prefix xerces-c) --openssl=/usr/local/opt/openssl@3.0"
           fi
           echo "CONFIG_OPTIONS=$CONFIG_OPTIONS" >> $GITHUB_ENV
           export COMPILER_VERSION=$(c++ --version 2>&1 | head -n 1)
