@@ -79,20 +79,30 @@ if(WIN32)
   list(APPEND SOURCE ddsmon.rc)
 endif(WIN32)
 
-qt_add_resources(RESOURCES ddsmon.qrc)
+if (NOT Qt6_FOUND)
+    qt5_add_resources(RESOURCES ddsmon.qrc)
+else()
+    qt_add_resources(RESOURCES ddsmon.qrc)
+endif()
 
-qt_wrap_cpp(MOC_SOURCE
-  src/graph_page.h
-  src/log_page.h
-  src/main_window.h
-  src/participant_page.h
-  src/participant_table_model.h
-  src/publication_monitor.h
-  src/recorder_dialog.h
-  src/subscription_monitor.h
-  src/table_page.h
-  src/topic_table_model.h
+set(MOC_SOURCE_LIST
+    src/graph_page.h
+    src/log_page.h
+    src/main_window.h
+    src/participant_page.h
+    src/participant_table_model.h
+    src/publication_monitor.h
+    src/recorder_dialog.h
+    src/subscription_monitor.h
+    src/table_page.h
+    src/topic_table_model.h
 )
+
+if (NOT Qt6_FOUND)
+    qt5_wrap_cpp(MOC_SOURCE ${MOC_SOURCE_LIST})
+else()
+    qt_wrap_cpp(MOC_SOURCE ${MOC_SOURCE_LIST})
+endif()
 
 add_executable(monitor
   ${SOURCE}
