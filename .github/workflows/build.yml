@@ -29,8 +29,8 @@ jobs:
           - windows-2019
           - ubuntu-22.04
           - ubuntu-20.04
+          - macos-14
           - macos-13
-          - macos-12
 
     runs-on: ${{ matrix.runner }}
 
@@ -102,7 +102,11 @@ jobs:
           echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/ACE_TAO/ACE/lib:$GITHUB_WORKSPACE/OpenDDS/lib" >> $GITHUB_ENV
           CONFIG_OPTIONS+=" --no-tests --std=c++17 --ipv6 --security"
           if [ '${{ runner.os }}' == 'macOS' ]; then
-            CONFIG_OPTIONS+=" --xerces3=$(brew --prefix xerces-c) --openssl=/usr/local/opt/openssl@1.1"
+            if [ '${{ matrix.runner }}' == 'macos-13' ]; then
+              CONFIG_OPTIONS+=" --xerces3=$(brew --prefix xerces-c) --openssl=/usr/local/opt/openssl@1.1"
+            else
+              CONFIG_OPTIONS+=" --xerces3=$(brew --prefix xerces-c) --openssl=$(brew --prefix openssl)"
+            fi
           fi
           echo "CONFIG_OPTIONS=$CONFIG_OPTIONS" >> $GITHUB_ENV
           export COMPILER_VERSION=$(c++ --version 2>&1 | head -n 1)
@@ -217,13 +221,15 @@ jobs:
         run: |-
           cmake -DBUILD_TYPE=debug -DVCPKG_INSTALLED_DIR=%VCPKG_INSTALLED_DIR% -DVCPKG_DEFAULT_TRIPLET=%VCPKG_DEFAULT_TRIPLET% -P BuildQwt.cmake
 
-      # Build opendds-monitor
-      - name: 'Set Up Problem Matcher (Windows)'
-        if: runner.os == 'Windows'
-        uses: ammaraskar/msvc-problem-matcher@0.3.0
+      # Set up problem matchers
       - name: 'Set Up Problem Matcher (Linux / macOS)'
         if: runner.os == 'Linux' || runner.os == 'macOS'
         uses: ammaraskar/gcc-problem-matcher@0.3.0
+      - name: 'Set Up Problem Matcher (Windows)'
+        if: runner.os == 'Windows'
+        uses: ammaraskar/msvc-problem-matcher@0.3.0
+
+      # Build opendds-monitor
       - name: 'Build opendds-monitor (Linux / macOS)'
         if: runner.os == 'Linux' || runner.os == 'macOS'
         shell: bash
@@ -235,7 +241,8 @@ jobs:
           cd build
           CMAKE_ARGS=""
           if [ '${{ runner.os }}' == 'macOS' ]; then
-            CMAKE_ARGS+=" -DQt5_DIR=$(brew --prefix qt@5)/lib/cmake/Qt5"
+            export QWT_DIR=$(brew --prefix qwt-qt5)
+            CMAKE_ARGS+=" -DCMAKE_PREFIX_PATH=$(brew --prefix qt@5)"
           fi
           cmake $CMAKE_ARGS ..
           cmake --build . -t all -t managed_testapp -t unmanaged_testapp

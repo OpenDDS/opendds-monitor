@@ -12,7 +12,8 @@ else()
   set(qt_optional_components DBus)
 endif()
 
-find_package(Qt5 REQUIRED COMPONENTS Core Widgets Gui PrintSupport Svg OpenGL OPTIONAL_COMPONENTS ${qt_optional_components})
+find_package(QT NAMES Qt5 Qt6 REQUIRED COMPONENTS Core Widgets Gui PrintSupport Svg OpenGL OPTIONAL_COMPONENTS ${qt_optional_components})
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Gui PrintSupport Svg OpenGL OPTIONAL_COMPONENTS ${qt_optional_components})
 
 if(QWT_IS_LOCAL)
   set(QWT_LIBRARY ${PROJECT_SOURCE_DIR}/qwt/lib/qwt$<$<CONFIG:DEBUG>:d>.lib)
@@ -78,20 +79,30 @@ if(WIN32)
   list(APPEND SOURCE ddsmon.rc)
 endif(WIN32)
 
-qt5_add_resources(RESOURCES ddsmon.qrc)
+if (NOT Qt6_FOUND)
+    qt5_add_resources(RESOURCES ddsmon.qrc)
+else()
+    qt_add_resources(RESOURCES ddsmon.qrc)
+endif()
 
-qt5_wrap_cpp(MOC_SOURCE
-  src/graph_page.h
-  src/log_page.h
-  src/main_window.h
-  src/participant_page.h
-  src/participant_table_model.h
-  src/publication_monitor.h
-  src/recorder_dialog.h
-  src/subscription_monitor.h
-  src/table_page.h
-  src/topic_table_model.h
+set(MOC_SOURCE_LIST
+    src/graph_page.h
+    src/log_page.h
+    src/main_window.h
+    src/participant_page.h
+    src/participant_table_model.h
+    src/publication_monitor.h
+    src/recorder_dialog.h
+    src/subscription_monitor.h
+    src/table_page.h
+    src/topic_table_model.h
 )
+
+if (NOT Qt6_FOUND)
+    qt5_wrap_cpp(MOC_SOURCE ${MOC_SOURCE_LIST})
+else()
+    qt_wrap_cpp(MOC_SOURCE ${MOC_SOURCE_LIST})
+endif()
 
 add_executable(monitor
   ${SOURCE}
@@ -124,13 +135,13 @@ target_compile_options(monitor PRIVATE $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COM
 target_link_libraries(monitor
   OpenDDW
   ${QWT_LIBRARY}
-  Qt5::PrintSupport
-  Qt5::Widgets
-  Qt5::Core
-  Qt5::Gui
-  Qt5::Svg
-  Qt5::OpenGL
-  $<$<NOT:$<PLATFORM_ID:Windows>>:Qt5::DBus>
+  Qt${QT_VERSION_MAJOR}::PrintSupport
+  Qt${QT_VERSION_MAJOR}::Widgets
+  Qt${QT_VERSION_MAJOR}::Core
+  Qt${QT_VERSION_MAJOR}::Gui
+  Qt${QT_VERSION_MAJOR}::Svg
+  Qt${QT_VERSION_MAJOR}::OpenGL
+  $<$<NOT:$<PLATFORM_ID:Windows>>:Qt${QT_VERSION_MAJOR}::DBus>
 )
 
 target_include_directories(monitor PRIVATE

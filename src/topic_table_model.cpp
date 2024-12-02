@@ -407,7 +407,7 @@ void TopicTableModel::parseData(const std::shared_ptr<OpenDynamicData> data)
         {
             wchar_t tmpValue[2] = { 0, 0 };
             tmpValue[0] = child->getValue<wchar_t>();
-            dataRow->value = ACE_Wide_To_Ascii(tmpValue).char_rep();
+            dataRow->value = QString(ACE_Wide_To_Ascii(tmpValue).char_rep());
             break;
         }
         case CORBA::tk_octet:
@@ -619,14 +619,14 @@ void TopicTableModel::setDataRow(DataRow* const data_row,
     case CORBA::tk_char: {
         CORBA::Char value[2] = { 0, 0 };
         if (check_rc(data->get_char8_value(value[0], id), "get_char8_value failed")) {
-            data_row->value = value;
+            data_row->value = QString(value);
         }
         break;
     }
     case CORBA::tk_wchar: {
         CORBA::WChar value[2] = { 0, 0 };
         if (check_rc(data->get_char16_value(value[0], id), "get_char16_value failed")) {
-            data_row->value = ACE_Wide_To_Ascii(value).char_rep();
+            data_row->value = QString(ACE_Wide_To_Ascii(value).char_rep());
         }
         break;
     }
