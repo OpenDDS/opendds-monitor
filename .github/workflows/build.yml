@@ -241,7 +241,6 @@ jobs:
           cd build
           CMAKE_ARGS=""
           if [ '${{ runner.os }}' == 'macOS' ]; then
-            # CMAKE_ARGS+=" -DQt5_DIR=$(brew --prefix qt@5)/lib/cmake/Qt5"
             export QWT_DIR=$(brew --prefix qwt-qt5)
             CMAKE_ARGS+=" -DCMAKE_PREFIX_PATH=$(brew --prefix qt@5)"
           fi
