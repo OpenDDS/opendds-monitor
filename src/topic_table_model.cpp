@@ -297,7 +297,7 @@ bool TopicTableModel::setData(const QModelIndex &index,
         return false;
     }
 
-    if (!data->setValue(value))
+    if (!data->setValue(this,value))
     {
         return false;
     }
@@ -314,46 +314,6 @@ void TopicTableModel::revertChanges()
     setSample(m_sample);
 }
 
-//------------------------------------------------------------------------------
-template<typename T>
-QVariant type_to_qvariant(T convertMe) {
-    QVariant retMe;
-
-    if (disp_ascii && sizeof(T) == 1) {// looks stupid to have a redundant check, but the QChar wont compile with a larger type, so it is eliminated by the if constexpr in that case. Still need the original && sizeof(T)==1 so that no other type enters this path, display breaks if you don't have it.
-            if constexpr(sizeof(T)==1) retMe = QChar(convertMe);
-    }else if (disp_hex) {
-        std::stringstream stream;
-        for (int i = sizeof(T) - 1; i >= 0; i--) {
-            stream << std::hex << ( ((convertMe) >> (8 * i + 4)) & 0x0F );
-            stream << std::hex << ( ((convertMe) >> (8 * i + 0)) & 0x0F );
-        }
-        std::string tempStr = stream.str();
-        for( int i = 0; i < tempStr.size(); i++)
-            tempStr[i] = std::toupper(tempStr[i]);
-        retMe = QString(tempStr.c_str());
-    }else {
-        if constexpr(sizeof(T) == 1)
-            retMe = convertMe;
-        else
-            retMe = convertMe;
-    }
-    return retMe;
-}
-
-//------------------------------------------------------------------------------
-template<typename T>
-T qvariant_to_type(QVariant convertMe) {
-    T retMe{};
-
-    if (disp_ascii && sizeof(T) == 1) {
-            retMe = convertMe.toString()[0].unicode() & 0xFF;
-    }else if (disp_hex) {
-        try { retMe = std::stoll(convertMe.toString().toStdString(), nullptr, 16); }catch (...) { retMe = 0; };
-    }else{
-        try{retMe = std::stoi(convertMe.toString().toStdString());}catch(...){retMe = 0;};
-    }
-    return retMe;
-}
 
 //------------------------------------------------------------------------------
 void TopicTableModel::updateDisplayHexAndAscii(bool new_hex, bool new_ascii){
@@ -1130,7 +1090,7 @@ TopicTableModel::DataRow::~DataRow()
 
 
 //------------------------------------------------------------------------------
-bool TopicTableModel::DataRow::setValue(const QVariant& newValue)
+bool TopicTableModel::DataRow::setValue(TopicTableModel* parent, const QVariant& newValue)
 {
     QVariant tempNewValue = newValue;
     QVariant tempValue = value;
@@ -1138,26 +1098,26 @@ bool TopicTableModel::DataRow::setValue(const QVariant& newValue)
     switch (type)
     {
         case CORBA::tk_long:
-            tempNewValue = qvariant_to_type<int32_t>(tempNewValue);
-            tempValue = qvariant_to_type<int32_t>(tempValue);
+            tempNewValue = parent->qvariant_to_type<int32_t>(tempNewValue);
+            tempValue = parent->qvariant_to_type<int32_t>(tempValue);
             tempValue.toInt(&pass);
             break;
         case CORBA::tk_short:
-            tempNewValue = qvariant_to_type<int16_t>(tempNewValue);
-            tempValue = qvariant_to_type<int16_t>(tempValue);
+            tempNewValue = parent->qvariant_to_type<int16_t>(tempNewValue);
+            tempValue = parent->qvariant_to_type<int16_t>(tempValue);
             tempValue.toInt(&pass);
             break;
         case CORBA::tk_enum:
             pass = true;
             break;
         case CORBA::tk_ushort:
-            tempNewValue = qvariant_to_type<uint16_t>(tempNewValue);
-            tempValue = qvariant_to_type<uint16_t>(tempValue);
+            tempNewValue = parent->qvariant_to_type<uint16_t>(tempNewValue);
+            tempValue = parent->qvariant_to_type<uint16_t>(tempValue);
             tempValue.toUInt(&pass);
             break;
         case CORBA::tk_ulong:
-            tempNewValue = qvariant_to_type<uint32_t>(tempNewValue);
-            tempValue = qvariant_to_type<uint32_t>(tempValue);
+            tempNewValue = parent->qvariant_to_type<uint32_t>(tempNewValue);
+            tempValue = parent->qvariant_to_type<uint32_t>(tempValue);
             tempValue.toUInt(&pass);
             break;
         case CORBA::tk_float:
@@ -1173,23 +1133,23 @@ bool TopicTableModel::DataRow::setValue(const QVariant& newValue)
             }
             break;
         case CORBA::tk_char:
-            tempNewValue = qvariant_to_type<char>(tempNewValue);
-            tempValue = qvariant_to_type<char>(tempValue);
+            tempNewValue = parent->qvariant_to_type<char>(tempNewValue);
+            tempValue = parent->qvariant_to_type<char>(tempValue);
             tempValue.toLongLong(&pass);
             break;
         case CORBA::tk_octet:
-            tempNewValue = qvariant_to_type<uint8_t>(tempNewValue);
-            tempValue = qvariant_to_type<uint8_t>(tempValue);
+            tempNewValue = parent->qvariant_to_type<uint8_t>(tempNewValue);
+            tempValue = parent->qvariant_to_type<uint8_t>(tempValue);
             tempValue.toLongLong(&pass);
             break;
         case CORBA::tk_longlong:
-            tempNewValue = qvariant_to_type<int64_t>(tempNewValue);
-            tempValue = qvariant_to_type<int64_t>(tempValue);
+            tempNewValue = parent->qvariant_to_type<int64_t>(tempNewValue);
+            tempValue = parent->qvariant_to_type<int64_t>(tempValue);
             tempValue.toLongLong(&pass);
             break;
         case CORBA::tk_ulonglong:
-            tempNewValue = qvariant_to_type<uint64_t>(tempNewValue);
-            tempValue = qvariant_to_type<uint64_t>(tempValue);
+            tempNewValue = parent->qvariant_to_type<uint64_t>(tempNewValue);
+            tempValue = parent->qvariant_to_type<uint64_t>(tempValue);
             tempValue.toULongLong(&pass);
             break;
         case CORBA::tk_string:
