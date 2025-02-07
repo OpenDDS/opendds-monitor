@@ -115,6 +115,8 @@ public:
     bool setData(const QModelIndex &index,
                  const QVariant &value,
                  int role = Qt::EditRole);
+    
+    void updateDisplayHexAndAscii(bool new_hex,bool new_ascii);
 
     /**
      * @brief Revert all changes to the original sample.
@@ -130,7 +132,13 @@ public:
         VALUE_COLUMN,
         MAX_eColumnIds_VALUE
     };
-
+    
+    /**
+     * @brief controls the display mode of integer & ascii types.
+     */
+    bool disp_hex = false;
+    bool disp_ascii = true;
+    
 signals:
 
     /**

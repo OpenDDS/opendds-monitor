@@ -1,9 +1,7 @@
 <RCC>
   <qresource prefix="/">
-    <file>images/monitor_new.png</file>
-    <file>images/monitor_attach.png</file>
-    <file>images/media-playback-stop.png</file>
-    <file>images/media-record.png</file>
+    <file>images/display-ascii.png</file>
+    <file>images/display-hex.png</file>
     <file>images/exportdoc.png</file>
     <file>images/cancel.png</file>
     <file>images/close.png</file>
@@ -18,7 +16,11 @@
     <file>images/imports.png</file>
     <file>images/key.png</file>
     <file>images/lock.png</file>
+    <file>images/media-playback-stop.png</file>
+    <file>images/media-record.png</file>
     <file>images/monitor.png</file>
+    <file>images/monitor_attach.png</file>
+    <file>images/monitor_new.png</file>
     <file>images/player-eject.png</file>
     <file>images/player-ff.png</file>
     <file>images/player-next.png</file>
