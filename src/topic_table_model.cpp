@@ -1143,13 +1143,13 @@ bool TopicTableModel::DataRow::setValue(TopicTableModel* parent, const QVariant&
             tempValue.toLongLong(&pass);
             break;
         case CORBA::tk_longlong:
-            tempNewValue = parent->qvariant_to_type<int64_t>(tempNewValue);
-            tempValue = parent->qvariant_to_type<int64_t>(tempValue);
+            tempNewValue = parent->qvariant_to_type<qint64>(tempNewValue);
+            tempValue = parent->qvariant_to_type<qint64>(tempValue);
             tempValue.toLongLong(&pass);
             break;
         case CORBA::tk_ulonglong:
-            tempNewValue = parent->qvariant_to_type<uint64_t>(tempNewValue);
-            tempValue = parent->qvariant_to_type<uint64_t>(tempValue);
+            tempNewValue = parent->qvariant_to_type<quint64>(tempNewValue);
+            tempValue = parent->qvariant_to_type<quint64>(tempValue);
             tempValue.toULongLong(&pass);
             break;
         case CORBA::tk_string:
