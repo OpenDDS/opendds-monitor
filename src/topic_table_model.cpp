@@ -320,7 +320,7 @@ void TopicTableModel::updateDisplayHexAndAscii(bool new_hex, bool new_ascii){
     emit layoutAboutToBeChanged();
     bool old_hex = disp_hex;
     bool old_ascii = disp_ascii;
-    for (int i = 0; i < m_data.size(); i++) {
+    for (unsigned int i = 0; i < m_data.size(); i++) {
         switch(m_data[i]->type){
         case CORBA::tk_long: {
             disp_hex = old_hex; disp_ascii = old_ascii;
