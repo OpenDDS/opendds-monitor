@@ -162,7 +162,7 @@ protected:
                 stream << std::hex << (((convertMe) >> (8 * i + 0)) & 0x0F);
             }
             std::string tempStr = stream.str();
-            for (int i = 0; i < tempStr.size(); i++)
+            for (std::string::size_type i = 0; i < tempStr.size(); i++)
                 tempStr[i] = std::toupper(tempStr[i]);
             retMe = QString(tempStr.c_str());
         }
