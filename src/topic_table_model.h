@@ -115,6 +115,8 @@ public:
     bool setData(const QModelIndex &index,
                  const QVariant &value,
                  int role = Qt::EditRole);
+    
+    void updateDisplayHexAndAscii(bool new_hex, bool new_ascii);
 
     /**
      * @brief Revert all changes to the original sample.
@@ -130,7 +132,13 @@ public:
         VALUE_COLUMN,
         MAX_eColumnIds_VALUE
     };
-
+    
+    /**
+     * @brief controls the display mode of integer & ascii types.
+     */
+    bool disp_hex = false;
+    bool disp_ascii = true;
+    
 signals:
 
     /**
@@ -138,8 +146,54 @@ signals:
      */
     void dataHasChanged();
 
-private:
+protected:
 
+    template<typename T>
+    QVariant type_to_qvariant(T convertMe) {
+        QVariant retMe;
+
+        if (disp_ascii && sizeof(T) == 1) {// looks stupid to have a redundant check, but the QChar wont compile with a larger type, so it is eliminated by the if constexpr in that case. Still need the original && sizeof(T)==1 so that no other type enters this path, display breaks if you don't have it.
+            if constexpr (sizeof(T) == 1) retMe = QChar(convertMe);
+        }
+        else if (disp_hex) {
+            std::stringstream stream;
+            for (int i = sizeof(T) - 1; i >= 0; i--) {
+                stream << std::hex << (((convertMe) >> (8 * i + 4)) & 0x0F);
+                stream << std::hex << (((convertMe) >> (8 * i + 0)) & 0x0F);
+            }
+            std::string tempStr = stream.str();
+            for (std::string::size_type i = 0; i < tempStr.size(); i++)
+                tempStr[i] = std::toupper(tempStr[i]);
+            retMe = QString(tempStr.c_str());
+        }
+        else {
+            if constexpr (sizeof(T) == 1)
+                retMe = convertMe;
+            else
+                retMe = convertMe;
+        }
+        return retMe;
+    }
+
+    template<typename T>
+    T qvariant_to_type(QVariant convertMe) {
+        T retMe{};
+
+        if (disp_ascii && sizeof(T) == 1) {
+            retMe = convertMe.toString()[0].unicode() & 0xFF;
+        }
+        else if (disp_hex) {
+            try { retMe = std::stoll(convertMe.toString().toStdString(), nullptr, 16); }
+            catch (...) { retMe = 0; };
+        }
+        else {
+            try { retMe = std::stoi(convertMe.toString().toStdString()); }
+            catch (...) { retMe = 0; };
+        }
+        return retMe;
+    }
+
+private:
     /**
      * @brief Stores information for a table row.
      */
@@ -162,7 +216,7 @@ private:
          * @param[in] newValue Attempt to set the value to this value.
          * @return Returns true if the operation was successful; false otherwise.
          */
-        bool setValue(const QVariant& newValue);
+        bool setValue(TopicTableModel* parent, const QVariant& newValue);
 
         QString name; ///< The topic member name.
         QVariant value; ///< The topic member value.

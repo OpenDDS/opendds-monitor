@@ -511,6 +511,16 @@ void TablePage::on_topicTableView_pressed(const QModelIndex& index)
     }
 }
 
+//------------------------------------------------------------------------------
+void TablePage::on_hexButton_clicked() {
+    m_tableModel->updateDisplayHexAndAscii(hexButton->isChecked(),m_tableModel->disp_ascii);
+}
+
+//------------------------------------------------------------------------------
+void TablePage::on_asciiButton_clicked() {
+    m_tableModel->updateDisplayHexAndAscii(m_tableModel->disp_hex,asciiButton->isChecked());
+}
+
 
 //------------------------------------------------------------------------------
 void TablePage::dataHasChanged()

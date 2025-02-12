@@ -99,6 +99,16 @@ private slots:
     void on_recordButton_clicked();
 
     /**
+     * @brief Display char fields as hex instead of as radix-10 integers.
+     */
+    void on_hexButton_clicked();
+
+    /**
+     * @brief Display char fields as ascii instead of as integers.
+     */
+    void on_asciiButton_clicked();
+
+    /**
      * @brief Disable the scroll to latest option if the user started editing.
      * @param[in] index The clicked table index.
      */
