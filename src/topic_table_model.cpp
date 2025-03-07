@@ -985,7 +985,7 @@ bool TopicTableModel::populateSample(std::shared_ptr<OpenDynamicData> const samp
     }
     case CORBA::tk_boolean:
     {
-        if (dataInfo->value.canConvert(QMetaType::Bool))
+        if (dataInfo->value.canConvert<bool>())
         {
             bool tmpValue = dataInfo->value.toBool();
             memberData->setValue(tmpValue);
@@ -995,7 +995,7 @@ bool TopicTableModel::populateSample(std::shared_ptr<OpenDynamicData> const samp
     }
     case CORBA::tk_char:
     {
-        if (dataInfo->value.canConvert(QMetaType::Char))
+        if (dataInfo->value.canConvert<char>())
         {
             char tmpValue = qvariant_to_type<char>(dataInfo->value);
             memberData->setValue(tmpValue);
@@ -1005,7 +1005,7 @@ bool TopicTableModel::populateSample(std::shared_ptr<OpenDynamicData> const samp
     }
     case CORBA::tk_wchar:
     {
-        if (dataInfo->value.canConvert(QMetaType::Char))
+        if (dataInfo->value.canConvert<char>())
         {
             char tmpValue = dataInfo->value.toChar().toLatin1();
             memberData->setValue(tmpValue);
