@@ -229,7 +229,7 @@ void TopicMonitor::on_sample_data_received(OpenDDS::DCPS::Recorder*,
             OpenDDS::DCPS::FilterEvaluator filterTest(m_filter.toUtf8().data(), false);
             DynamicMetaStruct metaInfo(sample);
             const DDS::StringSeq noParams;
-            OpenDDS::DCPS::Encoding encoding;
+            OpenDDS::DCPS::Encoding encoding(rawSample.encoding_kind_, static_cast<OpenDDS::DCPS::Endianness>(rawSample.header_.byte_order_));
             FilterTypeSupport typeSupport(metaInfo, m_extensibility);
             pass = filterTest.eval(mbCopy.get(), encoding, typeSupport, noParams);
         }
