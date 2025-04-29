@@ -8,6 +8,7 @@
 #include <dds/DCPS/XTypes/DynamicTypeSupport.h>
 #include <QDateTime>
 #include <iostream>
+#include <dds/DCPS/Message_Block_Ptr.h>
 
 
 //------------------------------------------------------------------------------
@@ -192,6 +193,7 @@ void TopicMonitor::on_sample_data_received(OpenDDS::DCPS::Recorder*,
         return;
     }
 
+    OpenDDS::DCPS::Message_Block_Ptr mbCopy(rawSample.sample_->duplicate());
     OpenDDS::DCPS::Serializer serial(
         rawSample.sample_.get(), rawSample.encoding_kind_, static_cast<OpenDDS::DCPS::Endianness>(rawSample.header_.byte_order_));
 
@@ -226,15 +228,10 @@ void TopicMonitor::on_sample_data_received(OpenDDS::DCPS::Recorder*,
         {
             OpenDDS::DCPS::FilterEvaluator filterTest(m_filter.toUtf8().data(), false);
             DynamicMetaStruct metaInfo(sample);
-
             const DDS::StringSeq noParams;
-#if OPENDDS_MAJOR_VERSION == 3 && OPENDDS_MINOR_VERSION < 24
-            pass = filterTest.eval(rawSample.sample_.get(), false, false, metaInfo, noParams, m_extensibility);
-#else
             OpenDDS::DCPS::Encoding encoding;
             FilterTypeSupport typeSupport(metaInfo, m_extensibility);
-            pass = filterTest.eval(rawSample.sample_.get(), encoding, typeSupport, noParams);
-#endif
+            pass = filterTest.eval(mbCopy.get(), encoding, typeSupport, noParams);
         }
         catch (const std::exception& e)
         {
