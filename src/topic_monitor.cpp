@@ -5,10 +5,13 @@
 #include "dds_manager.h"
 #include "dds_data.h"
 #include "qos_dictionary.h"
+
+#include <dds/DCPS/EncapsulationHeader.h>
+#include <dds/DCPS/Message_Block_Ptr.h>
 #include <dds/DCPS/XTypes/DynamicTypeSupport.h>
+
 #include <QDateTime>
 #include <iostream>
-#include <dds/DCPS/Message_Block_Ptr.h>
 
 
 //------------------------------------------------------------------------------
@@ -226,6 +229,14 @@ void TopicMonitor::on_sample_data_received(OpenDDS::DCPS::Recorder*,
         pass = false;
         try
         {
+            if (rawSample.header_.cdr_encapsulation_ &&
+                mbCopy->rd_ptr() >= mbCopy->base() + OpenDDS::DCPS::EncapsulationHeader::serialized_size)
+            {
+                // Before calling this function, RecorderImpl::data_received() read the EncapsulationHeader
+                // and advanced the rd_ptr() past that point.  The FilterEvaluator also needs to read this header.
+                mbCopy->rd_ptr(mbCopy->rd_ptr() - OpenDDS::DCPS::EncapsulationHeader::serialized_size);
+            }
+
             OpenDDS::DCPS::FilterEvaluator filterTest(m_filter.toUtf8().data(), false);
             DynamicMetaStruct metaInfo(sample);
             const DDS::StringSeq noParams;
