@@ -5,7 +5,11 @@
 #include "dds_manager.h"
 #include "dds_data.h"
 #include "qos_dictionary.h"
+
+#include <dds/DCPS/EncapsulationHeader.h>
+#include <dds/DCPS/Message_Block_Ptr.h>
 #include <dds/DCPS/XTypes/DynamicTypeSupport.h>
+
 #include <QDateTime>
 #include <iostream>
 
@@ -192,6 +196,7 @@ void TopicMonitor::on_sample_data_received(OpenDDS::DCPS::Recorder*,
         return;
     }
 
+    OpenDDS::DCPS::Message_Block_Ptr mbCopy(rawSample.sample_->duplicate());
     OpenDDS::DCPS::Serializer serial(
         rawSample.sample_.get(), rawSample.encoding_kind_, static_cast<OpenDDS::DCPS::Endianness>(rawSample.header_.byte_order_));
 
@@ -224,17 +229,20 @@ void TopicMonitor::on_sample_data_received(OpenDDS::DCPS::Recorder*,
         pass = false;
         try
         {
+            if (rawSample.header_.cdr_encapsulation_ &&
+                mbCopy->rd_ptr() >= mbCopy->base() + OpenDDS::DCPS::EncapsulationHeader::serialized_size)
+            {
+                // Before calling this function, RecorderImpl::data_received() read the EncapsulationHeader
+                // and advanced the rd_ptr() past that point.  The FilterEvaluator also needs to read this header.
+                mbCopy->rd_ptr(mbCopy->rd_ptr() - OpenDDS::DCPS::EncapsulationHeader::serialized_size);
+            }
+
             OpenDDS::DCPS::FilterEvaluator filterTest(m_filter.toUtf8().data(), false);
             DynamicMetaStruct metaInfo(sample);
-
             const DDS::StringSeq noParams;
-#if OPENDDS_MAJOR_VERSION == 3 && OPENDDS_MINOR_VERSION < 24
-            pass = filterTest.eval(rawSample.sample_.get(), false, false, metaInfo, noParams, m_extensibility);
-#else
-            OpenDDS::DCPS::Encoding encoding;
+            OpenDDS::DCPS::Encoding encoding(rawSample.encoding_kind_, static_cast<OpenDDS::DCPS::Endianness>(rawSample.header_.byte_order_));
             FilterTypeSupport typeSupport(metaInfo, m_extensibility);
-            pass = filterTest.eval(rawSample.sample_.get(), encoding, typeSupport, noParams);
-#endif
+            pass = filterTest.eval(mbCopy.get(), encoding, typeSupport, noParams);
         }
         catch (const std::exception& e)
         {
