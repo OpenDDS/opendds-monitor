@@ -104,8 +104,16 @@ DDSMonitorMainWindow::DDSMonitorMainWindow() :
 //------------------------------------------------------------------------------
 DDSMonitorMainWindow::~DDSMonitorMainWindow()
 {
-    CommonData::cleanup();
+    for (int i = 0; i < mainTabWidget->count(); i++)
+    {
+        QWidget* removedTab = mainTabWidget->widget(i);
+        mainTabWidget->removeTab(i);
+        removedTab->close();
+        delete removedTab;
+    }
+    mainTabWidget->clear();
 
+    CommonData::cleanup();
     CommonData::m_ddsManager.reset();
     ShutdownDDS();
 }
@@ -233,14 +241,9 @@ void DDSMonitorMainWindow::on_topicTree_itemClicked(QTreeWidgetItem* item, int)
 //------------------------------------------------------------------------------
 void DDSMonitorMainWindow::on_mainTabWidget_tabCloseRequested(int pageIndex)
 {
-    // Don't let the user close the log page
-    if (mainTabWidget->tabText(pageIndex) == "Log")
-    {
-        return;
-    }
-
-    // Don't let the user close the participant page
-    if (mainTabWidget->tabText(pageIndex) == "Participants")
+    // Don't let the user close the log and participant pages
+    const QString pageName = mainTabWidget->tabText(pageIndex);
+    if (pageName == "Log" || pageName == "Participants")
     {
         return;
     }

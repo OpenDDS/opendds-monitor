@@ -11,7 +11,7 @@
 PublicationMonitor::PublicationMonitor() : m_dataReader(nullptr)
 {
     DDS::DomainParticipant* domain = CommonData::m_ddsManager->getDomainParticipant();
-    DDS::Subscriber_var subscriber = domain->get_builtin_subscriber() ;
+    DDS::Subscriber_var subscriber = domain->get_builtin_subscriber();
     if (!subscriber)
     {
         std::cerr << "PublicationMonitor: "
