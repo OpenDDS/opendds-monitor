@@ -48,7 +48,6 @@ PublicationMonitor::~PublicationMonitor()
 //------------------------------------------------------------------------------
 void PublicationMonitor::on_data_available(DDS::DataReader_ptr reader)
 {
-    //std::cout << "DEBUG PublicationMonitor::on_data_available" << std::endl;
     DDS::SampleInfoSeq infoSeq;
     DDS::PublicationBuiltinTopicDataSeq msgList;
 
@@ -94,15 +93,15 @@ void PublicationMonitor::on_data_available(DDS::DataReader_ptr reader)
         std::shared_ptr<TopicInfo> topicInfo = CommonData::getTopicInfo(topicName);
 
         if (topicInfo != nullptr) {
-            if (topicInfo->typeCode == nullptr && userDataSize > 0) {
+            if (topicInfo->typeCode() == nullptr && userDataSize > 0) {
                 // If we already know about this topic but don't have the typecode, add it
                 topicInfo->storeUserData(sampleData.topic_data.value);
             }
-            if (!topicInfo->dynamic_type) {
+            if (!topicInfo->dynamicType()) {
                 // Try getting DynamicType of this topic again if it failed before
                 DDS::DynamicType_var dt;
                 if (get_dynamic_type(dt, sampleData.key, sampleData.topic_name, sampleData.type_name)) {
-                    topicInfo->dynamic_type = dt;
+                    topicInfo->dynamicType() = dt;
                 }
             }
 
@@ -114,8 +113,8 @@ void PublicationMonitor::on_data_available(DDS::DataReader_ptr reader)
 
         // If we got here, we have new topic data
         topicInfo = std::make_shared<TopicInfo>();
-        topicInfo->name = sampleData.topic_name;
-        topicInfo->typeName = sampleData.type_name;
+        topicInfo->topicName() = sampleData.topic_name;
+        topicInfo->typeName() = sampleData.type_name;
         //topicInfo->typeCode = Only exists in RTI implementation. We use user_data.
 
         topicInfo->setDurabilityPolicy(sampleData.durability);
@@ -132,10 +131,10 @@ void PublicationMonitor::on_data_available(DDS::DataReader_ptr reader)
         topicInfo->fixHistory();
         // Get DynamicType of the topic
         DDS::DynamicType_var dt;
-        if (get_dynamic_type(dt, sampleData.key, sampleData.topic_name, sampleData.type_name)) {
-            topicInfo->dynamic_type = dt;
+        if (get_dynamic_type(dt, sampleData.key, sampleData.topic_name, sampleData.type_name))
+        {
+            topicInfo->dynamicType() = dt;
         }
-        CommonData::storeTopicInfo(topicName, topicInfo);
 
         // Check for USR specific user data
         if (userDataSize > 0)
@@ -143,13 +142,13 @@ void PublicationMonitor::on_data_available(DDS::DataReader_ptr reader)
             topicInfo->storeUserData(sampleData.topic_data.value);
         }
 
-        emit newTopic(topicName);
+        CommonData::storeTopicInfo(topicName, topicInfo);
 
-    } // End message iteration loop
+        emit newTopic(topicName);
+    }
 
     dataReader->return_loan(msgList, infoSeq);
-
-} // End PublicationMonitor::on_data_available
+}
 
 bool PublicationMonitor::get_dynamic_type(DDS::DynamicType_var& type, const DDS::BuiltinTopicKey_t& key,
                                           const char* topic_name, const char* type_name)

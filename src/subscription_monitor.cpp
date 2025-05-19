@@ -47,7 +47,6 @@ SubscriptionMonitor::~SubscriptionMonitor()
 //------------------------------------------------------------------------------
 void SubscriptionMonitor::on_data_available(DDS::DataReader_ptr reader)
 {
-    //std::cout << "DEBUG SubscriptionMonitor::on_data_available" << std::endl;
     DDS::SampleInfoSeq infoSeq;
     DDS::SubscriptionBuiltinTopicDataSeq msgList;
 
@@ -94,7 +93,7 @@ void SubscriptionMonitor::on_data_available(DDS::DataReader_ptr reader)
 
         // If we already know about this topic but don't have the typecode, add it
         if (topicInfo != nullptr &&
-            topicInfo->typeCode == nullptr &&
+            topicInfo->typeCode() == nullptr &&
             userDataSize > 0)
         {
             topicInfo->storeUserData(sampleData.topic_data.value);
@@ -110,8 +109,8 @@ void SubscriptionMonitor::on_data_available(DDS::DataReader_ptr reader)
 
         // If we got here, we have new topic data
         topicInfo = std::make_shared<TopicInfo>();
-        topicInfo->name = sampleData.topic_name;
-        topicInfo->typeName = sampleData.type_name;
+        topicInfo->topicName() = sampleData.topic_name;
+        topicInfo->typeName() = sampleData.type_name;
         //topicInfo->typeCode = Only exists in RTI implementation. We use user_data.
 
         topicInfo->setDurabilityPolicy(sampleData.durability);
@@ -126,7 +125,6 @@ void SubscriptionMonitor::on_data_available(DDS::DataReader_ptr reader)
         topicInfo->setPresentationPolicy(sampleData.presentation);
         topicInfo->addPartitions(sampleData.partition);
         topicInfo->fixHistory();
-        CommonData::storeTopicInfo(topicName, topicInfo);
 
         // Check for USR specific user data
         if (userDataSize > 0)
@@ -134,13 +132,13 @@ void SubscriptionMonitor::on_data_available(DDS::DataReader_ptr reader)
             topicInfo->storeUserData(sampleData.topic_data.value);
         }
 
-        emit newTopic(topicName);
+        CommonData::storeTopicInfo(topicName, topicInfo);
 
-    } // End message iteration loop
+        emit newTopic(topicName);
+    }
 
     dataReader->return_loan(msgList, infoSeq);
-
-} // End SubscriptionMonitor::on_data_available
+}
 
 
 /**

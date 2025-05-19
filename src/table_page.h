@@ -140,7 +140,7 @@ private:
     std::unique_ptr<TopicTableModel> m_tableModel;
 
     /// Topic monitor for the topic used on this page (Leak on purpose since DDS shutdown isn't quite right).
-    std::unique_ptr <TopicMonitor> m_topicMonitor;
+    std::unique_ptr<TopicMonitor> m_topicMonitor;
 
     /// Topic replayer for the topic used on this page (Leak on purpose since DDS shutdown isn't quite right).
     std::unique_ptr<TopicReplayer> m_topicReplayer;

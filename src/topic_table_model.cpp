@@ -6,6 +6,7 @@
 #include "dds_data.h"
 
 #include <QIcon>
+
 #include <iostream>
 #include <cstdint>
 
@@ -24,7 +25,7 @@ TopicTableModel::TopicTableModel(
 
     // Create a blank sample, so the user can publish an initial instance
     std::shared_ptr<TopicInfo> topicInfo = CommonData::getTopicInfo(m_topicName);
-    if (!topicInfo || !topicInfo->typeCode)
+    if (!topicInfo || !topicInfo->typeCode())
     {
         return;
     }
@@ -34,7 +35,7 @@ TopicTableModel::TopicTableModel(
     // whether we want to use OpenDynamicData or DDS's DynamicData.
 
     // This is not really a blank sample, but a null sample.
-    std::shared_ptr<OpenDynamicData> blankSample = CreateOpenDynamicData(topicInfo->typeCode, QosDictionary::getEncodingKind(), topicInfo->extensibility);
+    std::shared_ptr<OpenDynamicData> blankSample = CreateOpenDynamicData(topicInfo->typeCode(), QosDictionary::getEncodingKind(), topicInfo->extensibility());
     setSample(blankSample);
 }
 
@@ -117,13 +118,13 @@ const std::shared_ptr<OpenDynamicData> TopicTableModel::commitSample()
 
     // Create a new sample
     std::shared_ptr<TopicInfo> topicInfo = CommonData::getTopicInfo(m_topicName);
-    if (!topicInfo || !topicInfo->typeCode)
+    if (!topicInfo || !topicInfo->typeCode())
     {
         return nullptr;
     }
 
     // Create a copy of the current sample
-    std::shared_ptr<OpenDynamicData> newSample = CreateOpenDynamicData(topicInfo->typeCode, QosDictionary::getEncodingKind(), topicInfo->extensibility);
+    std::shared_ptr<OpenDynamicData> newSample = CreateOpenDynamicData(topicInfo->typeCode(), QosDictionary::getEncodingKind(), topicInfo->extensibility());
     *newSample = *m_sample;
 
     // Populate the new sample from the user-edited changes

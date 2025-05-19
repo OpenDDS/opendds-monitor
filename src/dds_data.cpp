@@ -25,14 +25,6 @@ QMutex CommonData::m_dynamicSamplesMutex;
 //------------------------------------------------------------------------------
 void CommonData::cleanup()
 {
-    //QMap<QString, std::shared_ptr<TopicInfo>>::iterator topicIter;
-    //for (topicIter = m_topicInfo.begin();
-    //     topicIter != m_topicInfo.end();
-    //     ++topicIter)
-    //{
-    //    delete topicIter.value();
-    //    topicIter.value() = nullptr;
-    //}
     {
         QMutexLocker locker(&m_sampleMutex);
         m_samples.clear();
@@ -44,17 +36,7 @@ void CommonData::cleanup()
         m_topicInfo.clear();
     }
 
-    // Deleting m_ddsManager causes the shared memory transport to crash when
-    // closing the DDS service, so attempt leave the domain ourself.
-    //delete CommonData::m_ddsManager;
-    //DDS::DomainParticipant* domain = CommonData::m_ddsManager->getDomainParticipant();
-    //DDS::DomainParticipantFactory_var dpf = TheParticipantFactory;
-    //if (domain && !CORBA::is_nil(dpf.in()))
-    //{
-    //    domain->delete_contained_entities();
-    //    dpf->delete_participant(domain);
-    //}
-    //CommonData::m_ddsManager = nullptr;
+    m_ddsManager.reset();
 }
 
 
@@ -88,7 +70,7 @@ QVariant CommonData::readMember(const QString& topicName,
 
     // Make sure the index is valid
     QList<std::shared_ptr<OpenDynamicData>>& sampleList = m_samples[topicName];
-    if ((int)index >= sampleList.count())
+    if (static_cast<int>(index) >= sampleList.count())
     {
         value = "NULL";
         return value;
@@ -204,7 +186,7 @@ QVariant CommonData::readMember(const QString& topicName,
         value = "NULL";
         break;
 
-    } // End targetMember type switch
+    }
 
     return value;
 }
@@ -525,40 +507,30 @@ void CommonData::clearSamples(const QString& topicName)
     if (m_samples.contains(topicName))
     {
         m_samples[topicName].clear();
-        //QList<const OpenDynamicData*>& samples = m_samples[topicName];
-        //while (!samples.empty())
-        //{
-        //    delete samples.back();
-        //    samples.pop_back();
-        //}
-
-        while (!m_sampleTimes[topicName].empty())
-        {
-            m_sampleTimes[topicName].pop_back();
-        }
+        m_sampleTimes[topicName].clear();
     }
 }
 
 
 //------------------------------------------------------------------------------
 TopicInfo::TopicInfo()
-  : hasKey(true)
-  , typeCodeLength(0)
-  , typeCode(nullptr)
+  : m_hasKey(true)
+  , m_typeCodeLength(0)
+  , m_typeCode(nullptr)
 {
-    topicQos = QosDictionary::Topic::bestEffort();
-    writerQos = QosDictionary::DataWriter::bestEffort();
-    readerQos = QosDictionary::DataReader::bestEffort();
-    pubQos = QosDictionary::Publisher::defaultQos();
-    subQos = QosDictionary::Subscriber::defaultQos();
-    extensibility = OpenDDS::DCPS::Extensibility::APPENDABLE; //Set in TopicInfo::storeUserData
+    m_topicQos = QosDictionary::Topic::bestEffort();
+    m_writerQos = QosDictionary::DataWriter::bestEffort();
+    m_readerQos = QosDictionary::DataReader::bestEffort();
+    m_pubQos = QosDictionary::Publisher::defaultQos();
+    m_subQos = QosDictionary::Subscriber::defaultQos();
+    m_extensibility = OpenDDS::DCPS::Extensibility::APPENDABLE; //Set in TopicInfo::storeUserData
 }
 
 
 //------------------------------------------------------------------------------
 TopicInfo::~TopicInfo()
 {
-    typeCode = nullptr;
+    m_typeCode = nullptr;
 }
 
 //------------------------------------------------------------------------------
@@ -571,16 +543,16 @@ void TopicInfo::addPartitions(const DDS::PartitionQosPolicy& partitionQos)
     for (CORBA::ULong i = 0; i < partitionNames.length(); i++)
     {
         QString partitionString(partitionNames[i].in());
-        if (!partitions.contains(partitionString))
+        if (!m_partitions.contains(partitionString))
         {
-            partitions.push_back(partitionString);
+            m_partitions.push_back(partitionString);
             changeFound = true;
         }
     }
 
     if (changeFound)
     {
-        partitions.sort();
+        m_partitions.sort();
     }
 }
 
@@ -588,111 +560,108 @@ void TopicInfo::addPartitions(const DDS::PartitionQosPolicy& partitionQos)
 //------------------------------------------------------------------------------
 void TopicInfo::setDurabilityPolicy(const DDS::DurabilityQosPolicy& policy)
 {
-    topicQos.durability = policy;
-    writerQos.durability = policy;
-    readerQos.durability = policy;
+    m_topicQos.durability = policy;
+    m_writerQos.durability = policy;
+    m_readerQos.durability = policy;
 }
 
 
 //------------------------------------------------------------------------------
 void TopicInfo::setDurabilityServicePolicy(const DDS::DurabilityServiceQosPolicy& policy)
 {
-    topicQos.durability_service = policy;
-    writerQos.durability_service = policy;
+    m_topicQos.durability_service = policy;
+    m_writerQos.durability_service = policy;
 }
 
 
 //------------------------------------------------------------------------------
 void TopicInfo::setDeadlinePolicy(const DDS::DeadlineQosPolicy& policy)
 {
-    topicQos.deadline = policy;
-    writerQos.deadline = policy;
-    readerQos.deadline = policy;
+    m_topicQos.deadline = policy;
+    m_writerQos.deadline = policy;
+    m_readerQos.deadline = policy;
 }
 
 
 //------------------------------------------------------------------------------
 void TopicInfo::setLatencyBudgePolicy(const DDS::LatencyBudgetQosPolicy& policy)
 {
-    topicQos.latency_budget = policy;
-    writerQos.latency_budget = policy;
-    readerQos.latency_budget = policy;
+    m_topicQos.latency_budget = policy;
+    m_writerQos.latency_budget = policy;
+    m_readerQos.latency_budget = policy;
 }
 
 
 //------------------------------------------------------------------------------
 void TopicInfo::setLifespanPolicy(const DDS::LifespanQosPolicy& policy)
 {
-    topicQos.lifespan = policy;
-    writerQos.lifespan = policy;
+    m_topicQos.lifespan = policy;
+    m_writerQos.lifespan = policy;
 }
 
 
 //------------------------------------------------------------------------------
 void TopicInfo::setLivelinessPolicy(const DDS::LivelinessQosPolicy& policy)
 {
-    topicQos.liveliness = policy;
-    writerQos.liveliness = policy;
-    readerQos.liveliness = policy;
+    m_topicQos.liveliness = policy;
+    m_writerQos.liveliness = policy;
+    m_readerQos.liveliness = policy;
 }
 
 
 //------------------------------------------------------------------------------
 void TopicInfo::setReliabilityPolicy(const DDS::ReliabilityQosPolicy& policy)
 {
-    topicQos.reliability = policy;
-    writerQos.reliability = policy;
-    readerQos.reliability = policy;
+    m_topicQos.reliability = policy;
+    m_writerQos.reliability = policy;
+    m_readerQos.reliability = policy;
 }
 
 
 //------------------------------------------------------------------------------
 void TopicInfo::setOwnershipPolicy(const DDS::OwnershipQosPolicy& policy)
 {
-    topicQos.ownership = policy;
-    writerQos.ownership = policy;
-    readerQos.ownership = policy;
+    m_topicQos.ownership = policy;
+    m_writerQos.ownership = policy;
+    m_readerQos.ownership = policy;
 }
 
 
 //------------------------------------------------------------------------------
 void TopicInfo::setDestinationOrderPolicy(const DDS::DestinationOrderQosPolicy& policy)
 {
-    topicQos.destination_order = policy;
-    writerQos.destination_order = policy;
-    readerQos.destination_order = policy;
+    m_topicQos.destination_order = policy;
+    m_writerQos.destination_order = policy;
+    m_readerQos.destination_order = policy;
 }
 
 
 //------------------------------------------------------------------------------
 void TopicInfo::setPresentationPolicy(const DDS::PresentationQosPolicy& policy)
 {
-    pubQos.presentation = policy;
-    subQos.presentation = policy;
+    m_pubQos.presentation = policy;
+    m_subQos.presentation = policy;
 }
 
 //------------------------------------------------------------------------------
 void TopicInfo::fixHistory()
 {
-    if (topicQos.durability.kind == DDS::VOLATILE_DURABILITY_QOS &&
-        topicQos.reliability.kind == DDS::RELIABLE_RELIABILITY_QOS)
+    if (m_topicQos.durability.kind == DDS::VOLATILE_DURABILITY_QOS &&
+        m_topicQos.reliability.kind == DDS::RELIABLE_RELIABILITY_QOS)
     {
-        //std::cout << "DEBUG STRICT RELIABLE TOPIC" << std::endl;
-        topicQos.history.kind = DDS::KEEP_ALL_HISTORY_QOS;
+        m_topicQos.history.kind = DDS::KEEP_ALL_HISTORY_QOS;
     }
 
-    if (readerQos.durability.kind == DDS::VOLATILE_DURABILITY_QOS &&
-        readerQos.reliability.kind == DDS::RELIABLE_RELIABILITY_QOS)
+    if (m_readerQos.durability.kind == DDS::VOLATILE_DURABILITY_QOS &&
+        m_readerQos.reliability.kind == DDS::RELIABLE_RELIABILITY_QOS)
     {
-        //std::cout << "DEBUG STRICT RELIABLE TOPIC" << std::endl;
-        readerQos.history.kind = DDS::KEEP_ALL_HISTORY_QOS;
+        m_readerQos.history.kind = DDS::KEEP_ALL_HISTORY_QOS;
     }
 
-    if (writerQos.durability.kind == DDS::VOLATILE_DURABILITY_QOS &&
-        writerQos.reliability.kind == DDS::RELIABLE_RELIABILITY_QOS)
+    if (m_writerQos.durability.kind == DDS::VOLATILE_DURABILITY_QOS &&
+        m_writerQos.reliability.kind == DDS::RELIABLE_RELIABILITY_QOS)
     {
-        //std::cout << "DEBUG STRICT RELIABLE WRITER" << std::endl;
-        writerQos.history.kind = DDS::KEEP_ALL_HISTORY_QOS;
+        m_writerQos.history.kind = DDS::KEEP_ALL_HISTORY_QOS;
     }
 }
 
@@ -700,7 +669,6 @@ void TopicInfo::fixHistory()
 //------------------------------------------------------------------------------
 void TopicInfo::storeUserData(const DDS::OctetSeq& userData)
 {
-    //std::cout << "DEBUG TopicInfo::storeUserData" << std::endl;
     // If no user data is found, we're done
     if (userData.length() == 0)
     {
@@ -708,17 +676,14 @@ void TopicInfo::storeUserData(const DDS::OctetSeq& userData)
     }
 
     // If we already know about this user data, we're done
-    if (this->typeCode != nullptr)
+    if (this->m_typeCode != nullptr)
     {
         return;
     }
 
-    //std::cout << "DEBUG TopicInfo::storeUserData is new and non blank" << std::endl;
     // Begin parsing the user data byte array
     const size_t headerSize = 8;
     const size_t totalSize = userData.length();
-    const size_t typeCodeSize = totalSize - headerSize;
-    char header[headerSize];
 
     // If the user data is smaller than our header, it's definitely not ours
     if (totalSize <= headerSize)
@@ -726,8 +691,8 @@ void TopicInfo::storeUserData(const DDS::OctetSeq& userData)
         return;
     }
 
-    //std::cout << "DEBUG TopicInfo::storeUserData is not rejected due to size" << std::endl;
-
+    const size_t typeCodeSize = totalSize - headerSize;
+    char header[headerSize];
     memcpy(header, &userData[0], headerSize);
 
     // Check for the 'USR' header to make sure it's ours
@@ -744,84 +709,72 @@ void TopicInfo::storeUserData(const DDS::OctetSeq& userData)
     //           - 0: APPENDABLE
     //           - 1: FINAL
     //           - 2: MUTABLE
-    // char[7-8] - Padding
+    // char[7]   - Padding
     // char[8-N] - Serialized CDR topic typecode
 
     // Read USR data flags
-    this->hasKey = (header[5] == 1);
+    this->m_hasKey = (header[5] == 1);
     switch(header[6])
     {
         case 0:
-            //std::cout << "APPENDABLE" << std::endl;
-            this->extensibility = OpenDDS::DCPS::Extensibility::APPENDABLE;
+            this->m_extensibility = OpenDDS::DCPS::Extensibility::APPENDABLE;
             break;
         case 1:
-            //std::cout << "FINAL" << std::endl;
-            this->extensibility = OpenDDS::DCPS::Extensibility::FINAL;
+            this->m_extensibility = OpenDDS::DCPS::Extensibility::FINAL;
             break;
         case 2:
-            //std::cout << "MUTABLE" << std::endl;
-            this->extensibility = OpenDDS::DCPS::Extensibility::MUTABLE; //Not supported at this time
+            this->m_extensibility = OpenDDS::DCPS::Extensibility::MUTABLE; //Not supported at this time
             break;
         default:
-            printf("Failed to demarshal extensibility %d from topic type %s\n", header[6], this->name.c_str());
+            std::cout << "Unknown extensibility value " << static_cast<int>(header[6]) << " from topic type \"" << this->m_typeName << "\"" << std::endl;
             return;
     }
+
     // Create a typecode object from the CDR after the header
-    const char* cdrBuffer = (char*)(&userData[headerSize]);
+    const char* cdrBuffer = reinterpret_cast<const char*>(&userData[headerSize]);
     TAO_InputCDR topicTypeIn(cdrBuffer, typeCodeSize);
 
-    this->typeCodeObj = std::make_unique<CORBA::Any>();
-    bool pass = (topicTypeIn >> *this->typeCodeObj);
+    this->m_typeCodeObj = std::make_unique<CORBA::Any>();
+    const bool pass = (topicTypeIn >> *this->m_typeCodeObj);
     if (!pass)
     {
-        printf("Failed to demarshal topic type %s from CDR\n", this->name.c_str());
-
+        std::cout << "Failed to demarshal topic type \"" << this->m_typeName << "\" from CDR" << std::endl;
         return;
     }
 
-    // printf("Successfully demarshaled topic type from CDR\n");
-    // printf("\n=== Begin CDR Dump ===\n");
-    // for (size_t i = 0; i < (typeCodeSize+16); i+= 16)
-    // {
-    //     printf("%04X ", i);
-    //     for(size_t j = 0; j < 16; j++)
-    //     {
-    //         if(j == 8)
-    //             printf(" ");
-    //         if((i+j) < typeCodeSize)
-    //             printf("%02X", (uint8_t)cdrBuffer[i+j]);
-    //         else
-    //             printf("  ");
-    //     }
-    //     printf("   ");
-    //     for(size_t j = 0; j < 16; j++)
-    //     {
-    //         if(j == 8)
-    //             printf(" ");
-    //         if(((i+j) < typeCodeSize) && isprint(cdrBuffer[i+j]))
-    //             printf("%c", cdrBuffer[i+j]);
-    //         else
-    //             printf(" ");
-    //     }
-    //     printf("\n");
-    // }
-    // printf("\n=== End CDR Dump ===\n");
-    this->typeCodeLength = typeCodeSize;
-    this->typeCode = this->typeCodeObj->type();
+    this->m_typeCodeLength = typeCodeSize;
+    this->m_typeCode = this->m_typeCodeObj->type();
+}
 
-} // End TopicInfo::storeUserData
-
-
-//------------------------------------------------------------------------------
-CommonData::CommonData()
-{}
-
-
-//------------------------------------------------------------------------------
-CommonData::~CommonData()
-{}
-
+void TopicInfo::dumpTypeCode(const char* cdrBuffer, size_t typeCodeSize) const
+{
+    printf("\n=== Begin CDR Dump ===\n");
+    for (size_t i = 0; i < typeCodeSize + 16; i += 16)
+    {
+        printf("%04zX ", i);
+        for (size_t j = 0; j < 16; ++j)
+        {
+            if (j == 8)
+                printf(" ");
+            if (i + j < typeCodeSize)
+                printf("%02X", (uint8_t)cdrBuffer[i + j]);
+            else
+                printf("  ");
+        }
+        printf("   ");
+        for (size_t j = 0; j < 16; ++j)
+        {
+            if (j == 8)
+                printf(" ");
+            if (i + j < typeCodeSize && isprint(cdrBuffer[i + j]))
+                printf("%c", cdrBuffer[i + j]);
+            else
+                printf(" ");
+        }
+        printf("\n");
+    }
+    printf("\n=== End CDR Dump ===\n");
+}
 
 /**
  * @}

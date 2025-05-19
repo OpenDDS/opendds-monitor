@@ -36,7 +36,7 @@ TopicMonitor::TopicMonitor(const QString& topicName) :
     }
 
     //store extensibility
-    m_extensibility = topicInfo->extensibility;
+    m_extensibility = topicInfo->extensibility();
     OpenDDS::DCPS::Service_Participant* service = TheServiceParticipant;
     DDS::DomainParticipant_var participant;
     if (CommonData::m_ddsManager) {
@@ -48,29 +48,28 @@ TopicMonitor::TopicMonitor(const QString& topicName) :
         return;
     }
 
-    if (topicInfo->typeCode) {
+    if (topicInfo->typeCode()) {
         // Use the existing mechanism based on TypeCode.
-        m_typeCode = topicInfo->typeCode;
+        m_typeCode = topicInfo->typeCode();
         m_topic = service->create_typeless_topic(participant,
-                                                 topicInfo->name.c_str(),
-                                                 topicInfo->typeName.c_str(),
-                                                 topicInfo->hasKey,
-                                                 topicInfo->topicQos,
+                                                 topicInfo->topicName().c_str(),
+                                                 topicInfo->typeName().c_str(),
+                                                 topicInfo->hasKey(),
+                                                 topicInfo->topicQos(),
                                                  new GenericTopicListener,
                                                  DDS::INCONSISTENT_TOPIC_STATUS);
         if (!m_topic) {
-            std::cerr << "Failed to create typeless topic " << topicInfo->name << std::endl;
+            std::cerr << "Failed to create typeless topic \"" << topicInfo->topicName() << "\"" << std::endl;
             return;
         }
 
-        //std::cout << "DEBUG Created typeless topic, now creating recorder" << endl;
         m_recorder = service->create_recorder(participant,
                                               m_topic,
-                                              topicInfo->subQos,
-                                              topicInfo->readerQos,
+                                              topicInfo->subQos(),
+                                              topicInfo->readerQos(),
                                               m_recorder_listener);
         if (!m_recorder) {
-            std::cerr << "Failed to created recorder for topic " << topicInfo->name << std::endl;
+            std::cerr << "Failed to created recorder for topic \"" << topicInfo->topicName() << "\"" << std::endl;
             return;
         }
     } else {
@@ -78,34 +77,34 @@ TopicMonitor::TopicMonitor(const QString& topicName) :
         // When this is called, the information about this topic including its
         // DynamicType should be already obtained. The topic's type should also be
         // registered with the local domain participant.
-        m_topic = participant->create_topic(topicInfo->name.c_str(),
-                                            topicInfo->typeName.c_str(),
-                                            topicInfo->topicQos,
+        m_topic = participant->create_topic(topicInfo->topicName().c_str(),
+                                            topicInfo->typeName().c_str(),
+                                            topicInfo->topicQos(),
                                             0,
                                             0);
         if (!m_topic) {
-            std::cerr << "Failed to create topic " << topicInfo->name << std::endl;
+            std::cerr << "Failed to create topic \"" << topicInfo->topicName() << "\"" << std::endl;
             return;
         }
 
-        DDS::Subscriber_var subscriber = participant->create_subscriber(topicInfo->subQos,
+        DDS::Subscriber_var subscriber = participant->create_subscriber(topicInfo->subQos(),
                                                                         0,
                                                                         0);
         if (!subscriber) {
-            std::cerr << "Failed to create subscriber for topic " << topicInfo->name << std::endl;
+            std::cerr << "Failed to create subscriber for topic \"" << topicInfo->topicName() << "\"" << std::endl;
             return;
         }
 
         m_dr = subscriber->create_datareader(m_topic,
-                                             topicInfo->readerQos,
+                                             topicInfo->readerQos(),
                                              m_dr_listener,
                                              OpenDDS::DCPS::DEFAULT_STATUS_MASK);
         if (!m_dr) {
-            std::cerr << "Failed to create data reader for topic " << topicInfo->name << std::endl;
+            std::cerr << "Failed to create data reader for topic \"" << topicInfo->topicName() << "\"" << std::endl;
             return;
         }
     }
-} // End TopicMonitor::TopicMonitor
+}
 
 
 //------------------------------------------------------------------------------
