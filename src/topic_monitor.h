@@ -26,7 +26,6 @@ public:
     /**
      * @brief Constructor for the DDS topic monitor.
      * @param[in] topicName The name of the topic to monitor.
-     * @param[in] extensibility the topic extensibility.
      */
     TopicMonitor(const QString& topicName);
 

@@ -15,11 +15,10 @@
 
 
 //------------------------------------------------------------------------------
-TablePage::TablePage(const QString& topicName,
-                     QWidget *parent) :
-                     QWidget(parent),
-                     m_topicName(topicName),
-                     m_refreshTimer(this)
+TablePage::TablePage(const QString& topicName, QWidget *parent) :
+    QWidget(parent),
+    m_topicName(topicName),
+    m_refreshTimer(this)
 {
     setupUi(this);
 
