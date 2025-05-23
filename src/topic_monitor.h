@@ -190,7 +190,7 @@ private:
       OpenDDS::DCPS::Extensibility ext_;
     };
 #endif
-}; // End TopicMonitor
+};
 
 #endif
 

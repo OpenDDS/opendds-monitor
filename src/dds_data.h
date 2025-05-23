@@ -348,21 +348,21 @@ public:
                             const std::shared_ptr<OpenDynamicData> sample);
 
     /// Store a new sample represented by a DynamicData object.
-    static void storeDynamicSample(const QString& topic_name,
-                                   const QString& sample_name,
+    static void storeDynamicSample(const QString& topicName,
+                                   const QString& sampleName,
                                    DDS::DynamicData_var sample);
 
     /**
      * @brief Get a copy of a sample for a specified topic.
      * @remarks The caller is responsible for deleting the new sample.
      * @param[in] topicName Get a sample of this topic.
-     * @param[in] index The Sample index position. The newest is on the front.
+     * @param[in] index The sample index position. The newest is on the front.
      * @return A copy of the data sample or NULL if the index wasn't found.
      */
     static std::shared_ptr<OpenDynamicData> copySample(const QString& topicName,
-                                                       const unsigned int& index);
+                                                       int index);
 
-    static DDS::DynamicData_var copyDynamicSample(const QString& topic_name,
+    static DDS::DynamicData_var copyDynamicSample(const QString& topicName,
                                                   unsigned int index);
     /**
      * @brief Get a list of sample names (timestamps) for a given topic.
@@ -392,20 +392,23 @@ private:
      * @details The key is the topic name and the value is the data sample. The
      *          first sample is always the latest and the last sample is last.
      */
-    static QMap<QString, QList<std::shared_ptr<OpenDynamicData>>> m_samples;
+    using SampleMap = QMap<QString, QList<std::shared_ptr<OpenDynamicData>>>;
+    static SampleMap m_samples;
 
     /**
      * @brief Store list of DynamicData objects for each topic.
      * The timestamps for the samples are also stored in m_sampleTimes.
      */
-    static QMap<QString, QList<DDS::DynamicData_var>> m_dynamicSamples;
+    using DynamicSampleMap = QMap<QString, QList<DDS::DynamicData_var>>;
+    static DynamicSampleMap m_dynamicSamples;
 
     /**
      * @brief Stores the data sample times.
      * @details The key is the topic name and the value is the data time. The
      *          first sample is always the latest and the last sample is last.
      */
-    static QMap<QString, QStringList> m_sampleTimes;
+    using SampleTimeMap = QMap<QString, QStringList>;
+    static SampleTimeMap m_sampleTimes;
 
     /**
      * @brief Stores information about the topics on the bus.

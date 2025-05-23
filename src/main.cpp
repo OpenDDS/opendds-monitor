@@ -18,8 +18,8 @@
 int main(int argc, char** argv)
 {
     QApplication app(argc, argv);
-    
-	auto aceLogging = [](LogMessageType mt, const std::string& message) {
+
+	  auto aceLogging = [](LogMessageType mt, const std::string& message) {
 #ifdef _DEBUG
         if (mt == LogMessageType::DDS_ERROR)
         {
@@ -36,7 +36,7 @@ int main(int argc, char** argv)
 #endif
     };
 
-	SetACELogger(aceLogging);
+	  SetACELogger(aceLogging);
 
     auto mainWindow = std::make_unique <DDSMonitorMainWindow>();
 

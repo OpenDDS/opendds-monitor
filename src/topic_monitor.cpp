@@ -39,16 +39,19 @@ TopicMonitor::TopicMonitor(const QString& topicName) :
     m_extensibility = topicInfo->extensibility();
     OpenDDS::DCPS::Service_Participant* service = TheServiceParticipant;
     DDS::DomainParticipant_var participant;
-    if (CommonData::m_ddsManager) {
+    if (CommonData::m_ddsManager)
+    {
         participant = CommonData::m_ddsManager->getDomainParticipant();
     }
 
-    if (!participant) {
+    if (!participant)
+    {
         std::cerr << "No domain participant" << std::endl;
         return;
     }
 
-    if (topicInfo->typeCode()) {
+    if (topicInfo->typeCode())
+    {
         // Use the existing mechanism based on TypeCode.
         m_typeCode = topicInfo->typeCode();
         m_topic = service->create_typeless_topic(participant,
@@ -58,7 +61,8 @@ TopicMonitor::TopicMonitor(const QString& topicName) :
                                                  topicInfo->topicQos(),
                                                  new GenericTopicListener,
                                                  DDS::INCONSISTENT_TOPIC_STATUS);
-        if (!m_topic) {
+        if (!m_topic)
+        {
             std::cerr << "Failed to create typeless topic \"" << topicInfo->topicName() << "\"" << std::endl;
             return;
         }
@@ -68,11 +72,14 @@ TopicMonitor::TopicMonitor(const QString& topicName) :
                                               topicInfo->subQos(),
                                               topicInfo->readerQos(),
                                               m_recorder_listener);
-        if (!m_recorder) {
+        if (!m_recorder)
+        {
             std::cerr << "Failed to created recorder for topic \"" << topicInfo->topicName() << "\"" << std::endl;
             return;
         }
-    } else {
+    }
+    else
+    {
         // Use DynamicDataReader instead.
         // When this is called, the information about this topic including its
         // DynamicType should be already obtained. The topic's type should also be
@@ -82,7 +89,8 @@ TopicMonitor::TopicMonitor(const QString& topicName) :
                                             topicInfo->topicQos(),
                                             0,
                                             0);
-        if (!m_topic) {
+        if (!m_topic)
+        {
             std::cerr << "Failed to create topic \"" << topicInfo->topicName() << "\"" << std::endl;
             return;
         }
@@ -90,7 +98,8 @@ TopicMonitor::TopicMonitor(const QString& topicName) :
         DDS::Subscriber_var subscriber = participant->create_subscriber(topicInfo->subQos(),
                                                                         0,
                                                                         0);
-        if (!subscriber) {
+        if (!subscriber)
+        {
             std::cerr << "Failed to create subscriber for topic \"" << topicInfo->topicName() << "\"" << std::endl;
             return;
         }
@@ -99,7 +108,8 @@ TopicMonitor::TopicMonitor(const QString& topicName) :
                                              topicInfo->readerQos(),
                                              m_dr_listener,
                                              OpenDDS::DCPS::DEFAULT_STATUS_MASK);
-        if (!m_dr) {
+        if (!m_dr)
+        {
             std::cerr << "Failed to create data reader for topic \"" << topicInfo->topicName() << "\"" << std::endl;
             return;
         }

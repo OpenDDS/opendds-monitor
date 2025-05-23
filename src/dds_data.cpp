@@ -381,6 +381,8 @@ QVariant CommonData::readValue(const QString& topicName,
                                const QString& memberName,
                                unsigned int index)
 {
+    // TODO: Track whether TypeCode or DynamicData is used in TopicInfo and use
+    // that to determine whether get sample data from.
     const QVariant value = readDynamicMember(topicName, memberName, index);
     if (!value.isNull()) {
         return value;
@@ -393,16 +395,6 @@ QVariant CommonData::readValue(const QString& topicName,
 void CommonData::flushSamples(const QString& topicName)
 {
     QMutexLocker locker(&m_sampleMutex);
-
-    //Confirm this still does the same thing -MM
-    //auto sampleList = m_samples[topicName];
-
-    //for (int i = 0; i < sampleList.size(); i++)
-    //{
-    //   delete sampleList[i];
-    //   sampleList[i] = nullptr;
-    //}
-
     m_samples[topicName].clear();
     m_sampleTimes[topicName].clear();
 }
@@ -425,92 +417,84 @@ void CommonData::storeSample(const QString& topicName,
     // Cleanup
     while (sampleList.size() > MAX_SAMPLES)
     {
-       //delete sampleList.back();
-       //sampleList.back() = nullptr;
        sampleList.pop_back();
        timesList.pop_back();
     }
 }
 
 //------------------------------------------------------------------------------
-void CommonData::storeDynamicSample(const QString& topic_name,
-                                    const QString& sample_name,
+void CommonData::storeDynamicSample(const QString& topicName,
+                                    const QString& sampleName,
                                     const DDS::DynamicData_var sample)
 {
     QMutexLocker locker(&m_dynamicSamplesMutex);
 
-    QList<DDS::DynamicData_var>& sample_list = m_dynamicSamples[topic_name];
-    QStringList& times_list = m_sampleTimes[topic_name];
+    QList<DDS::DynamicData_var>& sampleList = m_dynamicSamples[topicName];
+    QStringList& timesList = m_sampleTimes[topicName];
 
     // Add new sample
-    sample_list.push_front(sample);
-    times_list.push_front(sample_name);
+    sampleList.push_front(sample);
+    timesList.push_front(sampleName);
 
     // Cleanup
-    while (sample_list.size() > MAX_SAMPLES) {
-        sample_list.pop_back();
-        times_list.pop_back();
+    while (sampleList.size() > MAX_SAMPLES)
+    {
+        sampleList.pop_back();
+        timesList.pop_back();
     }
 }
 
 //------------------------------------------------------------------------------
 std::shared_ptr<OpenDynamicData> CommonData::copySample(const QString& topicName,
-                                                        const unsigned int& index)
+                                                        int index)
 {
-    std::shared_ptr<OpenDynamicData> newSample;
     QMutexLocker locker(&m_sampleMutex);
-
-    if (m_samples.contains(topicName) &&
-        m_samples.value(topicName).size() > (int)index)
+    if (m_samples.contains(topicName) && m_samples.value(topicName).size() > index)
     {
         // Don't copy the sample, just point to the shared pointer
-        newSample = m_samples.value(topicName).at(index);
+        return m_samples.value(topicName).at(index);
     }
-
-    return newSample;
+    return std::shared_ptr<OpenDynamicData>();
 }
 
 //------------------------------------------------------------------------------
-DDS::DynamicData_var CommonData::copyDynamicSample(const QString& topic_name,
-                                                   const unsigned int index)
+DDS::DynamicData_var CommonData::copyDynamicSample(const QString& topicName,
+                                                   int index)
 {
-    DDS::DynamicData_var copied;
     QMutexLocker locker(&m_dynamicSamplesMutex);
 
-    if (m_dynamicSamples.contains(topic_name) &&
-        m_dynamicSamples.value(topic_name).size() > (int)index) {
-      copied = m_dynamicSamples.value(topic_name).at(index);
+    if (m_dynamicSamples.contains(topicName) &&
+        m_dynamicSamples.value(topicName).size() > index) {
+        return m_dynamicSamples.value(topicName).at(index);
     }
-
-    return copied;
+    return DDS::DynamicData_var();
 }
 
 //------------------------------------------------------------------------------
 QStringList CommonData::getSampleList(const QString& topicName)
 {
-    QStringList sampleNames;
     QMutexLocker locker(&m_sampleMutex);
-
     if (m_sampleTimes.contains(topicName))
     {
-        sampleNames = m_sampleTimes.value(topicName);
+        return m_sampleTimes.value(topicName);
     }
-
-    return sampleNames;
+    return QStringList();
 }
-
 
 //------------------------------------------------------------------------------
 void CommonData::clearSamples(const QString& topicName)
 {
     QMutexLocker locker(&m_sampleMutex);
-    if (m_samples.contains(topicName))
+    SampleMap::const_iterator it = m_samples.find(topicName);
+    if (it != m_samples.end())
     {
-        m_samples[topicName].clear();
-        m_sampleTimes[topicName].clear();
+        m_samples.erase(it);
+
+        SampleTimeMap::const_iterator it2 = m_sampleTimes.find(topicName);
+        Q_ASSERT(it2 != m_sampleTimes.end());
+        m_sampleTimes.erase(it2);
     }
 }
-
 
 //------------------------------------------------------------------------------
 TopicInfo::TopicInfo()
