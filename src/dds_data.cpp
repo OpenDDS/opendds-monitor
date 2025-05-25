@@ -405,12 +405,12 @@ void CommonData::flushSamples(const QString& topicName)
 void CommonData::flushStaticSamples(const QString& topicName)
 {
     QMutexLocker locker(&m_sampleMutex);
-    SampleMap::const_iterator it = m_samples.find(topicName);
+    SampleMap::iterator it = m_samples.find(topicName);
     if (it != m_samples.end())
     {
         m_samples.erase(it);
 
-        SampleTimeMap::const_iterator it2 = m_sampleTimes.find(topicName);
+        SampleTimeMap::iterator it2 = m_sampleTimes.find(topicName);
         Q_ASSERT(it2 != m_sampleTimes.end());
         m_sampleTimes.erase(it2);
     }
@@ -419,12 +419,12 @@ void CommonData::flushStaticSamples(const QString& topicName)
 void CommonData::flushDynamicSamples(const QString& topicName)
 {
     QMutexLocker locker(&m_dynamicSamplesMutex);
-    DynamicSampleMap::const_iterator it = m_dynamicSamples.find(topicName);
+    DynamicSampleMap::iterator it = m_dynamicSamples.find(topicName);
     if (it != m_dynamicSamples.end())
     {
         m_dynamicSamples.erase(it);
 
-        SampleTimeMap::const_iterator it2 = m_sampleTimes.find(topicName);
+        SampleTimeMap::iterator it2 = m_sampleTimes.find(topicName);
         Q_ASSERT(it2 != m_sampleTimes.end());
         m_sampleTimes.erase(it2);
     }
