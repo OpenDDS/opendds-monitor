@@ -50,15 +50,13 @@ void CommonData::storeTopicInfo(const QString& topicName, std::shared_ptr<TopicI
 //------------------------------------------------------------------------------
 std::shared_ptr<TopicInfo> CommonData::getTopicInfo(const QString& topicName)
 {
-    std::shared_ptr<TopicInfo> topicInfo;
     QMutexLocker locker(&m_topicMutex);
 
     if (m_topicInfo.contains(topicName))
     {
-        topicInfo = m_topicInfo.value(topicName);
+        return m_topicInfo.value(topicName);
     }
-
-    return topicInfo;
+    return std::shared_ptr<TopicInfo>();
 }
 
 QVariant CommonData::readMember(const QString& topicName,
@@ -381,22 +379,55 @@ QVariant CommonData::readValue(const QString& topicName,
                                const QString& memberName,
                                unsigned int index)
 {
-    // TODO: Track whether TypeCode or DynamicData is used in TopicInfo and use
-    // that to determine whether get sample data from.
-    const QVariant value = readDynamicMember(topicName, memberName, index);
-    if (!value.isNull()) {
-        return value;
+    std::shared_ptr<TopicInfo> topicInfo = getTopicInfo(topicName);
+    if (topicInfo->typeMode() == TypeDiscoveryMode::TypeCode)
+    {
+        return readMember(topicName, memberName, index);
     }
-    return readMember(topicName, memberName, index);
+    return readDynamicMember(topicName, memberName, index);
 }
 
 
 //------------------------------------------------------------------------------
 void CommonData::flushSamples(const QString& topicName)
 {
+    std::shared_ptr<TopicInfo> topicInfo = getTopicInfo(topicName);
+    if (topicInfo->typeMode() == TypeDiscoveryMode::TypeCode)
+    {
+        flushStaticSamples(topicName);
+    }
+    else
+    {
+        flushDynamicSamples(topicName);
+    }
+}
+
+void CommonData::flushStaticSamples(const QString& topicName)
+{
     QMutexLocker locker(&m_sampleMutex);
-    m_samples[topicName].clear();
-    m_sampleTimes[topicName].clear();
+    SampleMap::const_iterator it = m_samples.find(topicName);
+    if (it != m_samples.end())
+    {
+        m_samples.erase(it);
+
+        SampleTimeMap::const_iterator it2 = m_sampleTimes.find(topicName);
+        Q_ASSERT(it2 != m_sampleTimes.end());
+        m_sampleTimes.erase(it2);
+    }
+}
+
+void CommonData::flushDynamicSamples(const QString& topicName)
+{
+    QMutexLocker locker(&m_dynamicSamplesMutex);
+    DynamicSampleMap::const_iterator it = m_dynamicSamples.find(topicName);
+    if (it != m_dynamicSamples.end())
+    {
+        m_dynamicSamples.erase(it);
+
+        SampleTimeMap::const_iterator it2 = m_sampleTimes.find(topicName);
+        Q_ASSERT(it2 != m_sampleTimes.end());
+        m_sampleTimes.erase(it2);
+    }
 }
 
 
@@ -482,23 +513,10 @@ QStringList CommonData::getSampleList(const QString& topicName)
 }
 
 //------------------------------------------------------------------------------
-void CommonData::clearSamples(const QString& topicName)
-{
-    QMutexLocker locker(&m_sampleMutex);
-    SampleMap::const_iterator it = m_samples.find(topicName);
-    if (it != m_samples.end())
-    {
-        m_samples.erase(it);
-
-        SampleTimeMap::const_iterator it2 = m_sampleTimes.find(topicName);
-        Q_ASSERT(it2 != m_sampleTimes.end());
-        m_sampleTimes.erase(it2);
-    }
-}
-
-//------------------------------------------------------------------------------
 TopicInfo::TopicInfo()
-  : m_hasKey(true)
+  : m_extensibility(OpenDDS::DCPS::Extensibility::APPENDABLE)
+  , m_hasKey(true)
+  , m_typeMode(TypeDiscoveryMode::TypeCode)
   , m_typeCodeLength(0)
   , m_typeCode(nullptr)
 {
@@ -507,7 +525,6 @@ TopicInfo::TopicInfo()
     m_readerQos = QosDictionary::DataReader::bestEffort();
     m_pubQos = QosDictionary::Publisher::defaultQos();
     m_subQos = QosDictionary::Subscriber::defaultQos();
-    m_extensibility = OpenDDS::DCPS::Extensibility::APPENDABLE; //Set in TopicInfo::storeUserData
 }
 
 

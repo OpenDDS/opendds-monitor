@@ -1,10 +1,10 @@
-#include <dds/DCPS/BuiltInTopicUtils.h>
-#include <iostream>
-
 #include "dds_data.h"
 #include "dds_manager.h"
 #include "subscription_monitor.h"
 
+#include <dds/DCPS/BuiltInTopicUtils.h>
+
+#include <iostream>
 
 //------------------------------------------------------------------------------
 SubscriptionMonitor::SubscriptionMonitor() : m_dataReader(nullptr)
@@ -13,10 +13,7 @@ SubscriptionMonitor::SubscriptionMonitor() : m_dataReader(nullptr)
     DDS::Subscriber_var subscriber = domain->get_builtin_subscriber() ;
     if (!subscriber)
     {
-        std::cerr << "SubscriptionMonitor: "
-                  << "Unable to find get_builtin_subscriber"
-                  << std::endl;
-        return;
+        throw std::runtime_error("SubscriptionMonitor: get_builtin_subscriber failed!");
     }
 
     // Find and store the built-in data reader
@@ -25,10 +22,7 @@ SubscriptionMonitor::SubscriptionMonitor() : m_dataReader(nullptr)
 
     if (!m_dataReader)
     {
-        std::cerr << "SubscriptionMonitor: "
-                  << "Unable to find built in subscription topic reader"
-                  << std::endl;
-        return;
+        throw std::runtime_error("SubscriptionMonitor: Unable to find built-in subscription topic reader");
     }
 
     // Attach a listener which reports reads subscription information

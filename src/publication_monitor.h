@@ -3,10 +3,10 @@
 
 #include "first_define.h"
 
+#include "dds_manager.h"
+
 #include <QObject>
 #include <QString>
-
-#include "dds_manager.h"
 
 
 /**

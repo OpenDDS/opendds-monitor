@@ -67,6 +67,15 @@ const QString DESTINATION_SCOPE_QOS_POLICY_STRING[] =
     "BY_TOPIC"
 };
 
+/// The monitor supports two modes for discovering remote types. It uses either
+/// CORBA TypeCode encoded in the user data QoS or the XTypes dynamic type mechanism.
+/// The mode is set per topic and writers to the same topic should assume the same
+/// method of exchanging type information.
+enum class TypeDiscoveryMode
+{
+    TypeCode,
+    DynamicType
+};
 
 /**
  * @brief Stores information on discovered DDS topics.
@@ -212,6 +221,16 @@ public:
         return m_extensibility;
     }
 
+    TypeDiscoveryMode typeMode() const
+    {
+        return m_typeMode;
+    }
+
+    void typeMode(TypeDiscoveryMode mode)
+    {
+        m_typeMode = mode;
+    }
+
     const QStringList& partitions() const
     {
         return m_partitions;
@@ -266,14 +285,17 @@ private:
     /// The data readerQoS settings.
     DDS::DataReaderQos m_readerQos;
 
-    /// The topic extensibility
-    OpenDDS::DCPS::Extensibility m_extensibility;
-
     /// Stores a list of partitions.
     QStringList m_partitions;
 
+    /// The topic extensibility
+    OpenDDS::DCPS::Extensibility m_extensibility;
+
     /// Flag if this is a keyed topic. Set from user_data in the Topic Qos.
     bool m_hasKey;
+
+    /// Type exchange mode.
+    TypeDiscoveryMode m_typeMode;
 
     /// Type code length
     size_t m_typeCodeLength;
@@ -363,19 +385,13 @@ public:
                                                        int index);
 
     static DDS::DynamicData_var copyDynamicSample(const QString& topicName,
-                                                  unsigned int index);
+                                                  int index);
     /**
      * @brief Get a list of sample names (timestamps) for a given topic.
      * @param[in] topicName The name of the topic.
      * @return A stringlist of sample names.
      */
     static QStringList getSampleList(const QString& topicName);
-
-    /**
-     * @brief Clear the sample history for a given topic.
-     * @param[in] topicName The name of the topic.
-     */
-    static void clearSamples(const QString& topicName);
 
 private:
 
@@ -386,6 +402,10 @@ private:
     static QVariant readDynamicMember(const QString& topicName,
                                       const QString& memberName,
                                       unsigned int index = 0);
+
+    /// Called by flushSamples() depending on whether a recorder or a dynamic data reader is used.
+    static void flushStaticSamples(const QString& topicName);
+    static void flushDynamicSamples(const QString& topicName);
 
     /**
      * @brief Stores the data samples from DDS.

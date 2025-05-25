@@ -74,7 +74,10 @@ DDSMonitorMainWindow::DDSMonitorMainWindow() :
             m_subscriptionMonitor = std::make_unique<SubscriptionMonitor>();
         }
         catch (std::runtime_error &e) {
-            QMessageBox::information(nullptr, "Error Starting Open DDS", e.what());
+            QMessageBox msgBox;
+            msgBox.setIcon(QMessageBox::Critical);
+            msgBox.setText(QString("Error starting OpenDDS: ") + e.what());
+            msgBox.exec();
             exit(1);
         }
 
@@ -227,11 +230,20 @@ void DDSMonitorMainWindow::on_topicTree_itemClicked(QTreeWidgetItem* item, int)
 
     // Create a new topic page
     QIcon tableIcon(":/images/stock_data-table.png");
-    TablePage* page = new TablePage(topicName, mainTabWidget);
-    mainTabWidget->addTab(page, tableIcon, topicName);
 
-    // Jump to the new tab
-    mainTabWidget->setCurrentWidget(page);
+    try {
+      TablePage* page = new TablePage(topicName, mainTabWidget);
+      mainTabWidget->addTab(page, tableIcon, topicName);
+
+      // Jump to the new tab
+      mainTabWidget->setCurrentWidget(page);
+    }
+    catch (std::runtime_error &e) {
+        QMessageBox msgBox;
+        msgBox.setIcon(QMessageBox::Warning);
+        msgBox.setText(QString("Error creating table page for topic \"") + topicName + "\":\n" + e.what());
+        msgBox.exec();
+    }
 }
 
 

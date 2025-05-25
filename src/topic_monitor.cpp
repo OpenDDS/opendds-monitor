@@ -11,7 +11,9 @@
 #include <dds/DCPS/XTypes/DynamicTypeSupport.h>
 
 #include <QDateTime>
+
 #include <iostream>
+#include <stdexcept>
 
 
 //------------------------------------------------------------------------------
@@ -29,13 +31,10 @@ TopicMonitor::TopicMonitor(const QString& topicName) :
     std::shared_ptr<TopicInfo> topicInfo = CommonData::getTopicInfo(topicName);
     if (topicInfo == nullptr)
     {
-        std::cerr << "Unable to find topic information for "
-                  << topicName.toStdString()
-                  << std::endl;
-        return;
+        throw std::runtime_error(std::string("Unable to find topic information for topic \"") + topicName.toStdString() + "\"");
     }
 
-    //store extensibility
+    // Store extensibility
     m_extensibility = topicInfo->extensibility();
     OpenDDS::DCPS::Service_Participant* service = TheServiceParticipant;
     DDS::DomainParticipant_var participant;
@@ -46,8 +45,7 @@ TopicMonitor::TopicMonitor(const QString& topicName) :
 
     if (!participant)
     {
-        std::cerr << "No domain participant" << std::endl;
-        return;
+        throw std::runtime_error("No domain participant");
     }
 
     if (topicInfo->typeCode())
@@ -63,8 +61,7 @@ TopicMonitor::TopicMonitor(const QString& topicName) :
                                                  DDS::INCONSISTENT_TOPIC_STATUS);
         if (!m_topic)
         {
-            std::cerr << "Failed to create typeless topic \"" << topicInfo->topicName() << "\"" << std::endl;
-            return;
+            throw std::runtime_error(std::string("Failed to create typeless topic \"") + topicInfo->topicName() + "\"");
         }
 
         m_recorder = service->create_recorder(participant,
@@ -74,8 +71,7 @@ TopicMonitor::TopicMonitor(const QString& topicName) :
                                               m_recorder_listener);
         if (!m_recorder)
         {
-            std::cerr << "Failed to created recorder for topic \"" << topicInfo->topicName() << "\"" << std::endl;
-            return;
+            throw std::runtime_error(std::string("Failed to create recorder for topic \"") + topicInfo->topicName() + "\"");
         }
     }
     else
@@ -91,8 +87,7 @@ TopicMonitor::TopicMonitor(const QString& topicName) :
                                             0);
         if (!m_topic)
         {
-            std::cerr << "Failed to create topic \"" << topicInfo->topicName() << "\"" << std::endl;
-            return;
+            throw std::runtime_error(std::string("Failed to create topic \"") + topicInfo->topicName() + "\"");
         }
 
         DDS::Subscriber_var subscriber = participant->create_subscriber(topicInfo->subQos(),
@@ -100,8 +95,7 @@ TopicMonitor::TopicMonitor(const QString& topicName) :
                                                                         0);
         if (!subscriber)
         {
-            std::cerr << "Failed to create subscriber for topic \"" << topicInfo->topicName() << "\"" << std::endl;
-            return;
+            throw std::runtime_error(std::string("Failed to create subscriber for topic \"") + topicInfo->topicName() + "\"");
         }
 
         m_dr = subscriber->create_datareader(m_topic,
@@ -110,9 +104,9 @@ TopicMonitor::TopicMonitor(const QString& topicName) :
                                              OpenDDS::DCPS::DEFAULT_STATUS_MASK);
         if (!m_dr)
         {
-            std::cerr << "Failed to create data reader for topic \"" << topicInfo->topicName() << "\"" << std::endl;
-            return;
+            throw std::runtime_error(std::string("Failed to create data reader for topic \"") + topicInfo->topicName() + "\"");
         }
+        topicInfo->typeMode(TypeDiscoveryMode::DynamicType);
     }
 }
 
@@ -158,7 +152,7 @@ void TopicMonitor::close()
         //}
 
         OpenDDS::DCPS::Service_Participant* service = TheServiceParticipant;
-        service->delete_recorder(m_recorder); // <-- Doesn't function correctly
+        service->delete_recorder(m_recorder);
         m_recorder = nullptr;
     }
 
@@ -177,31 +171,29 @@ void TopicMonitor::close()
 void TopicMonitor::on_sample_data_received(OpenDDS::DCPS::Recorder*,
                                            const OpenDDS::DCPS::RawDataSample& rawSample)
 {
-    //std::cout << "DEBUG TopicMonitor::on_sample_data_received()" << std::endl;
-
     if (m_paused)
     {
         return;
     }
 
     OpenDDS::DCPS::Encoding::Kind globalEncoding = QosDictionary::getEncodingKind();
-    //printf("\n=== TopicMonitor::on_sample_data_received ===\n");
-    //printf("Size = %zu bytes\n", rawSample.sample_->length());
 
     if (rawSample.header_.message_id_ != OpenDDS::DCPS::SAMPLE_DATA)
     {
-        printf("\nSkipping message that is not SAMPLE_DATA. This should not be possible! Something must have changed in OpenDDS\'s RecorderImpl::data_received(const ReceivedDataSample& sample) function in an incompatible way.\n");
+        std::cerr << "\nSkipping message that is not SAMPLE_DATA. This should not be possible! "
+                  << "Check for compatibility with RecorderImpl::data_received()."
+                  << std::endl;
         return;
     }
 
-    //printf("Global Encoding Kind: %s\n", OpenDDS::DCPS::Encoding::kind_to_string(globalEncoding).c_str());
-    //printf("Raw Sample Encoding Kind: %s\n", OpenDDS::DCPS::Encoding::kind_to_string(rawSample.encoding_kind_).c_str());
     if (globalEncoding != rawSample.encoding_kind_)
     {
-        printf("Skipping message with encoding kind that does not match our encoding kind.\n");
-        printf("Global Encoding Kind: %s\n", OpenDDS::DCPS::Encoding::kind_to_string(globalEncoding).c_str());
-        printf("Raw Sample Encoding Kind: %s\n", OpenDDS::DCPS::Encoding::kind_to_string(rawSample.encoding_kind_).c_str());
-        printf("There probably is a mismatch between the configuration of ddsmon and one or more publishers. Either the UseXTypes flag in opendds.ini or DDS_USE_OLD_CDR environment variable.\n");
+        std::cerr << "Skipping message with encoding kind that does not match our encoding kind.\n"
+                  << "Global Encoding Kind: " << OpenDDS::DCPS::Encoding::kind_to_string(globalEncoding) << "\n"
+                  << "Raw Sample Encoding Kind: " << OpenDDS::DCPS::Encoding::kind_to_string(rawSample.encoding_kind_) << "\n"
+                  << "There probably is a mismatch between the configuration of ddsmon and one or more publishers. "
+                  << "Either the UseXTypes flag in opendds.ini or DDS_USE_OLD_CDR environment variable."
+                  << std::endl;
         return;
     }
 
@@ -212,21 +204,17 @@ void TopicMonitor::on_sample_data_received(OpenDDS::DCPS::Recorder*,
     //RJ 2022-01-20 With OpenDDS 3.19.0, the entire message header is read before the sample gets passed to this function.
     //Code that strips off the RTPS header has been removed.
     //Same with the reset_alignment call in the serializer. That has already happened before the sample is passed to this function.
-    bool pass = true;
 
     std::shared_ptr<OpenDynamicData> sample = CreateOpenDynamicData(m_typeCode, globalEncoding, m_extensibility);
-    if (globalEncoding !=  OpenDDS::DCPS::Encoding::KIND_XCDR1)
+    if (globalEncoding != OpenDDS::DCPS::Encoding::KIND_XCDR1)
     {
         std::cout << "Removing delimiter header" << std::endl;
-        uint32_t delim_header=0;
-        if (! (serial >> delim_header)) {
-            std::cerr << "OpenDynamicData::on_sample_data_received "
-                        << "Could not read stream delimiter"
-                        << std::endl;
-            pass = false;
+        uint32_t delim_header = 0;
+        if (!(serial >> delim_header))
+        {
+            std::cerr << "TopicMonitor::on_sample_data_received: Could not read stream delimiter" << std::endl;
             return;
         }
-        //std::cout << "DEBUG on_sample_data_received eating top level struct stream delim. Size returned: " << delim_header << std::endl;
     }
 
     (*(sample.get())) << serial;
@@ -235,7 +223,7 @@ void TopicMonitor::on_sample_data_received(OpenDDS::DCPS::Recorder*,
     // If a filter was specified, make sure the sample passes
     if (!m_filter.isEmpty())
     {
-        pass = false;
+        bool pass = true;
         try
         {
             if (rawSample.header_.cdr_encapsulation_ &&
@@ -264,17 +252,15 @@ void TopicMonitor::on_sample_data_received(OpenDDS::DCPS::Recorder*,
             return;
         }
 
-    } // End filter check
+    }
 
-
-    QDateTime dataTime = QDateTime::fromMSecsSinceEpoch(
+    const QDateTime dataTime = QDateTime::fromMSecsSinceEpoch(
         (static_cast<unsigned long long>(rawSample.source_timestamp_.sec) * 1000) +
         (static_cast<unsigned long long>(rawSample.source_timestamp_.nanosec) * 1e-6));
 
     QString sampleName = dataTime.toString("HH:mm:ss.zzz");
     CommonData::storeSample(m_topicName, sampleName, sample);
-
-} // End TopicMonitor::on_sample_data_received
+}
 
 void TopicMonitor::on_data_available(DDS::DataReader_ptr dr)
 {

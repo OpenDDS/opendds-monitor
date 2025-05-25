@@ -262,7 +262,7 @@ void RecorderDialog::dumpData()
         // Reset the samples, so we don't record samples from the previous day.
         // Doing this isn't ideal, but it shouldn't happen unless someone is
         // recording all night.
-        CommonData::clearSamples(m_topicName);
+        CommonData::flushSamples(m_topicName);
     }
 
     rowCountLabel->setText(QString::number(m_rowCount));

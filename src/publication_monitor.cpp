@@ -14,10 +14,7 @@ PublicationMonitor::PublicationMonitor() : m_dataReader(nullptr)
     DDS::Subscriber_var subscriber = domain->get_builtin_subscriber();
     if (!subscriber)
     {
-        std::cerr << "PublicationMonitor: "
-                  << "Unable to find get_builtin_subscriber"
-                  << std::endl;
-        return;
+        throw std::runtime_error("PublicationMonitor: get_builtin_subscriber failed!");
     }
 
     // Find and store the built-in data reader
@@ -26,10 +23,7 @@ PublicationMonitor::PublicationMonitor() : m_dataReader(nullptr)
 
     if (!m_dataReader)
     {
-        std::cerr << "PublicationMonitor: "
-                  << "Unable to find built in publication topic reader"
-                  << std::endl;
-        return;
+        throw std::runtime_error("PublicationMonitor: Unable to find built-in publication topic reader");
     }
 
     // Attach a listener which reports reads publication information
