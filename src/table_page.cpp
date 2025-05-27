@@ -9,7 +9,9 @@
 #include "dds_data.h"
 #include "graph_page.h"
 #include "qos_dictionary.h"
+
 #include <QMessageBox>
+
 #include <iostream>
 #include <exception>
 
@@ -48,7 +50,7 @@ TablePage::TablePage(const QString& topicName, QWidget *parent) :
     connect(&m_refreshTimer, SIGNAL(timeout()), this, SLOT(refreshPage()));
     m_refreshTimer.start(REFRESH_TIMEOUT);
 
-} // End TablePage::TablePage
+}
 
 
 //------------------------------------------------------------------------------
@@ -62,13 +64,14 @@ TablePage::~TablePage()
 void TablePage::on_clearSamplesButton_clicked()
 {
     std::shared_ptr<TopicInfo> topicInfo = CommonData::getTopicInfo(m_topicName);
-    if (!topicInfo || !topicInfo->typeCode)
+    if (!topicInfo || !topicInfo->typeCode())
     {
         return;
     }
 
-    std::shared_ptr<OpenDynamicData> blankSample = CreateOpenDynamicData(topicInfo->typeCode, QosDictionary::getEncodingKind(), topicInfo->extensibility);
-    CommonData::clearSamples(m_topicName);
+    std::shared_ptr<OpenDynamicData> blankSample =
+      CreateOpenDynamicData(topicInfo->typeCode(), QosDictionary::getEncodingKind(), topicInfo->extensibility());
+    CommonData::flushSamples(m_topicName);
     m_tableModel->setSample(blankSample);
 
     refreshPage();
@@ -625,7 +628,7 @@ void TablePage::setSample(const QString& sampleName)
     m_selectedSample = sampleName;
 
     const auto topicInfo = CommonData::getTopicInfo(m_topicName);
-    if (topicInfo && topicInfo->typeCode)
+    if (topicInfo && topicInfo->typeCode())
     {
         auto sample = CommonData::copySample(m_topicName, index);
         if (sample != nullptr)

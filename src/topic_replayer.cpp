@@ -12,12 +12,11 @@
 
 //------------------------------------------------------------------------------
 TopicReplayer::TopicReplayer(const QString& topicName) :
-                             m_topicName(topicName),
-                             m_typeCode(nullptr),
-                             m_topic(nullptr),
-                             m_replayer(nullptr)
+    m_topicName(topicName),
+    m_typeCode(nullptr),
+    m_topic(nullptr),
+    m_replayer(nullptr)
 {
-    //std::cout << "DEBUG TopicReplayer::TopicReplayer" << std::endl;
     // Make sure we have an information object for this topic
     std::shared_ptr<TopicInfo> topicInfo = CommonData::getTopicInfo(topicName);
     if (topicInfo == nullptr)
@@ -29,7 +28,7 @@ TopicReplayer::TopicReplayer(const QString& topicName) :
     }
 
     // Make sure the type code is valid
-    m_typeCode = topicInfo->typeCode;
+    m_typeCode = topicInfo->typeCode();
     if (m_typeCode == nullptr)
     {
         std::cerr << "Unable to find type code information for "
@@ -38,32 +37,32 @@ TopicReplayer::TopicReplayer(const QString& topicName) :
         return;
     }
 
-    //store extensibility
-    m_extensibility = topicInfo->extensibility;
+    // Store extensibility
+    m_extensibility = topicInfo->extensibility();
 
 
     OpenDDS::DCPS::Service_Participant* service = TheServiceParticipant;
     DDS::DomainParticipant* domain = CommonData::m_ddsManager->getDomainParticipant();
 
     m_topic = service->create_typeless_topic(domain,
-        topicInfo->name.c_str(),
-        topicInfo->typeName.c_str(),
-        topicInfo->hasKey,
-        topicInfo->topicQos,
+        topicInfo->topicName().c_str(),
+        topicInfo->typeName().c_str(),
+        topicInfo->hasKey(),
+        topicInfo->topicQos(),
         new GenericTopicListener,
         DDS::INCONSISTENT_TOPIC_STATUS);
 
     if (!m_topic)
     {
-        std::cerr << "Failed to create topic" << std::endl;
+        std::cerr << "Failed to create topic \"" << topicInfo->topicName() << "\"" << std::endl;
         return;
     }
 
     m_replayer = service->create_replayer(
         domain,
         m_topic,
-        topicInfo->pubQos,
-        topicInfo->writerQos,
+        topicInfo->pubQos(),
+        topicInfo->writerQos(),
         OpenDDS::DCPS::RcHandle<OpenDDS::DCPS::ReplayerListener>()
     );
 
@@ -72,26 +71,25 @@ TopicReplayer::TopicReplayer(const QString& topicName) :
         std::cerr << "Failed to created replayer" << std::endl;
         return;
     }
-    //std::cout << "DEBUG Created Replayer" << std::endl;
-} // End TopicReplayer::TopicReplayer
+}
 
 
 //------------------------------------------------------------------------------
 void TopicReplayer::publishSample(const std::shared_ptr<OpenDynamicData> sample)
 {
     OpenDDS::DCPS::Encoding::Kind globalEncoding = QosDictionary::getEncodingKind();
-    //This used to be hard-coded to 4096. 
+    //This used to be hard-coded to 4096.
     ssize_t num_data_bytes = sample->getEncapsulationLength();
     //if(globalEncoding !=  OpenDDS::DCPS::Encoding::KIND_XCDR1)
     {
         //add 2 bytes for encaspsulation header, 2 bytes for 'options'
         //But for whatever reason that I do not understand that still isn't enough.
-        //I have spent more time on this than I have so i'm going to just add 1kb and hope that's enough. 
+        //I have spent more time on this than I have so i'm going to just add 1kb and hope that's enough.
         num_data_bytes += sizeof(CORBA::ULong) + 1024;
     }
     //std::cout << "DEBUG Size of new ace message block: " << num_data_bytes << std::endl;
     ACE_Message_Block block(num_data_bytes);
-    
+
     //num_data_bytes += sizeof(encap);
     OpenDDS::DCPS::Serializer serial(&block, globalEncoding);
     bool pass = true;
@@ -100,13 +98,13 @@ void TopicReplayer::publishSample(const std::shared_ptr<OpenDynamicData> sample)
     OpenDDS::DCPS::Encoding enc(globalEncoding, OpenDDS::DCPS::ENDIAN_LITTLE);
     const OpenDDS::DCPS::EncapsulationHeader encap(enc, m_extensibility);
     if (!encap.is_good()) {
-        std::cerr << "TopicReplayer::publishSample " 
+        std::cerr << "TopicReplayer::publishSample "
                   <<"failed to initialize Encapsulation Header"
                   << std::endl;
         return;
     }
     //std::cout << "DEBUG CDR Encapsulation is " << encap.to_string() << std::endl;
-        
+
     //Serialize the Encapsulation Header
     pass &= (serial << encap);
 
@@ -122,8 +120,8 @@ void TopicReplayer::publishSample(const std::shared_ptr<OpenDynamicData> sample)
         }
     }
 
-    serial.reset_alignment(); 
-  
+    serial.reset_alignment();
+
     //Serialize the sample
     pass &= ((*sample) >> serial);
 
@@ -164,7 +162,7 @@ void TopicReplayer::publishSample(const std::shared_ptr<OpenDynamicData> sample)
         epochTimeNSec,
         pubID,
         true,  //use little endian
-        &block, 
+        &block,
         QosDictionary::getEncodingKind());
 
     //printf("\n=== TopicReplayer::publishSample ===\n");

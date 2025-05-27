@@ -7,9 +7,6 @@
 #include "publication_monitor.h"
 #include "subscription_monitor.h"
 
-#include <iostream>
-#include <iomanip>
-
 #include <dds/DCPS/transport/framework/TransportRegistry.h>
 #include <dds/DCPS/RTPS/RtpsDiscovery.h>
 
@@ -17,6 +14,9 @@
 #include <QMessageBox>
 #include <QSettings>
 #include <QTime>
+
+#include <iostream>
+#include <iomanip>
 
 
 //------------------------------------------------------------------------------
@@ -74,7 +74,10 @@ DDSMonitorMainWindow::DDSMonitorMainWindow() :
             m_subscriptionMonitor = std::make_unique<SubscriptionMonitor>();
         }
         catch (std::runtime_error &e) {
-            QMessageBox::information(nullptr, "Error Starting Open DDS", e.what());
+            QMessageBox msgBox;
+            msgBox.setIcon(QMessageBox::Critical);
+            msgBox.setText(QString("Error starting OpenDDS: ") + e.what());
+            msgBox.exec();
             exit(1);
         }
 
@@ -98,7 +101,7 @@ DDSMonitorMainWindow::DDSMonitorMainWindow() :
         Closing = true;
     }
 
-} // End DDSMonitorMainWindow constructor
+}
 
 
 //------------------------------------------------------------------------------
@@ -114,7 +117,6 @@ DDSMonitorMainWindow::~DDSMonitorMainWindow()
     mainTabWidget->clear();
 
     CommonData::cleanup();
-    CommonData::m_ddsManager.reset();
     ShutdownDDS();
 }
 
@@ -133,12 +135,12 @@ void DDSMonitorMainWindow::discoveredTopic(const QString& topicName)
     topicItem->setText(0, topicName);
 
     dataItem = new QTreeWidgetItem(topicItem);
-    dataItem->setText(0, "Type: " + QString(topicInfo->typeName.c_str()));
+    dataItem->setText(0, "Type: " + QString(topicInfo->typeName().c_str()));
 
-    DDS::DurabilityQosPolicy durabilityQos = topicInfo->topicQos.durability;
-    DDS::ReliabilityQosPolicy reliabilityQos = topicInfo->topicQos.reliability;
-    DDS::OwnershipQosPolicy ownerQos = topicInfo->topicQos.ownership;
-    DDS::DestinationOrderQosPolicy orderQos = topicInfo->topicQos.destination_order;
+    DDS::DurabilityQosPolicy durabilityQos = topicInfo->topicQos().durability;
+    DDS::ReliabilityQosPolicy reliabilityQos = topicInfo->topicQos().reliability;
+    DDS::OwnershipQosPolicy ownerQos = topicInfo->topicQos().ownership;
+    DDS::DestinationOrderQosPolicy orderQos = topicInfo->topicQos().destination_order;
 
     dataItem = new QTreeWidgetItem(topicItem);
     dataItem->setText(0, "Durability: " +
@@ -158,7 +160,7 @@ void DDSMonitorMainWindow::discoveredTopic(const QString& topicName)
 
     topicTree->sortByColumn(0, Qt::AscendingOrder);
 
-} // End DDSMonitorMainWindow::discoveredTopic
+}
 
 
 //------------------------------------------------------------------------------
@@ -171,7 +173,7 @@ void DDSMonitorMainWindow::on_topicTree_itemClicked(QTreeWidgetItem* item, int)
     }
 
     // If a topic page for this topic already exists, we're done
-    QString topicName = item->text(0);
+    const QString topicName = item->text(0);
     for (int i = 0; i < mainTabWidget->count(); i++)
     {
         if (mainTabWidget->tabText(i) == topicName)
@@ -181,29 +183,29 @@ void DDSMonitorMainWindow::on_topicTree_itemClicked(QTreeWidgetItem* item, int)
         }
     }
 
-    QString selectedPartition = "";
     std::shared_ptr<TopicInfo> topicInfo = CommonData::getTopicInfo(topicName);
     if (topicInfo == nullptr)
     {
+        std::cerr << "Could not find topic information for topic \"" << topicName.toStdString() << "\"" << std::endl;
         return;
     }
 
-
+    QString selectedPartition = "";
     // If we only have 1 partition, use it and don't prompt the user
-    if (topicInfo->partitions.count() == 1)
+    if (topicInfo->partitions().count() == 1)
     {
-        selectedPartition = topicInfo->partitions.at(0);
+        selectedPartition = topicInfo->partitions().at(0);
     }
 
     // Prompt the user for a partition if they have a choice
-    if (topicInfo->partitions.count() > 1)
+    if (topicInfo->partitions().count() > 1)
     {
         bool ok = false;
         selectedPartition = QInputDialog::getItem(
             this,
             SETTINGS_APP_NAME,
             "Choose a Partition:",
-            topicInfo->partitions,
+            topicInfo->partitions(),
             0,
             false,
             &ok);
@@ -214,7 +216,6 @@ void DDSMonitorMainWindow::on_topicTree_itemClicked(QTreeWidgetItem* item, int)
         }
     }
 
-
     DDS::PartitionQosPolicy partitionInfo;
 
     // Use the target partition if it was specified
@@ -224,18 +225,26 @@ void DDSMonitorMainWindow::on_topicTree_itemClicked(QTreeWidgetItem* item, int)
         partitionInfo.name[0] = selectedPartition.toStdString().c_str();
     }
 
-    topicInfo->subQos.partition = partitionInfo;
-    topicInfo->pubQos.partition = partitionInfo;
+    topicInfo->subQos().partition = partitionInfo;
+    topicInfo->pubQos().partition = partitionInfo;
 
     // Create a new topic page
     QIcon tableIcon(":/images/stock_data-table.png");
-    TablePage* page = new TablePage(topicName, mainTabWidget);
-    mainTabWidget->addTab(page, tableIcon, topicName);
 
-    // Jump to the new tab
-    mainTabWidget->setCurrentWidget(page);
+    try {
+      TablePage* page = new TablePage(topicName, mainTabWidget);
+      mainTabWidget->addTab(page, tableIcon, topicName);
 
-} // End DDSMonitorMainWindow::on_topicTree_itemClicked
+      // Jump to the new tab
+      mainTabWidget->setCurrentWidget(page);
+    }
+    catch (const std::runtime_error &e) {
+        QMessageBox msgBox;
+        msgBox.setIcon(QMessageBox::Warning);
+        msgBox.setText(QString("Error creating table page for topic \"") + topicName + "\":\n" + e.what());
+        msgBox.exec();
+    }
+}
 
 
 //------------------------------------------------------------------------------
@@ -326,9 +335,9 @@ void DDSMonitorMainWindow::parseCmd()
             thisApp->setProperty("domain", domainID);
         }
 
-    } // End command line argument loop
+    }
 
-} // End DDSMonitorMainWindow::parseCmd
+}
 
 
 //------------------------------------------------------------------------------
@@ -462,7 +471,7 @@ void DDSMonitorMainWindow::reportConfig() const
         ) << "\n";
     }
 
-} // End DDSMonitorMainWindow::reportConfig
+}
 
 
 /**

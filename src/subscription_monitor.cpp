@@ -1,10 +1,10 @@
-#include <dds/DCPS/BuiltInTopicUtils.h>
-#include <iostream>
-
 #include "dds_data.h"
 #include "dds_manager.h"
 #include "subscription_monitor.h"
 
+#include <dds/DCPS/BuiltInTopicUtils.h>
+
+#include <iostream>
 
 //------------------------------------------------------------------------------
 SubscriptionMonitor::SubscriptionMonitor() : m_dataReader(nullptr)
@@ -13,10 +13,7 @@ SubscriptionMonitor::SubscriptionMonitor() : m_dataReader(nullptr)
     DDS::Subscriber_var subscriber = domain->get_builtin_subscriber() ;
     if (!subscriber)
     {
-        std::cerr << "SubscriptionMonitor: "
-                  << "Unable to find get_builtin_subscriber"
-                  << std::endl;
-        return;
+        throw std::runtime_error("SubscriptionMonitor: get_builtin_subscriber failed!");
     }
 
     // Find and store the built-in data reader
@@ -25,10 +22,7 @@ SubscriptionMonitor::SubscriptionMonitor() : m_dataReader(nullptr)
 
     if (!m_dataReader)
     {
-        std::cerr << "SubscriptionMonitor: "
-                  << "Unable to find built in subscription topic reader"
-                  << std::endl;
-        return;
+        throw std::runtime_error("SubscriptionMonitor: Unable to find built-in subscription topic reader");
     }
 
     // Attach a listener which reports reads subscription information
@@ -47,7 +41,6 @@ SubscriptionMonitor::~SubscriptionMonitor()
 //------------------------------------------------------------------------------
 void SubscriptionMonitor::on_data_available(DDS::DataReader_ptr reader)
 {
-    //std::cout << "DEBUG SubscriptionMonitor::on_data_available" << std::endl;
     DDS::SampleInfoSeq infoSeq;
     DDS::SubscriptionBuiltinTopicDataSeq msgList;
 
@@ -94,7 +87,7 @@ void SubscriptionMonitor::on_data_available(DDS::DataReader_ptr reader)
 
         // If we already know about this topic but don't have the typecode, add it
         if (topicInfo != nullptr &&
-            topicInfo->typeCode == nullptr &&
+            topicInfo->typeCode() == nullptr &&
             userDataSize > 0)
         {
             topicInfo->storeUserData(sampleData.topic_data.value);
@@ -110,8 +103,8 @@ void SubscriptionMonitor::on_data_available(DDS::DataReader_ptr reader)
 
         // If we got here, we have new topic data
         topicInfo = std::make_shared<TopicInfo>();
-        topicInfo->name = sampleData.topic_name;
-        topicInfo->typeName = sampleData.type_name;
+        topicInfo->topicName() = sampleData.topic_name;
+        topicInfo->typeName() = sampleData.type_name;
         //topicInfo->typeCode = Only exists in RTI implementation. We use user_data.
 
         topicInfo->setDurabilityPolicy(sampleData.durability);
@@ -126,7 +119,6 @@ void SubscriptionMonitor::on_data_available(DDS::DataReader_ptr reader)
         topicInfo->setPresentationPolicy(sampleData.presentation);
         topicInfo->addPartitions(sampleData.partition);
         topicInfo->fixHistory();
-        CommonData::storeTopicInfo(topicName, topicInfo);
 
         // Check for USR specific user data
         if (userDataSize > 0)
@@ -134,13 +126,13 @@ void SubscriptionMonitor::on_data_available(DDS::DataReader_ptr reader)
             topicInfo->storeUserData(sampleData.topic_data.value);
         }
 
-        emit newTopic(topicName);
+        CommonData::storeTopicInfo(topicName, topicInfo);
 
-    } // End message iteration loop
+        emit newTopic(topicName);
+    }
 
     dataReader->return_loan(msgList, infoSeq);
-
-} // End SubscriptionMonitor::on_data_available
+}
 
 
 /**

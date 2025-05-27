@@ -3,8 +3,6 @@
 
 #include "first_define.h"
 
-#include <cstdint>
-
 #ifdef WIN32
 #pragma warning(push, 0)  //No DDS warnings
 #endif
@@ -12,6 +10,7 @@
 #include <dds/DCPS/Serializer.h>
 #include <dds/DdsDcpsCoreC.h>
 #include <dds/DdsDynamicDataC.h>
+#include <tao/AnyTypeCode/TypeCode.h>
 
 #ifdef WIN32
 #pragma warning(pop)
@@ -26,6 +25,7 @@
 
 #include <memory>
 #include <string>
+#include <cstdint>
 
 
 class DDSManager;
@@ -68,6 +68,15 @@ const QString DESTINATION_SCOPE_QOS_POLICY_STRING[] =
     "BY_TOPIC"
 };
 
+/// The monitor supports two modes for discovering remote types. It uses either
+/// CORBA TypeCode encoded in the user data QoS or the XTypes dynamic type mechanism.
+/// The mode is set per topic and writers to the same topic should assume the same
+/// method of exchanging type information.
+enum class TypeDiscoveryMode
+{
+    TypeCode,
+    DynamicType
+};
 
 /**
  * @brief Stores information on discovered DDS topics.
@@ -159,49 +168,149 @@ public:
      */
     void storeUserData(const DDS::OctetSeq& userData);
 
+    /**
+     * Accessors for the data members
+     * @{
+     */
+    const std::string& topicName() const
+    {
+        return m_topicName;
+    }
+
+    std::string& topicName()
+    {
+        return m_topicName;
+    }
+
+    const std::string& typeName() const
+    {
+        return m_typeName;
+    }
+
+    std::string& typeName()
+    {
+        return m_typeName;
+    }
+
+    const DDS::TopicQos& topicQos() const
+    {
+        return m_topicQos;
+    }
+
+    DDS::PublisherQos& pubQos()
+    {
+        return m_pubQos;
+    }
+
+    const DDS::DataWriterQos& writerQos() const
+    {
+        return m_writerQos;
+    }
+
+    DDS::SubscriberQos& subQos()
+    {
+        return m_subQos;
+    }
+
+    const DDS::DataReaderQos& readerQos() const
+    {
+        return m_readerQos;
+    }
+
+    OpenDDS::DCPS::Extensibility extensibility() const
+    {
+        return m_extensibility;
+    }
+
+    TypeDiscoveryMode typeMode() const
+    {
+        return m_typeMode;
+    }
+
+    void typeMode(TypeDiscoveryMode mode)
+    {
+        m_typeMode = mode;
+    }
+
+    const QStringList& partitions() const
+    {
+        return m_partitions;
+    }
+
+    bool hasKey() const
+    {
+        return m_hasKey;
+    }
+
+    CORBA::TypeCode_var typeCode() const
+    {
+        return m_typeCode;
+    }
+
+    DDS::DynamicType_var dynamicType() const
+    {
+        return m_dynamicType;
+    }
+
+    DDS::DynamicType_var& dynamicType()
+    {
+        return m_dynamicType;
+    }
+
+    /**
+     * @}
+     */
+
+private:
+
+    void dumpTypeCode(const char* cdrBuffer, size_t typeCodeSize) const;
+
     /// The name of the DDS topic.
-    std::string name;
+    std::string m_topicName;
 
     /// The type of the DDS topic.
-    std::string typeName;
+    std::string m_typeName;
 
     /// The topic QoS settings.
-    DDS::TopicQos topicQos;
+    DDS::TopicQos m_topicQos;
 
     /// The publisher QoS settings.
-    DDS::PublisherQos pubQos;
+    DDS::PublisherQos m_pubQos;
 
     /// The data writer QoS settings.
-    DDS::DataWriterQos writerQos;
+    DDS::DataWriterQos m_writerQos;
 
     /// The subscriber QoS settings.
-    DDS::SubscriberQos subQos;
+    DDS::SubscriberQos m_subQos;
 
     /// The data readerQoS settings.
-    DDS::DataReaderQos readerQos;
-
-    /// The topic extensibility
-    OpenDDS::DCPS::Extensibility extensibility;
+    DDS::DataReaderQos m_readerQos;
 
     /// Stores a list of partitions.
-    QStringList partitions;
+    QStringList m_partitions;
+
+    /// The topic extensibility
+    OpenDDS::DCPS::Extensibility m_extensibility;
 
     /// Flag if this is a keyed topic. Set from user_data in the Topic Qos.
-    bool hasKey;
+    bool m_hasKey;
+
+    /// Type exchange mode.
+    TypeDiscoveryMode m_typeMode;
 
     /// Type code length
-    size_t typeCodeLength;
+    size_t m_typeCodeLength;
 
     /// Pointer to the type code information object. Set from user_data in the Topic Qos.
-    const CORBA::TypeCode* typeCode;
+    CORBA::TypeCode_var m_typeCode;
 
     /// The type code information object. Set from user_data in the Topic Qos.
-    std::unique_ptr<CORBA::Any> typeCodeObj;
+    std::unique_ptr<CORBA::Any> m_typeCodeObj;
 
     /// DynamicType of the topic's type
-    DDS::DynamicType_var dynamic_type;
+    DDS::DynamicType_var m_dynamicType;
 
-}; // End TopicInfo
+};
 
 
 /**
@@ -262,34 +371,28 @@ public:
                             const std::shared_ptr<OpenDynamicData> sample);
 
     /// Store a new sample represented by a DynamicData object.
-    static void storeDynamicSample(const QString& topic_name,
-                                   const QString& sample_name,
+    static void storeDynamicSample(const QString& topicName,
+                                   const QString& sampleName,
                                    DDS::DynamicData_var sample);
 
     /**
      * @brief Get a copy of a sample for a specified topic.
      * @remarks The caller is responsible for deleting the new sample.
      * @param[in] topicName Get a sample of this topic.
-     * @param[in] index The Sample index position. The newest is on the front.
+     * @param[in] index The sample index position. The newest is on the front.
      * @return A copy of the data sample or NULL if the index wasn't found.
      */
     static std::shared_ptr<OpenDynamicData> copySample(const QString& topicName,
-                                                       const unsigned int& index);
+                                                       int index);
 
-    static DDS::DynamicData_var copyDynamicSample(const QString& topic_name,
-                                                  unsigned int index);
+    static DDS::DynamicData_var copyDynamicSample(const QString& topicName,
+                                                  int index);
     /**
      * @brief Get a list of sample names (timestamps) for a given topic.
      * @param[in] topicName The name of the topic.
      * @return A stringlist of sample names.
      */
     static QStringList getSampleList(const QString& topicName);
-
-    /**
-     * @brief Clear the sample history for a given topic.
-     * @param[in] topicName The name of the topic.
-     */
-    static void clearSamples(const QString& topicName);
 
 private:
 
@@ -301,19 +404,32 @@ private:
                                       const QString& memberName,
                                       unsigned int index = 0);
 
+    /// Called by flushSamples() depending on whether a recorder or a dynamic data reader is used.
+    static void flushStaticSamples(const QString& topicName);
+    static void flushDynamicSamples(const QString& topicName);
+
     /**
      * @brief Stores the data samples from DDS.
      * @details The key is the topic name and the value is the data sample. The
      *          first sample is always the latest and the last sample is last.
      */
-    static QMap<QString, QList<std::shared_ptr<OpenDynamicData>>> m_samples;
+    using SampleMap = QMap<QString, QList<std::shared_ptr<OpenDynamicData>>>;
+    static SampleMap m_samples;
+
+    /**
+     * @brief Store list of DynamicData objects for each topic.
+     * The timestamps for the samples are also stored in m_sampleTimes.
+     */
+    using DynamicSampleMap = QMap<QString, QList<DDS::DynamicData_var>>;
+    static DynamicSampleMap m_dynamicSamples;
 
     /**
      * @brief Stores the data sample times.
      * @details The key is the topic name and the value is the data time. The
      *          first sample is always the latest and the last sample is last.
      */
-    static QMap<QString, QStringList> m_sampleTimes;
+    using SampleTimeMap = QMap<QString, QStringList>;
+    static SampleTimeMap m_sampleTimes;
 
     /**
      * @brief Stores information about the topics on the bus.
@@ -321,10 +437,6 @@ private:
      *          information struct.
      */
     static QMap<QString, std::shared_ptr<TopicInfo>> m_topicInfo;
-
-    /// Store list of DynamicData objects for each topic.
-    /// We are storing the timestamps for these samples also in m_sampleTimes.
-    static QMap<QString, QList<DDS::DynamicData_var>> m_dynamicSamples;
 
     /// Mutex for protecting access to m_samples.
     static QMutex m_sampleMutex;
@@ -334,16 +446,6 @@ private:
 
     /// Mutex for protecting access to m_dynamicSamples.
     static QMutex m_dynamicSamplesMutex;
-
-    /**
-     * @brief Constructor for the DDS Monitor data storage class.
-     */
-    CommonData();
-
-    /**
-     * @brief Destructor for the DDS Monitor data storage class.
-     */
-    ~CommonData();
 
 };
 
