@@ -131,7 +131,7 @@ private:
     QString m_filter;
 
     /// Stores the typecode for this topic.
-    const CORBA::TypeCode* m_typeCode;
+    CORBA::TypeCode_var m_typeCode;
 
     /// Listener for the recorder, calls back into this object
     OpenDDS::DCPS::RcHandle<RecorderListener> m_recorder_listener;

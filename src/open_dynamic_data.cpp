@@ -4,8 +4,8 @@
 
 #include "open_dynamic_data.h"
 
-std::shared_ptr<OpenDynamicData> CreateOpenDynamicData(const CORBA::TypeCode* typeCode,
-    const OpenDDS::DCPS::Encoding::Kind encodingKind, 
+std::shared_ptr<OpenDynamicData> CreateOpenDynamicData(CORBA::TypeCode_var typeCode,
+    const OpenDDS::DCPS::Encoding::Kind encodingKind,
     const OpenDDS::DCPS::Extensibility extensibility,
     const std::weak_ptr<OpenDynamicData> parent)
 {
@@ -15,16 +15,16 @@ std::shared_ptr<OpenDynamicData> CreateOpenDynamicData(const CORBA::TypeCode* ty
 }
 
 //------------------------------------------------------------------------------
-OpenDynamicData::OpenDynamicData(const CORBA::TypeCode* typeCode,
-                                 const OpenDDS::DCPS::Encoding::Kind encodingKind, 
+OpenDynamicData::OpenDynamicData(CORBA::TypeCode_var typeCode,
+                                 const OpenDDS::DCPS::Encoding::Kind encodingKind,
                                  const OpenDDS::DCPS::Extensibility extensibility,
-                                 const std::weak_ptr<OpenDynamicData> parent) :
-                                 m_parent(parent),
-                                 m_name("EMPTY_NAME"),
-                                 m_typeCode(typeCode), 
-                                 m_encodingKind(encodingKind),
-                                 m_extensibility(extensibility),
-                                 m_containsComplexTypes(false)
+                                 const std::weak_ptr<OpenDynamicData> parent)
+    : m_parent(parent)
+    , m_name("EMPTY_NAME")
+    , m_typeCode(typeCode)
+    , m_encodingKind(encodingKind)
+    , m_extensibility(extensibility)
+    , m_containsComplexTypes(false)
 {
     if (!m_typeCode)
     {
@@ -361,7 +361,7 @@ void OpenDynamicData::dump() const
             {
                 // Make sure the int value is valid
                 const uint32_t enumValue = child->getValue<uint32_t>();
-                const CORBA::TypeCode* enumTypeCode = child->getTypeCode();
+                CORBA::TypeCode_var enumTypeCode = child->getTypeCode();
                 if (enumValue >= enumTypeCode->member_count())
                 {
                     printf("***INVALID_ENUM_VALUE***\n");
@@ -605,7 +605,7 @@ bool OpenDynamicData::operator<<(OpenDDS::DCPS::Serializer& stream)
             break;
         case CORBA::tk_string:
         { //create scope for tao string manager
-            //std::cout << "DEBUG OpenDynamicData::operator<< kind is str " << std::endl;        
+            //std::cout << "DEBUG OpenDynamicData::operator<< kind is str " << std::endl;
             TAO::String_Manager stringMan;
             pass &= (stream >> stringMan.out());
             const char* value = stringMan;
@@ -625,12 +625,12 @@ bool OpenDynamicData::operator<<(OpenDDS::DCPS::Serializer& stream)
                     pass = false;
                     break;
                 }
-                //std::cout << "DEBUG eating array stream delim. Size returned: " << delim_header <<std::endl;    
+                //std::cout << "DEBUG eating array stream delim. Size returned: " << delim_header <<std::endl;
             }
             pass &= ((*child) << stream);
             break;
         case CORBA::tk_sequence:
-            //std::cout << "DEBUG OpenDynamicData::operator<< kind is seq " << std::endl;       
+            //std::cout << "DEBUG OpenDynamicData::operator<< kind is seq " << std::endl;
             if((m_encodingKind != OpenDDS::DCPS::Encoding::KIND_XCDR1) && child->containsComplexTypes())
             {
                 uint32_t delim_header=0;
@@ -641,11 +641,11 @@ bool OpenDynamicData::operator<<(OpenDDS::DCPS::Serializer& stream)
                     pass = false;
                     break;
                 }
-                //std::cout << "DEBUG eating sequence stream delim. Size returned: " << delim_header <<std::endl;    
-            } 
+                //std::cout << "DEBUG eating sequence stream delim. Size returned: " << delim_header <<std::endl;
+            }
             pass &= (stream >> tmpValue.uint32);
             //std::cout << "DEBUG sequence length: " << tmpValue.uint32 << std::endl;
-            child->setLength(tmpValue.uint32);   
+            child->setLength(tmpValue.uint32);
             pass &= ((*child) << stream);
             break;
         case CORBA::tk_struct:
@@ -660,7 +660,7 @@ bool OpenDynamicData::operator<<(OpenDDS::DCPS::Serializer& stream)
                     pass = false;
                     break;
                 }
-                //std::cout << "DEBUG eating sequence stream delim. Size returned: " << delim_header <<std::endl;    
+                //std::cout << "DEBUG eating sequence stream delim. Size returned: " << delim_header <<std::endl;
             }
             //std::cout << "DEBUG OpenDynamicData::operator<< kind is struct " << std::endl;
             pass &= ((*child) << stream);
@@ -755,7 +755,7 @@ size_t OpenDynamicData::getEncapsulationLength()
             {
                 std::string temp(m_stringValue);
                 //Per xtypes spec, section 7.4.3.5.3 rules 3, this includes NUL, and 4 bytes for string length
-                return temp.length() + 1 + sizeof(CORBA::ULong) ; 
+                return temp.length() + 1 + sizeof(CORBA::ULong) ;
             }
         case CORBA::tk_sequence:
             {
@@ -763,7 +763,7 @@ size_t OpenDynamicData::getEncapsulationLength()
                 //so if the length is 0, delim header should still be 4..
                 //all sequences first serialize the length
                 size_t ret = sizeof(CORBA::ULong);
-                
+
                 if(getLength() > 0)
                 {
                     ret +=  m_children[0]->getEncapsulationLength() * getLength();
@@ -771,7 +771,7 @@ size_t OpenDynamicData::getEncapsulationLength()
                 if((m_encodingKind != OpenDDS::DCPS::Encoding::KIND_XCDR1) && containsComplexTypes())
                 {
                     ret += sizeof(CORBA::ULong);
-                }      
+                }
                 return ret;
             }
         case CORBA::tk_struct:
@@ -815,7 +815,7 @@ bool OpenDynamicData::containsComplexTypes() const
 }
 
 //------------------------------------------------------------------------------
-const CORBA::TypeCode* OpenDynamicData::getTypeCode() const
+CORBA::TypeCode_var OpenDynamicData::getTypeCode() const
 {
     return m_typeCode;
 }
@@ -1054,13 +1054,13 @@ void OpenDynamicData::populate()
 
     const CORBA::TCKind kind = m_typeCode->kind();
 
-  
+
     if((kind == CORBA::tk_array) || (kind == CORBA::tk_sequence))
     {
-        // If XCDR2 we need to know when deserializing a sequence or array if 
-        // this is a sequence/array of primitive or complex types, so 
+        // If XCDR2 we need to know when deserializing a sequence or array if
+        // this is a sequence/array of primitive or complex types, so
         // we can conditionally deserialize the delimiter header.
-        
+
         // Get the true type for this array/sequence
         CORBA::TypeCode_ptr contentType = m_typeCode->content_type();
 
@@ -1087,7 +1087,7 @@ void OpenDynamicData::populate()
         // Large sequences can cause the application to hang, so set the length
         // an empty size. It will be resized when data is received.
         setLength(0);
-        
+
     }
 
 

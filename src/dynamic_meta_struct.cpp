@@ -74,7 +74,7 @@ OpenDDS::DCPS::Value DynamicMetaStruct::getValue(
         {
             // Make sure the int value is valid
             const uint32_t enumValue = member->getValue<uint32_t>();
-            const CORBA::TypeCode* enumTypeCode = member->getTypeCode();
+            CORBA::TypeCode_var enumTypeCode = member->getTypeCode();
             if (enumValue >= enumTypeCode->member_count())
             {
                 newValue = "***INVALID_ENUM_VALUE***\n";

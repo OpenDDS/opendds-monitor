@@ -514,25 +514,21 @@ QStringList CommonData::getSampleList(const QString& topicName)
 
 //------------------------------------------------------------------------------
 TopicInfo::TopicInfo()
-  : m_extensibility(OpenDDS::DCPS::Extensibility::APPENDABLE)
-  , m_hasKey(true)
-  , m_typeMode(TypeDiscoveryMode::TypeCode)
-  , m_typeCodeLength(0)
-  , m_typeCode(nullptr)
-{
-    m_topicQos = QosDictionary::Topic::bestEffort();
-    m_writerQos = QosDictionary::DataWriter::bestEffort();
-    m_readerQos = QosDictionary::DataReader::bestEffort();
-    m_pubQos = QosDictionary::Publisher::defaultQos();
-    m_subQos = QosDictionary::Subscriber::defaultQos();
-}
+  : m_topicQos{QosDictionary::Topic::bestEffort()}
+  , m_pubQos{QosDictionary::Publisher::defaultQos()}
+  , m_writerQos{QosDictionary::DataWriter::bestEffort()}
+  , m_subQos{QosDictionary::Subscriber::defaultQos()}
+  , m_readerQos{QosDictionary::DataReader::bestEffort()}
+  , m_extensibility{OpenDDS::DCPS::Extensibility::APPENDABLE}
+  , m_hasKey{true}
+  , m_typeMode{TypeDiscoveryMode::TypeCode}
+  , m_typeCodeLength{0}
+{}
 
 
 //------------------------------------------------------------------------------
 TopicInfo::~TopicInfo()
-{
-    m_typeCode = nullptr;
-}
+{}
 
 //------------------------------------------------------------------------------
 void TopicInfo::addPartitions(const DDS::PartitionQosPolicy& partitionQos)
@@ -670,20 +666,14 @@ void TopicInfo::fixHistory()
 //------------------------------------------------------------------------------
 void TopicInfo::storeUserData(const DDS::OctetSeq& userData)
 {
-    // If no user data is found, we're done
-    if (userData.length() == 0)
-    {
-        return;
-    }
-
-    // If we already know about this user data, we're done
-    if (this->m_typeCode != nullptr)
+    // If no user data is found or we already know about this user data, we're done
+    if (userData.length() == 0 || m_typeCode)
     {
         return;
     }
 
     // Begin parsing the user data byte array
-    const size_t headerSize = 8;
+    constexpr size_t headerSize = 8;
     const size_t totalSize = userData.length();
 
     // If the user data is smaller than our header, it's definitely not ours

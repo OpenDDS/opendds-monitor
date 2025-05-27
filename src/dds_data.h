@@ -10,6 +10,7 @@
 #include <dds/DCPS/Serializer.h>
 #include <dds/DdsDcpsCoreC.h>
 #include <dds/DdsDynamicDataC.h>
+#include <tao/AnyTypeCode/TypeCode.h>
 
 #ifdef WIN32
 #pragma warning(pop)
@@ -241,7 +242,7 @@ public:
         return m_hasKey;
     }
 
-    const CORBA::TypeCode* typeCode() const
+    CORBA::TypeCode_var typeCode() const
     {
         return m_typeCode;
     }
@@ -301,7 +302,7 @@ private:
     size_t m_typeCodeLength;
 
     /// Pointer to the type code information object. Set from user_data in the Topic Qos.
-    const CORBA::TypeCode* m_typeCode;
+    CORBA::TypeCode_var m_typeCode;
 
     /// The type code information object. Set from user_data in the Topic Qos.
     std::unique_ptr<CORBA::Any> m_typeCodeObj;

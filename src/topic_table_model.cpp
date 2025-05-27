@@ -501,7 +501,7 @@ void TopicTableModel::parseData(const std::shared_ptr<OpenDynamicData> data)
         {
             // Make sure the int value is valid
             const CORBA::ULong enumValue = child->getValue<CORBA::ULong>();
-            const CORBA::TypeCode* enumTypeCode = child->getTypeCode();
+            CORBA::TypeCode_var enumTypeCode = child->getTypeCode();
             const CORBA::ULong enumMemberCount = enumTypeCode->member_count();
             if (enumValue >= enumMemberCount)
             {
@@ -1045,7 +1045,7 @@ bool TopicTableModel::populateSample(std::shared_ptr<OpenDynamicData> const samp
     case CORBA::tk_enum:
     {
         const QString enumStringValue = dataInfo->value.toString();
-        const CORBA::TypeCode* enumTypeCode = memberData->getTypeCode();
+        CORBA::TypeCode_var enumTypeCode = memberData->getTypeCode();
         const CORBA::ULong enumMemberCount = enumTypeCode->member_count();
 
         // Find the enum int value of this enum string

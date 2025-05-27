@@ -238,7 +238,7 @@ void DDSMonitorMainWindow::on_topicTree_itemClicked(QTreeWidgetItem* item, int)
       // Jump to the new tab
       mainTabWidget->setCurrentWidget(page);
     }
-    catch (std::runtime_error &e) {
+    catch (const std::runtime_error &e) {
         QMessageBox msgBox;
         msgBox.setIcon(QMessageBox::Warning);
         msgBox.setText(QString("Error creating table page for topic \"") + topicName + "\":\n" + e.what());

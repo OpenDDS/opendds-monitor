@@ -157,7 +157,7 @@ private:
     /// Stores the history sample names.
     QStringList m_historyList;
 
-}; // End TablePage
+};
 
 #endif
 

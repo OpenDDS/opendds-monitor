@@ -40,8 +40,8 @@ public:
      * @param[in] extensibility the extensibility for this type. final/appendable/mutable.
      * @param[in] parent The parent of this member or nullptr if it's the root.
      */
-    OpenDynamicData(const CORBA::TypeCode* typeCode,
-                    const OpenDDS::DCPS::Encoding::Kind encodingKind, 
+    OpenDynamicData(CORBA::TypeCode_var typeCode,
+                    const OpenDDS::DCPS::Encoding::Kind encodingKind,
                     const OpenDDS::DCPS::Extensibility extensibility,
                     const std::weak_ptr<OpenDynamicData> parent = std::weak_ptr<OpenDynamicData>());
 
@@ -65,7 +65,7 @@ public:
      * @return true if identical.
      */
     bool operator==(const OpenDynamicData& other);
-    
+
     /**
      * @brief Comparator (inequal) operator for two OpenDynamicData objects.
      * @remarks The type codes of the two objects must match.
@@ -73,7 +73,7 @@ public:
      * @return true if not identical.
      */
     bool operator!=(const OpenDynamicData& other) {return !(*this == other);}
-     
+
 
     /**
      * @brief Dump the type information and values to the terminal.
@@ -110,19 +110,19 @@ public:
 
     /**
      * @brief Get whether this member is a primive kind. Required for serializing xcdr2 properly.
-     * @return true if primitive type. false if not. 
+     * @return true if primitive type. false if not.
      */
     bool isPrimitive() const;
 
     /**
      * @brief Does this type contain child data.  Used to determine if the type needs recursive handling.
-     * @return true if the type contains other data, false if not. 
+     * @return true if the type contains other data, false if not.
      */
     bool isContainerType() const;
 
     /**
      * @brief Get whether this member is an array or sequence of complex types. Required for serializing xcdr2 properly.
-     * @return true if contains complex types. false if not. 
+     * @return true if contains complex types. false if not.
      */
     bool containsComplexTypes() const;
 
@@ -130,7 +130,7 @@ public:
      * @brief Get the type code for this member.
      * @return The type code for this member or nullptr if not found.
      */
-    const CORBA::TypeCode* getTypeCode() const;
+    CORBA::TypeCode_var getTypeCode() const;
 
     /**
      * @brief Get the length of a sequence/array member or the number of
@@ -259,7 +259,7 @@ private:
 
     /**
      * @brief Get whether a type is a primitive kind. Required for serializing xcdr2 properly.
-     * @return true if primitive type. false if not. 
+     * @return true if primitive type. false if not.
      */
     bool isPrimitiveImpl(const CORBA::TCKind tck) const;
 
@@ -303,7 +303,7 @@ private:
     TAO::String_Manager m_stringValue;
 
     /// The type code for this member.
-    const CORBA::TypeCode* m_typeCode;
+    CORBA::TypeCode_var m_typeCode;
 
     /// The encoding kind used for this type. Required by the Serializer
     const OpenDDS::DCPS::Encoding::Kind m_encodingKind;
@@ -316,8 +316,8 @@ private:
 
 }; // End class OpenDynamicData
 
-std::shared_ptr<OpenDynamicData> CreateOpenDynamicData(const CORBA::TypeCode* typeCode,
-    const OpenDDS::DCPS::Encoding::Kind encodingKind, 
+std::shared_ptr<OpenDynamicData> CreateOpenDynamicData(CORBA::TypeCode_var typeCode,
+    const OpenDDS::DCPS::Encoding::Kind encodingKind,
     const OpenDDS::DCPS::Extensibility extensibility,
     const std::weak_ptr<OpenDynamicData> parent = std::weak_ptr<OpenDynamicData>());
 

@@ -69,7 +69,8 @@ void TablePage::on_clearSamplesButton_clicked()
         return;
     }
 
-    std::shared_ptr<OpenDynamicData> blankSample = CreateOpenDynamicData(topicInfo->typeCode(), QosDictionary::getEncodingKind(), topicInfo->extensibility());
+    std::shared_ptr<OpenDynamicData> blankSample =
+      CreateOpenDynamicData(topicInfo->typeCode(), QosDictionary::getEncodingKind(), topicInfo->extensibility());
     CommonData::flushSamples(m_topicName);
     m_tableModel->setSample(blankSample);
 

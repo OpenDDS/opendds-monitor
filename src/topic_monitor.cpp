@@ -17,15 +17,14 @@
 
 
 //------------------------------------------------------------------------------
-TopicMonitor::TopicMonitor(const QString& topicName) :
-    m_topicName(topicName),
-    m_filter(""),
-    m_typeCode(nullptr),
-    m_recorder_listener(OpenDDS::DCPS::make_rch<RecorderListener>(OpenDDS::DCPS::ref(*this))),
-    m_recorder(nullptr),
-    m_dr_listener(new DataReaderListenerImpl(*this)),
-    m_topic(nullptr),
-    m_paused(false)
+TopicMonitor::TopicMonitor(const QString& topicName)
+    : m_topicName(topicName)
+    , m_filter("")
+    , m_recorder_listener(OpenDDS::DCPS::make_rch<RecorderListener>(OpenDDS::DCPS::ref(*this)))
+    , m_recorder(nullptr)
+    , m_dr_listener(new DataReaderListenerImpl(*this))
+    , m_topic(nullptr)
+    , m_paused(false)
 {
     // Make sure we have an information object for this topic
     std::shared_ptr<TopicInfo> topicInfo = CommonData::getTopicInfo(topicName);
@@ -162,8 +161,6 @@ void TopicMonitor::close()
         domain->delete_topic(m_topic);
     }
     m_topic = nullptr;
-
-    m_typeCode = nullptr; // Do not delete
 }
 
 
