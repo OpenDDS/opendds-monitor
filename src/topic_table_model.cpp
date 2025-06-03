@@ -9,25 +9,23 @@
 
 #include <iostream>
 #include <cstdint>
-
+#include <stdexcept>
 
 //------------------------------------------------------------------------------
-TopicTableModel::TopicTableModel(
-    QTableView *parent,
-    const QString& topicName) :
-    QAbstractTableModel(parent),
-    m_tableView(parent),
-    m_sample(nullptr),
-    m_topicName(topicName)
+TopicTableModel::TopicTableModel(QTableView *parent, const QString& topicName)
+    : QAbstractTableModel(parent)
+    , m_tableView(parent)
+    , m_sample(nullptr)
+    , m_topicName(topicName)
 {
-    m_columnHeaders /*<< ""*/ << "Name" << "Type" << "Value";
+    m_columnHeaders << "Name" << "Type" << "Value";
     m_tableView->setItemDelegate(new LineEditDelegate(this));
 
     // Create a blank sample, so the user can publish an initial instance
     std::shared_ptr<TopicInfo> topicInfo = CommonData::getTopicInfo(m_topicName);
     if (!topicInfo || !topicInfo->typeCode())
     {
-        return;
+        throw std::runtime_error(std::string("TopicTableModel: No topic information found for topic \"") + topicName.toStdString() + "\"");
     }
 
     // TODO: Keep the call to setSample for blank OpenDynamicData sample and maybe
@@ -43,6 +41,11 @@ TopicTableModel::TopicTableModel(
 //------------------------------------------------------------------------------
 TopicTableModel::~TopicTableModel()
 {
+    cleanupDataRow();
+}
+
+void TopicTableModel::cleanupDataRow()
+{
     while (!m_data.empty())
     {
         delete m_data.back();
@@ -50,59 +53,46 @@ TopicTableModel::~TopicTableModel()
     }
 }
 
-
 //------------------------------------------------------------------------------
 void TopicTableModel::setSample(std::shared_ptr<OpenDynamicData> sample)
 {
     if (!sample)
     {
-        std::cerr << "TopicTableModel::setSample:"
-                  << "Null sample"
-                  << std::endl;
+        std::cerr << "TopicTableModel::setSample: Null OpenDynamicData sample" << std::endl;
         return;
     }
 
     if (sample->getLength() == 0)
     {
-        std::cerr << "TopicTableModel::setSample:"
-                  << "Sample has no children"
-                   << std::endl;
+        std::cerr << "TopicTableModel::setSample: Sample has no children" << std::endl;
         return;
     }
 
     emit layoutAboutToBeChanged();
 
-    while (!m_data.empty())
-    {
-       delete m_data.back();
-       m_data.pop_back();
-    }
-
+    cleanupDataRow();
     m_sample = sample;
     parseData(m_sample);
 
     emit layoutChanged();
-
-} // End TopicTableModel::updateSample
+}
 
 //------------------------------------------------------------------------------
 void TopicTableModel::setSample(DDS::DynamicData_var sample)
 {
-    if (!sample) {
-        std::cerr << "TopicTableModel::setSample: Sample is null" << std::endl;
+    if (!sample)
+    {
+        std::cerr << "TopicTableModel::setSample: Null DynamicData sample" << std::endl;
         return;
     }
 
     emit layoutAboutToBeChanged();
 
-    while (!m_data.empty()) {
-        delete m_data.back();
-        m_data.pop_back();
-    }
+    cleanupDataRow();
 
     // Store sample for reverting any changes to it.
-    m_dynamicsample = sample;
-    parseData(m_dynamicsample, "");
+    m_dynamicSample = sample;
+    parseData(m_dynamicSample, "");
 
     emit layoutChanged();
 }
@@ -209,60 +199,58 @@ QVariant TopicTableModel::data(const QModelIndex &index, int role) const
         return QVariant();
     }
 
-    // Change the background color for edited rows
-    if (role == Qt::BackgroundRole &&
-        column == VALUE_COLUMN &&
-        m_data.at(row)->edited == true)
-    {
-        return QColor(Qt::yellow);
-    }
+    const DataRow* const member = m_data.at(row);
 
-    // Change the text color for edited rows (black on yellow)
-    if (role == Qt::ForegroundRole &&
-        column == VALUE_COLUMN &&
-        m_data.at(row)->edited == true)
+    if (column == VALUE_COLUMN && member->edited == true)
     {
-        return QColor(Qt::black);
+        if (role == Qt::BackgroundRole)
+        {
+            // Change the background color for edited rows
+            return QColor(Qt::yellow);
+        }
+        else if (role == Qt::ForegroundRole)
+        {
+            // Change the text color for edited rows (black on yellow)
+            return QColor(Qt::black);
+        }
     }
 
     // Is this a request to display the text value?
     if (role == Qt::DisplayRole && column == NAME_COLUMN)
     {
-        return m_data.at(row)->name;
+        return member->name;
     }
     else if (role == Qt::DisplayRole && column == VALUE_COLUMN)
     {
-        return m_data.at(row)->value;
+        return member->value;
     }
     else if (role == Qt::DisplayRole && column == TYPE_COLUMN)
     {
-        CORBA::TCKind typeID = m_data.at(row)->type;
+        const CORBA::TCKind typeID = member->type;
         switch (typeID)
         {
-            case CORBA::tk_short: return "int16";
-            case CORBA::tk_long: return "int32";
-            case CORBA::tk_ushort: return "uint16";
-            case CORBA::tk_ulong: return "uint32";
-            case CORBA::tk_longlong: return "int64";
-            case CORBA::tk_ulonglong: return "uint64";
-            case CORBA::tk_float: return "float32";
-            case CORBA::tk_double: return "float64";
-            case CORBA::tk_boolean: return "boolean";
-            case CORBA::tk_char: return "char";
-            case CORBA::tk_wchar: return "wchar";
-            case CORBA::tk_octet: return "uint8";
-            case CORBA::tk_enum: return "enum";
-            case CORBA::tk_string: return "string";
-            default: {
-                std::cerr << "unknown typeID: " << typeID << std::endl;
-                return "?";
-            }
+        case CORBA::tk_short: return "int16";
+        case CORBA::tk_long: return "int32";
+        case CORBA::tk_ushort: return "uint16";
+        case CORBA::tk_ulong: return "uint32";
+        case CORBA::tk_longlong: return "int64";
+        case CORBA::tk_ulonglong: return "uint64";
+        case CORBA::tk_float: return "float32";
+        case CORBA::tk_double: return "float64";
+        case CORBA::tk_boolean: return "boolean";
+        case CORBA::tk_char: return "char";
+        case CORBA::tk_wchar: return "wchar";
+        case CORBA::tk_octet: return "uint8";
+        case CORBA::tk_enum: return "enum";
+        case CORBA::tk_string: return "string";
+        default:
+            std::cerr << "unknown typeID: " << typeID << std::endl;
+            return "?";
         }
     }
 
     return QVariant();
-
-} // End TopicTableModel::data
+}
 
 
 //------------------------------------------------------------------------------
@@ -306,7 +294,7 @@ bool TopicTableModel::setData(const QModelIndex &index,
     emit dataHasChanged();
     return true;
 
-} // End TopicTableModel::setData
+}
 
 
 //------------------------------------------------------------------------------
@@ -1074,7 +1062,7 @@ bool TopicTableModel::populateSample(std::shared_ptr<OpenDynamicData> const samp
 
     return pass;
 
-} // End TopicTableModel::populateSample
+}
 
 
 //------------------------------------------------------------------------------
