@@ -30,7 +30,7 @@ public:
      * @brief Constructor for the DDS sample data model.
      * @param[in] parent The parent for this data model.
      */
-    TopicTableModel(QTableView *parent, const QString& topicName);
+    TopicTableModel(QTableView* parent, const QString& topicName);
 
     /**
      * @brief Destructor for the DDS sample data model.
@@ -115,7 +115,7 @@ public:
     bool setData(const QModelIndex &index,
                  const QVariant &value,
                  int role = Qt::EditRole);
-    
+
     void updateDisplayHexAndAscii(bool new_hex, bool new_ascii);
 
     /**
@@ -132,13 +132,13 @@ public:
         VALUE_COLUMN,
         MAX_eColumnIds_VALUE
     };
-    
+
     /**
      * @brief controls the display mode of integer & ascii types.
      */
     bool disp_hex = false;
     bool disp_ascii = true;
-    
+
 signals:
 
     /**
@@ -149,10 +149,14 @@ signals:
 protected:
 
     template<typename T>
-    QVariant type_to_qvariant(T convertMe) {
+    QVariant type_to_qvariant(T convertMe)
+    {
         QVariant retMe;
 
-        if (disp_ascii && sizeof(T) == 1) {// looks stupid to have a redundant check, but the QChar wont compile with a larger type, so it is eliminated by the if constexpr in that case. Still need the original && sizeof(T)==1 so that no other type enters this path, display breaks if you don't have it.
+        if (disp_ascii && sizeof(T) == 1) {
+            // looks stupid to have a redundant check, but the QChar wont compile with a larger type,
+            // so it is eliminated by the if constexpr in that case.
+            // Still need the original && sizeof(T)==1 so that no other type enters this path, display breaks if you don't have it.
             if constexpr (sizeof(T) == 1) retMe = QChar(convertMe);
         }
         else if (disp_hex) {
@@ -176,7 +180,8 @@ protected:
     }
 
     template<typename T>
-    T qvariant_to_type(QVariant convertMe) {
+    T qvariant_to_type(QVariant convertMe)
+    {
         T retMe{};
 
         if (disp_ascii && sizeof(T) == 1) {
@@ -255,6 +260,8 @@ private:
     bool populateSample(std::shared_ptr<OpenDynamicData> const sample,
                         DataRow *dataInfo);
 
+    void cleanupDataRow();
+
     /// The table view using this model
     QTableView* m_tableView;
 
@@ -268,7 +275,7 @@ private:
     std::shared_ptr<OpenDynamicData> m_sample;
 
     /// For reverting.
-    DDS::DynamicData_var m_dynamicsample;
+    DDS::DynamicData_var m_dynamicSample;
 
     /// The name of the topic for this data model
     QString m_topicName;
