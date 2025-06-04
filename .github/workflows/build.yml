@@ -26,7 +26,7 @@ jobs:
           - latest-release
         runner:
           - windows-2022
-          - windows-2019
+          - windows-2025
           - ubuntu-22.04
           - ubuntu-24.04
           - macos-14
