@@ -515,12 +515,12 @@ void TablePage::on_topicTableView_pressed(const QModelIndex& index)
 
 //------------------------------------------------------------------------------
 void TablePage::on_hexButton_clicked() {
-    m_tableModel->updateDisplayHexAndAscii(hexButton->isChecked(),m_tableModel->disp_ascii);
+    m_tableModel->updateDisplayHex(hexButton->isChecked());
 }
 
 //------------------------------------------------------------------------------
 void TablePage::on_asciiButton_clicked() {
-    m_tableModel->updateDisplayHexAndAscii(m_tableModel->disp_hex,asciiButton->isChecked());
+    m_tableModel->updateDisplayAscii(asciiButton->isChecked());
 }
 
 
@@ -628,14 +628,19 @@ void TablePage::setSample(const QString& sampleName)
     m_selectedSample = sampleName;
 
     const auto topicInfo = CommonData::getTopicInfo(m_topicName);
-    if (topicInfo && topicInfo->typeCode())
+    if (!topicInfo)
+    {
+        std::cerr << "TablePage::setSample: No topic info available for topic \""
+                  << m_topicName.toStdString() << "\"" << std::endl;
+        return;
+    }
+
+    if (topicInfo->typeCode())
     {
         auto sample = CommonData::copySample(m_topicName, index);
         if (sample != nullptr)
         {
             m_tableModel->setSample(sample);
-            //printf("\n=== %s ===\n", m_topicName.toUtf8().data());
-            //sample->dump();
         }
     }
     else

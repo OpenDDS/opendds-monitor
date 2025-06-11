@@ -103,7 +103,7 @@ const std::shared_ptr<OpenDynamicData> TopicTableModel::commitSample()
     // Reset the edited state
     for (size_t i = 0; i < m_data.size(); i++)
     {
-        m_data.at(i)->edited = false;
+        m_data.at(i)->setEdited(false);
     }
 
     // Create a new sample
@@ -114,7 +114,9 @@ const std::shared_ptr<OpenDynamicData> TopicTableModel::commitSample()
     }
 
     // Create a copy of the current sample
-    std::shared_ptr<OpenDynamicData> newSample = CreateOpenDynamicData(topicInfo->typeCode(), QosDictionary::getEncodingKind(), topicInfo->extensibility());
+    std::shared_ptr<OpenDynamicData> newSample = CreateOpenDynamicData(topicInfo->typeCode(),
+                                                                       QosDictionary::getEncodingKind(),
+                                                                       topicInfo->extensibility());
     *newSample = *m_sample;
 
     // Populate the new sample from the user-edited changes
@@ -201,7 +203,7 @@ QVariant TopicTableModel::data(const QModelIndex &index, int role) const
 
     const DataRow* const member = m_data.at(row);
 
-    if (column == VALUE_COLUMN && member->edited == true)
+    if (column == VALUE_COLUMN && member->getEdited() == true)
     {
         if (role == Qt::BackgroundRole)
         {
@@ -218,15 +220,15 @@ QVariant TopicTableModel::data(const QModelIndex &index, int role) const
     // Is this a request to display the text value?
     if (role == Qt::DisplayRole && column == NAME_COLUMN)
     {
-        return member->name;
+        return member->getName();
     }
     else if (role == Qt::DisplayRole && column == VALUE_COLUMN)
     {
-        return member->value;
+        return member->getDisplayedValue();
     }
     else if (role == Qt::DisplayRole && column == TYPE_COLUMN)
     {
-        const CORBA::TCKind typeID = member->type;
+        const CORBA::TCKind typeID = member->getType();
         switch (typeID)
         {
         case CORBA::tk_short: return "int16";
@@ -259,7 +261,6 @@ bool TopicTableModel::setData(const QModelIndex &index,
                               int)
 {
     const int row = index.row();
-    DataRow* data = nullptr;
 
     // Make sure we're in bounds of the data array
     if (row < 0 || static_cast<size_t>(row) >= m_data.size())
@@ -268,7 +269,7 @@ bool TopicTableModel::setData(const QModelIndex &index,
     }
 
     // Make sure we found the data row
-    data = m_data.at(row);
+    DataRow* data = m_data.at(row);
     if (!data)
     {
         return false;
@@ -281,19 +282,18 @@ bool TopicTableModel::setData(const QModelIndex &index,
     }
 
     // If the user entered the same value, don't do anything
-    if (data->value == value)
+    if (data->getValue() == value)
     {
         return false;
     }
 
-    if (!data->setValue(this,value))
+    if (!data->setValue(value))
     {
         return false;
     }
 
     emit dataHasChanged();
     return true;
-
 }
 
 
@@ -303,74 +303,145 @@ void TopicTableModel::revertChanges()
     setSample(m_sample);
 }
 
+void TopicTableModel::updateDisplayHex(bool display_as_hex)
+{
+    if (m_dispHex == display_as_hex)
+    {
+        return;
+    }
+    // TODO(sonndinh): Complete
+}
 
-//------------------------------------------------------------------------------
-void TopicTableModel::updateDisplayHexAndAscii(bool new_hex, bool new_ascii){
+void TopicTableModel::updateDisplayAscii(bool display_as_ascii)
+{
+    if (m_dispAscii == display_as_ascii)
+    {
+        return;
+    }
+
     emit layoutAboutToBeChanged();
-    bool old_hex = disp_hex;
-    bool old_ascii = disp_ascii;
-    for (unsigned int i = 0; i < m_data.size(); i++) {
-        switch(m_data[i]->type){
-        case CORBA::tk_long: {
-            disp_hex = old_hex; disp_ascii = old_ascii;
-            int32_t tmpValue = qvariant_to_type<int32_t>(m_data[i]->value);
-            disp_hex = new_hex; disp_ascii = new_ascii;
-            m_data[i]->value = type_to_qvariant(tmpValue);
-        }break;
-        case CORBA::tk_short: {
-            disp_hex = old_hex; disp_ascii = old_ascii;
-            int16_t tmpValue = qvariant_to_type<int16_t>(m_data[i]->value);
-            disp_hex = new_hex; disp_ascii = new_ascii;
-            m_data[i]->value = type_to_qvariant(tmpValue);
-        }break;
-        case CORBA::tk_ushort: {
-            disp_hex = old_hex; disp_ascii = old_ascii;
-            uint16_t tmpValue = qvariant_to_type<uint16_t>(m_data[i]->value);
-            disp_hex = new_hex; disp_ascii = new_ascii;
-            m_data[i]->value = type_to_qvariant(tmpValue);
-        }break;
-        case CORBA::tk_ulong: {
-            disp_hex = old_hex; disp_ascii = old_ascii;
-            uint32_t tmpValue = qvariant_to_type<uint32_t>(m_data[i]->value);
-            disp_hex = new_hex; disp_ascii = new_ascii;
-            m_data[i]->value = type_to_qvariant(tmpValue);
-        }break;
-        case CORBA::tk_char:{
-            disp_hex = old_hex; disp_ascii = old_ascii;
-            char tmpValue = qvariant_to_type<char>(m_data[i]->value);
-            disp_hex = new_hex; disp_ascii = new_ascii;
-            m_data[i]->value = type_to_qvariant(tmpValue);
-        }break;
-        case CORBA::tk_octet: {
-            disp_hex = old_hex; disp_ascii = old_ascii;
-            uint8_t tmpValue = qvariant_to_type<uint8_t>(m_data[i]->value);
-            disp_hex = new_hex; disp_ascii = new_ascii;
-            m_data[i]->value = type_to_qvariant(tmpValue);
-        }break;
-        case CORBA::tk_longlong:{
-            disp_hex = old_hex; disp_ascii = old_ascii;
-            qint64 tmpValue = qvariant_to_type<qint64>(m_data[i]->value);
-            disp_hex = new_hex; disp_ascii = new_ascii;
-            m_data[i]->value = type_to_qvariant(tmpValue);
-            }break;
-        case CORBA::tk_ulonglong:{
-            disp_hex = old_hex; disp_ascii = old_ascii;
-            quint64 tmpValue = qvariant_to_type<quint64>(m_data[i]->value);
-            disp_hex = new_hex; disp_ascii = new_ascii;
-            m_data[i]->value = type_to_qvariant(tmpValue);
-            }break;
-        default:
-            break;
-        }
+    m_dispAscii = display_as_ascii;
+
+    // TODO(sonndinh): Each DataRow keeps the original value of the member and the displayed value
+    // associated with the current m_dispAscii and m_dispHex settings. Depending on the type and
+    // settings, they can be different or the same. By keping the original value, we don't have
+    // to convert the value back and forth between the original value and the displayed value
+    // when the display settings change.
+    for (unsigned int i = 0; i < m_data.size(); i++)
+    {
+        m_data[i]->updateDisplayedValue();
+
+    //     switch(m_data[i]->type)
+    //     {
+    //     case CORBA::tk_long:
+    //     {
+    //         //const int32_t tmpValue = qvariant_to_type<int32_t>(m_data[i]->value);
+    //         //m_data[i]->value = type_to_qvariant(tmpValue);
+    //         m_data[i]->displayedValue = type_to_qvariant(m_data[i]->origValue);
+    //     }
+    //     break;
+    //     case CORBA::tk_short: {
+    //         int16_t tmpValue = qvariant_to_type<int16_t>(m_data[i]->value);
+    //         m_data[i]->value = type_to_qvariant(tmpValue);
+    //     }break;
+    //     case CORBA::tk_ushort: {
+    //         uint16_t tmpValue = qvariant_to_type<uint16_t>(m_data[i]->value);
+    //         m_data[i]->value = type_to_qvariant(tmpValue);
+    //     }break;
+    //     case CORBA::tk_ulong: {
+    //         uint32_t tmpValue = qvariant_to_type<uint32_t>(m_data[i]->value);
+    //         m_data[i]->value = type_to_qvariant(tmpValue);
+    //     }break;
+    //     case CORBA::tk_char:{
+    //         char tmpValue = qvariant_to_type<char>(m_data[i]->value);
+    //         m_data[i]->value = type_to_qvariant(tmpValue);
+    //     }break;
+    //     case CORBA::tk_octet: {
+    //         uint8_t tmpValue = qvariant_to_type<uint8_t>(m_data[i]->value);
+    //         m_data[i]->value = type_to_qvariant(tmpValue);
+    //     }break;
+    //     case CORBA::tk_longlong:{
+    //         qint64 tmpValue = qvariant_to_type<qint64>(m_data[i]->value);
+    //         m_data[i]->value = type_to_qvariant(tmpValue);
+    //         }break;
+    //     case CORBA::tk_ulonglong:{
+    //         quint64 tmpValue = qvariant_to_type<quint64>(m_data[i]->value);
+    //         m_data[i]->value = type_to_qvariant(tmpValue);
+    //         }break;
+    //     default:
+    //         break;
+    //     }
     }
     emit layoutChanged();
 }
 
 //------------------------------------------------------------------------------
+// void TopicTableModel::updateDisplayHexAndAscii(bool new_hex, bool new_ascii){
+//     emit layoutAboutToBeChanged();
+//     bool old_hex = disp_hex;
+//     bool old_ascii = disp_ascii;
+//     for (unsigned int i = 0; i < m_data.size(); i++) {
+//         switch(m_data[i]->type){
+//         case CORBA::tk_long: {
+//             disp_hex = old_hex; disp_ascii = old_ascii;
+//             int32_t tmpValue = qvariant_to_type<int32_t>(m_data[i]->value);
+//             disp_hex = new_hex; disp_ascii = new_ascii;
+//             m_data[i]->value = type_to_qvariant(tmpValue);
+//         }break;
+//         case CORBA::tk_short: {
+//             disp_hex = old_hex; disp_ascii = old_ascii;
+//             int16_t tmpValue = qvariant_to_type<int16_t>(m_data[i]->value);
+//             disp_hex = new_hex; disp_ascii = new_ascii;
+//             m_data[i]->value = type_to_qvariant(tmpValue);
+//         }break;
+//         case CORBA::tk_ushort: {
+//             disp_hex = old_hex; disp_ascii = old_ascii;
+//             uint16_t tmpValue = qvariant_to_type<uint16_t>(m_data[i]->value);
+//             disp_hex = new_hex; disp_ascii = new_ascii;
+//             m_data[i]->value = type_to_qvariant(tmpValue);
+//         }break;
+//         case CORBA::tk_ulong: {
+//             disp_hex = old_hex; disp_ascii = old_ascii;
+//             uint32_t tmpValue = qvariant_to_type<uint32_t>(m_data[i]->value);
+//             disp_hex = new_hex; disp_ascii = new_ascii;
+//             m_data[i]->value = type_to_qvariant(tmpValue);
+//         }break;
+//         case CORBA::tk_char:{
+//             disp_hex = old_hex; disp_ascii = old_ascii;
+//             char tmpValue = qvariant_to_type<char>(m_data[i]->value);
+//             disp_hex = new_hex; disp_ascii = new_ascii;
+//             m_data[i]->value = type_to_qvariant(tmpValue);
+//         }break;
+//         case CORBA::tk_octet: {
+//             disp_hex = old_hex; disp_ascii = old_ascii;
+//             uint8_t tmpValue = qvariant_to_type<uint8_t>(m_data[i]->value);
+//             disp_hex = new_hex; disp_ascii = new_ascii;
+//             m_data[i]->value = type_to_qvariant(tmpValue);
+//         }break;
+//         case CORBA::tk_longlong:{
+//             disp_hex = old_hex; disp_ascii = old_ascii;
+//             qint64 tmpValue = qvariant_to_type<qint64>(m_data[i]->value);
+//             disp_hex = new_hex; disp_ascii = new_ascii;
+//             m_data[i]->value = type_to_qvariant(tmpValue);
+//             }break;
+//         case CORBA::tk_ulonglong:{
+//             disp_hex = old_hex; disp_ascii = old_ascii;
+//             quint64 tmpValue = qvariant_to_type<quint64>(m_data[i]->value);
+//             disp_hex = new_hex; disp_ascii = new_ascii;
+//             m_data[i]->value = type_to_qvariant(tmpValue);
+//             }break;
+//         default:
+//             break;
+//         }
+//     }
+//     emit layoutChanged();
+// }
+
+//------------------------------------------------------------------------------
 void TopicTableModel::parseData(const std::shared_ptr<OpenDynamicData> data)
 {
     const size_t childCount = data->getLength();
-    for (size_t i = 0; i < childCount; i++)
+    for (size_t i = 0; i < childCount; ++i)
     {
         const std::shared_ptr<OpenDynamicData> child = data->getMember(i);
         if (!child)
@@ -385,13 +456,11 @@ void TopicTableModel::parseData(const std::shared_ptr<OpenDynamicData> data)
             continue;
         }
 
-
-        DataRow* dataRow = new DataRow;
-        dataRow->type = child->getKind();
-        dataRow->isOptional = false;
-        dataRow->name = child->getFullName().c_str();
-        dataRow->isKey = false; // TODO?
-
+        DataRow* dataRow = new DataRow(this,
+                                       child->getFullName().c_str(),
+                                       child->getKind(),
+                                       false, // TODO
+                                       false);
 
         // Update the current editor delegate
         const int thisRow = static_cast<int>(m_data.size());
@@ -401,88 +470,87 @@ void TopicTableModel::parseData(const std::shared_ptr<OpenDynamicData> data)
         }
         m_tableView->setItemDelegateForRow(thisRow, new LineEditDelegate(this));
 
-
         // Store the value into a QVariant
         // The tmpValue may seem redundant, but it's very helpful for debug
-        switch (dataRow->type)
+        switch (dataRow->getType())
         {
         case CORBA::tk_long:
         {
-            int32_t tmpValue = child->getValue<int32_t>();
-            dataRow->value = type_to_qvariant(tmpValue);
+            const int32_t tmpValue = child->getValue<int32_t>();
+            dataRow->setValue(tmpValue);
             break;
         }
         case CORBA::tk_short:
         {
-            int16_t tmpValue = child->getValue<int16_t>();
-            dataRow->value = type_to_qvariant(tmpValue);
+            const int16_t tmpValue = child->getValue<int16_t>();
+            dataRow->setValue(tmpValue);
             break;
         }
         case CORBA::tk_ushort:
         {
-            uint16_t tmpValue = child->getValue<uint16_t>();
-            dataRow->value = type_to_qvariant(tmpValue);
+            const uint16_t tmpValue = child->getValue<uint16_t>();
+            dataRow->setValue(tmpValue);
             break;
         }
         case CORBA::tk_ulong:
         {
-            uint32_t tmpValue = child->getValue<uint32_t>();
-            dataRow->value = type_to_qvariant(tmpValue);
+            const uint32_t tmpValue = child->getValue<uint32_t>();
+            dataRow->setValue(tmpValue);
             break;
         }
         case CORBA::tk_float:
         {
-            float tmpValue = child->getValue<float>();
-            dataRow->value = tmpValue;
+            const float tmpValue = child->getValue<float>();
+            dataRow->setValue(tmpValue);
             break;
         }
         case CORBA::tk_double:
         {
-            double tmpValue = child->getValue<double>();
-            dataRow->value = tmpValue;
+            const double tmpValue = child->getValue<double>();
+            dataRow->setValue(tmpValue);
             break;
         }
         case CORBA::tk_boolean:
         {
-            uint32_t tmpValue = child->getValue<uint32_t>();
-            dataRow->value = tmpValue;
+            const bool tmpValue = child->getValue<bool>();
+            dataRow->setValue(tmpValue);
             break;
         }
         case CORBA::tk_char:
         {
-            char tmpValue = child->getValue<char>();
-            dataRow->value = type_to_qvariant(tmpValue);
+            const char tmpValue = child->getValue<char>();
+            dataRow->setValue(tmpValue);
             break;
         }
         case CORBA::tk_wchar:
         {
             wchar_t tmpValue[2] = { 0, 0 };
             tmpValue[0] = child->getValue<wchar_t>();
-            dataRow->value = QString(ACE_Wide_To_Ascii(tmpValue).char_rep());
+            dataRow->setValue(QString(ACE_Wide_To_Ascii(tmpValue).char_rep()));
             break;
         }
         case CORBA::tk_octet:
         {
-            uint8_t tmpValue = child->getValue<uint8_t>();
-            dataRow->value = type_to_qvariant(tmpValue);
+            const uint8_t tmpValue = child->getValue<uint8_t>();
+            dataRow->setValue(tmpValue);
             break;
         }
         case CORBA::tk_longlong:
         {
-            qint64 tmpValue = child->getValue<qint64>();
-            dataRow->value = type_to_qvariant(tmpValue);
+            const qint64 tmpValue = child->getValue<qint64>();
+            dataRow->setValue(tmpValue);
             break;
         }
         case CORBA::tk_ulonglong:
         {
-            quint64 tmpValue = child->getValue<quint64>();
-            dataRow->value = type_to_qvariant(tmpValue);
+            const quint64 tmpValue = child->getValue<quint64>();
+            dataRow->setValue(tmpValue);
             break;
         }
         case CORBA::tk_string:
         {
             const char* tmpValue = child->getStringValue();
-            dataRow->value = tmpValue;
+            dataRow->setValue(tmpValue);
             break;
         }
         case CORBA::tk_enum:
@@ -493,7 +561,7 @@ void TopicTableModel::parseData(const std::shared_ptr<OpenDynamicData> data)
             const CORBA::ULong enumMemberCount = enumTypeCode->member_count();
             if (enumValue >= enumMemberCount)
             {
-                dataRow->value = "INVALID";
+                dataRow->setValue("INVALID");
                 break;
             }
 
@@ -505,32 +573,28 @@ void TopicTableModel::parseData(const std::shared_ptr<OpenDynamicData> data)
 
             // Install the new delegate
             ComboDelegate *enumDelegate = new ComboDelegate(this);
-            for (CORBA::ULong enumIndex = 0; enumIndex < enumMemberCount; enumIndex++)
+            for (CORBA::ULong enumIndex = 0; enumIndex < enumMemberCount; ++enumIndex)
             {
                 QString stringValue = enumTypeCode->member_name(enumIndex);
                 if (!stringValue.isEmpty())
                 {
-                    enumDelegate->addItem(stringValue, (int)enumIndex);
+                    enumDelegate->addItem(stringValue, static_cast<int>(enumIndex));
                 }
             }
 
             m_tableView->setItemDelegateForRow(thisRow, enumDelegate);
-            dataRow->value = enumTypeCode->member_name(enumValue);
-
+            dataRow->setValue(enumTypeCode->member_name(enumValue));
             break;
-        } // End enum block
+        }
         default:
-            std::cerr << "unknown kind: " << dataRow->type << std::endl;
-            dataRow->value = "NULL";
+            std::cerr << "TopicTableModel::parseData: Unknown kind: " << dataRow->getType() << std::endl;
+            dataRow->setValue("NULL");
             break;
-
-        } // End child type switch
+        }
 
         m_data.push_back(dataRow);
-
-    } // End member loop
-
-} // End TopicTableModel::parseData
+    }
+}
 
 //------------------------------------------------------------------------------
 CORBA::TCKind TopicTableModel::typekind_to_tckind(DDS::TypeKind tk)
@@ -605,11 +669,11 @@ void TopicTableModel::setDataRow(DataRow* const data_row,
                                  const DDS::DynamicData_var& data,
                                  DDS::MemberId id)
 {
-    switch (data_row->type) {
+    switch (data_row->getType()) {
     case CORBA::tk_long: {
         CORBA::Long value;
         if (check_rc(data->get_int32_value(value, id), "get_int32_value failed")) {
-            data_row->value = static_cast<int32_t>(value);
+            data_row->setValue(static_cast<int32_t>(value));
         }
         break;
     }
@@ -622,7 +686,7 @@ void TopicTableModel::setDataRow(DataRow* const data_row,
           value = static_cast<CORBA::Short>(tmp);
         }
         if (check_rc(ret, "get_int16_value failed")) {
-            data_row->value = static_cast<int16_t>(value);
+            data_row->setValue(static_cast<int16_t>(value));
         }
         break;
     }
@@ -635,77 +699,77 @@ void TopicTableModel::setDataRow(DataRow* const data_row,
           value = static_cast<CORBA::UShort>(tmp);
         }
         if (check_rc(ret, "get_uint16_value failed")) {
-            data_row->value = static_cast<uint16_t>(value);
+            data_row->setValue(static_cast<uint16_t>(value));
         }
         break;
     }
     case CORBA::tk_ulong: {
         CORBA::ULong value;
         if (check_rc(data->get_uint32_value(value, id), "get_uint32_value failed")) {
-            data_row->value = static_cast<uint32_t>(value);
+            data_row->setValue(static_cast<uint32_t>(value));
         }
         break;
     }
     case CORBA::tk_float: {
         CORBA::Float value;
         if (check_rc(data->get_float32_value(value, id), "get_float32_value failed")) {
-            data_row->value = static_cast<float>(value);
+            data_row->setValue(static_cast<float>(value));
         }
         break;
     }
     case CORBA::tk_double: {
         CORBA::Double value;
         if (check_rc(data->get_float64_value(value, id), "get_float64_value failed")) {
-            data_row->value = static_cast<double>(value);
+            data_row->setValue(static_cast<double>(value));
         }
         break;
     }
     case CORBA::tk_boolean: {
         CORBA::Boolean value;
         if (check_rc(data->get_boolean_value(value, id), "get_boolean_value failed")) {
-            data_row->value = static_cast<uint32_t>(value);
+            data_row->setValue(static_cast<uint32_t>(value));
         }
         break;
     }
     case CORBA::tk_char: {
         CORBA::Char value[2] = { 0, 0 };
         if (check_rc(data->get_char8_value(value[0], id), "get_char8_value failed")) {
-            data_row->value = QString(value);
+            data_row->setValue(QString(value));
         }
         break;
     }
     case CORBA::tk_wchar: {
         CORBA::WChar value[2] = { 0, 0 };
         if (check_rc(data->get_char16_value(value[0], id), "get_char16_value failed")) {
-            data_row->value = QString(ACE_Wide_To_Ascii(value).char_rep());
+            data_row->setValue(QString(ACE_Wide_To_Ascii(value).char_rep()));
         }
         break;
     }
     case CORBA::tk_octet: {
         CORBA::Octet value;
         if (check_rc(data->get_byte_value(value, id), "get_byte_value failed")) {
-            data_row->value = static_cast<uint8_t>(value);
+            data_row->setValue(static_cast<uint8_t>(value));
         }
         break;
     }
     case CORBA::tk_longlong: {
         CORBA::LongLong value;
         if (check_rc(data->get_int64_value(value, id), "get_int64_value failed")) {
-            data_row->value = static_cast<qint64>(value);
+            data_row->setValue(static_cast<qint64>(value));
         }
         break;
     }
     case CORBA::tk_ulonglong: {
         CORBA::ULongLong value;
         if (check_rc(data->get_uint64_value(value, id), "get_uint64_value failed")) {
-            data_row->value = static_cast<quint64>(value);
+            data_row->setValue(static_cast<quint64>(value));
         }
         break;
     }
     case CORBA::tk_string: {
         CORBA::String_var value;
         if (check_rc(data->get_string_value(value, id), "get_string_value failed")) {
-            data_row->value = value.in();
+            data_row->setValue(value.in());
         }
         break;
     }
@@ -749,12 +813,12 @@ void TopicTableModel::setDataRow(DataRow* const data_row,
                 std::cerr << "get_descriptor failed for enum literal with value " << value << std::endl;
                 break;
             }
-            data_row->value = enum_lit_md->name();
+            data_row->setValue(enum_lit_md->name());
         }
         break;
     }
     default:
-        data_row->value = "NULL";
+        data_row->setValue("NULL");
         break;
     }
 }
@@ -798,13 +862,15 @@ void TopicTableModel::parseCollection(const DDS::DynamicData_var& data, const st
         }
         }
 
+        const std::string scoped_elem_name = namePrefix + "[" + std::to_string(i) + "]";
+
         // DataRow for each element
-        DataRow* data_row = new DataRow;
-        data_row->type = typekind_to_tckind(elem_tk);
-        data_row->isOptional = false; // TODO: Get the right value from the containing type
-        std::string scoped_elem_name = namePrefix + "[" + std::to_string(i) + "]";
-        data_row->name = scoped_elem_name.c_str();
-        data_row->isKey = false; // TODO: Get the right value from the containing type
+        DataRow* data_row = new DataRow(this,
+                                        scoped_elem_name.c_str(),
+                                        typekind_to_tckind(elem_tk),
+                                        false, // TODO: Get the right value from the containing type
+                                        false // TODO: Get the right value from the containing type
+                                        );
 
         // Update the current editor delegate
         const int thisRow = static_cast<int>(m_data.size());
@@ -844,7 +910,7 @@ void TopicTableModel::parseAggregated(const DDS::DynamicData_var& data, const st
             continue;
         }
 
-        std::string scoped_member_name = namePrefix.empty() ? md->name() : namePrefix + "." + md->name();
+        const std::string scoped_member_name = namePrefix.empty() ? md->name() : namePrefix + "." + md->name();
         const DDS::DynamicType_var base_type = OpenDDS::XTypes::get_base_type(md->type());
         const OpenDDS::XTypes::TypeKind member_tk = base_type->get_kind();
         switch (member_tk) {
@@ -864,11 +930,11 @@ void TopicTableModel::parseAggregated(const DDS::DynamicData_var& data, const st
         }
 
         // DataRow for each member
-        DataRow* data_row = new DataRow;
-        data_row->type = typekind_to_tckind(member_tk);
-        data_row->isOptional = md->is_optional();
-        data_row->name = scoped_member_name.c_str();
-        data_row->isKey = md->is_key(); // TODO: Handle implicit key case
+        DataRow* data_row = new DataRow(this,
+                                        scoped_member_name.c_str(),
+                                        typekind_to_tckind(member_tk),
+                                        md->is_key(), // TODO: Handle implicit key case
+                                        md->is_optional());
 
         // Update the current editor delegate
         const int thisRow = static_cast<int>(m_data.size());
@@ -912,7 +978,7 @@ bool TopicTableModel::populateSample(std::shared_ptr<OpenDynamicData> const samp
         return false;
     }
 
-    const std::string memberName = dataInfo->name.toUtf8().data();
+    const std::string memberName = dataInfo->getName().toUtf8().data();
     std::shared_ptr<OpenDynamicData> memberData = sample->getMember(memberName);
     if (!memberData)
     {
@@ -924,152 +990,163 @@ bool TopicTableModel::populateSample(std::shared_ptr<OpenDynamicData> const samp
         return false;
     }
 
-    switch (dataInfo->type)
+    switch (dataInfo->getType())
     {
     case CORBA::tk_long:
     {
-        int32_t tmpValue = qvariant_to_type<int32_t>(dataInfo->value);
-        memberData->setValue(tmpValue);
-        pass = true;
-        break;
-    }
-    case CORBA::tk_short:
-    {
-        int16_t tmpValue = qvariant_to_type<int16_t>(dataInfo->value);
-        memberData->setValue(tmpValue);
-        pass = true;
-        break;
-    }
-    case CORBA::tk_ushort:
-    {
-        uint16_t tmpValue = qvariant_to_type<uint16_t>(dataInfo->value);
-        memberData->setValue(tmpValue);
-        pass=true;
+        const int32_t intVal = dataInfo->getValue().toInt(&pass);
+        if (pass)
+        {
+            memberData->setValue(intVal);
+        }
         break;
     }
     case CORBA::tk_ulong:
     {
-        uint32_t tmpValue = qvariant_to_type<uint32_t>(dataInfo->value);
-        memberData->setValue(tmpValue);
-        pass = true;
+        const uint32_t uintVal = dataInfo->getValue().toUInt(&pass);
+        if (pass)
+        {
+            memberData->setValue(uintVal);
+        }
+        break;
+    }
+    case CORBA::tk_short:
+    {
+        const int32_t intVal = dataInfo->getValue().toInt(&pass);
+        if (pass)
+        {
+            memberData->setValue(static_cast<int16_t>(intVal));
+        }
+        break;
+    }
+    case CORBA::tk_ushort:
+    {
+        const uint32_t uintVal = dataInfo->getValue().toUInt(&pass);
+        if (pass)
+        {
+            memberData->setValue(static_cast<uint16_t>(uintVal));
+        }
         break;
     }
     case CORBA::tk_float:
     {
-        float tmpValue = dataInfo->value.toFloat(&pass);
+        const float fltVal = dataInfo->getValue().toFloat(&pass);
         if (pass)
         {
-            memberData->setValue(tmpValue);
+            memberData->setValue(fltVal);
         }
         break;
     }
     case CORBA::tk_double:
     {
-        double tmpValue = dataInfo->value.toDouble(&pass);
+        const double dblVal = dataInfo->getValue().toDouble(&pass);
         if (pass)
         {
-            memberData->setValue(tmpValue);
+            memberData->setValue(dblVal);
         }
         break;
     }
     case CORBA::tk_boolean:
     {
-        if (dataInfo->value.canConvert<bool>())
+        if (dataInfo->getValue().canConvert<bool>())
         {
-            bool tmpValue = dataInfo->value.toBool();
-            memberData->setValue(tmpValue);
+            const bool val = dataInfo->getValue().toBool();
+            memberData->setValue(val);
             pass = true;
         }
         break;
     }
     case CORBA::tk_char:
     {
-        if (dataInfo->value.canConvert<char>())
+        if (dataInfo->getValue().canConvert<char>())
         {
-            char tmpValue = qvariant_to_type<char>(dataInfo->value);
-            memberData->setValue(tmpValue);
+            const char val = dataInfo->getValue().toChar().toLatin1();
+            memberData->setValue(val);
             pass = true;
         }
         break;
     }
     case CORBA::tk_wchar:
     {
-        if (dataInfo->value.canConvert<char>())
+        if (dataInfo->getValue().canConvert<QChar>())
         {
-            char tmpValue = dataInfo->value.toChar().toLatin1();
-            memberData->setValue(tmpValue);
+            const char16_t val = dataInfo->getValue().toChar().unicode();
+            memberData->setValue(val);
             pass = true;
         }
         break;
     }
     case CORBA::tk_octet:
     {
-
-        uint8_t tmpValue = qvariant_to_type<uint8_t>(dataInfo->value);
-        memberData->setValue(tmpValue);
-        pass = true;
+        const uint32_t uintVal = dataInfo->getValue().toUInt(&pass);
+        if (pass)
+        {
+            memberData->setValue(static_cast<uint8_t>(uintVal));
+        }
         break;
     }
     case CORBA::tk_longlong:
     {
-        int64_t tmpValue = qvariant_to_type<int64_t>(dataInfo->value);
-        memberData->setValue(tmpValue);
-        pass = true;
+        const int64_t llVal = dataInfo->getValue().toLongLong(&pass);
+        if (pass)
+        {
+            memberData->setValue(llVal);
+        }
         break;
     }
     case CORBA::tk_ulonglong:
     {
-        uint64_t tmpValue = qvariant_to_type<uint64_t>(dataInfo->value);
-        memberData->setValue(tmpValue);
-        pass = true;
+        const uint64_t ullVal = dataInfo->getValue().toULongLong(&pass);
+        if (pass)
+        {
+            memberData->setValue(ullVal);
+        }
         break;
     }
     case CORBA::tk_string:
     {
-        memberData->setStringValue(dataInfo->value.toString().toUtf8().data());
+        memberData->setStringValue(dataInfo->getValue().toString().toUtf8().data());
         pass = true;
         break;
     }
     case CORBA::tk_enum:
     {
-        const QString enumStringValue = dataInfo->value.toString();
+        const QString enumStringValue = dataInfo->getValue().toString();
         CORBA::TypeCode_var enumTypeCode = memberData->getTypeCode();
         const CORBA::ULong enumMemberCount = enumTypeCode->member_count();
 
         // Find the enum int value of this enum string
-        for (CORBA::ULong enumIndex = 0; enumIndex < enumMemberCount; enumIndex++)
+        for (CORBA::ULong i = 0; i < enumMemberCount; ++i)
         {
-            QString searchValue = enumTypeCode->member_name(enumIndex);
+            const QString searchValue = enumTypeCode->member_name(i);
             if (searchValue == enumStringValue)
             {
-                memberData->setValue(enumIndex);
+                memberData->setValue(i);
                 pass = true;
                 break;
             }
         }
         break;
-
-    } // End enum block
-
+    }
     default:
-        std::cerr << "TopicTableModel::populateSample "
-                  << "Skipped "
-                  << memberName
-                  << std::endl;
+        std::cerr << "TopicTableModel::populateSample: Unsupported type for member \""
+                  << memberName << "\"" << std::endl;
         break;
-
-    } // End child type switch
+    }
 
     return pass;
-
 }
 
 
 //------------------------------------------------------------------------------
-TopicTableModel::DataRow::DataRow() : type(CORBA::tk_null),
-                                      isKey(false),
-                                      isOptional(false),
-                                      edited(false)
+TopicTableModel::DataRow::DataRow(TopicTableModel* parent, QString name,
+  CORBA::TCKind kind, bool isKey, bool isOptional)
+    : m_parent(parent)
+    , m_name(name)
+    , m_type(kind)
+    , m_isKey(isKey)
+    , m_isOptional(isOptional)
+    , m_edited(false)
 {}
 
 
@@ -1079,88 +1156,216 @@ TopicTableModel::DataRow::~DataRow()
 
 
 //------------------------------------------------------------------------------
-bool TopicTableModel::DataRow::setValue(TopicTableModel* parent, const QVariant& newValue)
+bool TopicTableModel::DataRow::setValue(const QVariant& newValue)
 {
-    QVariant tempNewValue = newValue;
-    QVariant tempValue = value;
+    QVariant origValue = newValue, dispValue;
     bool pass = false;
-    switch (type)
+
+    switch (m_type)
     {
-        case CORBA::tk_long:
-            tempNewValue = parent->qvariant_to_type<int32_t>(tempNewValue);
-            tempValue = parent->qvariant_to_type<int32_t>(tempValue);
-            tempValue.toInt(&pass);
+    case CORBA::tk_long:
+    {
+        const int intVal = newValue.toInt(&pass);
+        if (pass)
+        {
+            origValue = intVal;
+            dispValue = m_parent->type_to_qvariant(intVal);
+        }
+        break;
+    }
+    case CORBA::tk_short:
+    {
+        const int intVal = newValue.toInt(&pass);
+        if (pass)
+        {
+            // Truncate the input value to fit the type of the member.
+            const qint16 shortVal = static_cast<qint16>(intVal);
+            origValue = shortVal;
+            dispValue = m_parent->type_to_qvariant(shortVal);
+        }
+        break;
+    }
+    case CORBA::tk_enum:
+    {
+        // Make sure the input value matches one of the enumerators.
+        const QString strVal = newValue.toString();
+        if (strVal.isEmpty())
+        {
             break;
-        case CORBA::tk_short:
-            tempNewValue = parent->qvariant_to_type<int16_t>(tempNewValue);
-            tempValue = parent->qvariant_to_type<int16_t>(tempValue);
-            tempValue.toInt(&pass);
-            break;
-        case CORBA::tk_enum:
-            pass = true;
-            break;
-        case CORBA::tk_ushort:
-            tempNewValue = parent->qvariant_to_type<uint16_t>(tempNewValue);
-            tempValue = parent->qvariant_to_type<uint16_t>(tempValue);
-            tempValue.toUInt(&pass);
-            break;
-        case CORBA::tk_ulong:
-            tempNewValue = parent->qvariant_to_type<uint32_t>(tempNewValue);
-            tempValue = parent->qvariant_to_type<uint32_t>(tempValue);
-            tempValue.toUInt(&pass);
-            break;
-        case CORBA::tk_float:
-            tempValue.toFloat(&pass);
-            break;
-        case CORBA::tk_double:
-            tempValue.toDouble(&pass);
-            break;
-        case CORBA::tk_boolean:
-            if (tempValue.toString() == "0" || tempValue.toString() == "1")
+        }
+        origValue = strVal;
+
+        CORBA::TypeCode_var enumTypeCode = m_parent->m_sample->getTypeCode();
+        const CORBA::ULong memberCount = enumTypeCode->member_count();
+        for (CORBA::ULong i = 0; i < memberCount; ++i)
+        {
+            if (origValue == enumTypeCode->member_name(i))
             {
                 pass = true;
+                dispValue = origValue;
+                break;
             }
-            break;
-        case CORBA::tk_char:
-            tempNewValue = parent->qvariant_to_type<char>(tempNewValue);
-            tempValue = parent->qvariant_to_type<char>(tempValue);
-            tempValue.toLongLong(&pass);
-            break;
-        case CORBA::tk_octet:
-            tempNewValue = parent->qvariant_to_type<uint8_t>(tempNewValue);
-            tempValue = parent->qvariant_to_type<uint8_t>(tempValue);
-            tempValue.toLongLong(&pass);
-            break;
-        case CORBA::tk_longlong:
-            tempNewValue = parent->qvariant_to_type<qint64>(tempNewValue);
-            tempValue = parent->qvariant_to_type<qint64>(tempValue);
-            tempValue.toLongLong(&pass);
-            break;
-        case CORBA::tk_ulonglong:
-            tempNewValue = parent->qvariant_to_type<quint64>(tempNewValue);
-            tempValue = parent->qvariant_to_type<quint64>(tempValue);
-            tempValue.toULongLong(&pass);
-            break;
-        case CORBA::tk_string:
-            pass = true;
-            break;
-        default:
-            pass = false;
-            break;
+        }
+        break;
+    }
+    case CORBA::tk_ushort:
+    {
+        const unsigned int uintVal = newValue.toUInt(&pass);
+        if (pass)
+        {
+            const quint16 ushortVal = static_cast<quint16>(uintVal);
+            origValue = ushortVal;
+            dispValue = m_parent->type_to_qvariant(ushortVal);
+        }
+        break;
+    }
+    case CORBA::tk_ulong:
+    {
+        const unsigned int uintVal = newValue.toUInt(&pass);
+        if (pass)
+        {
+            origValue = uintVal;
+            dispValue = m_parent->type_to_qvariant(uintVal);
+        }
+        break;
+    }
+    case CORBA::tk_float:
+        origValue = newValue.toFloat(&pass);
+        dispValue = origValue;
+        break;
+    case CORBA::tk_double:
+        origValue = newValue.toDouble(&pass);
+        dispValue = origValue;
+        break;
+    case CORBA::tk_boolean:
+        origValue = newValue.toBool();
+        dispValue = origValue;
+        pass = true;
+        break;
+    case CORBA::tk_char:
+        pass = newValue.canConvert<QChar>();
+        if (pass)
+        {
+            const QChar charVal = newValue.toChar();
+            origValue = charVal;
+            dispValue = m_parent->type_to_qvariant(charVal.toLatin1());
+        }
+        break;
+    case CORBA::tk_octet:
+    {
+        const unsigned int uintVal = newValue.toUInt(&pass);
+        if (pass)
+        {
+            const quint8 octetVal = static_cast<quint8>(uintVal);
+            origValue = octetVal;
+            dispValue = m_parent->type_to_qvariant(octetVal);
+        }
+        break;
+    }
+    case CORBA::tk_longlong:
+    {
+        const qlonglong llVal = newValue.toLongLong(&pass);
+        if (pass)
+        {
+            origValue = llVal;
+            dispValue = m_parent->type_to_qvariant(llVal);
+        }
+        break;
+    }
+    case CORBA::tk_ulonglong:
+    {
+        const qulonglong ullVal = newValue.toULongLong(&pass);
+        if (pass)
+        {
+            origValue = ullVal;
+            dispValue = m_parent->type_to_qvariant(ullVal);
+        }
+        break;
+    }
+    case CORBA::tk_string:
+        pass = newValue.canConvert<QString>();
+        if (pass)
+        {
+            origValue = newValue.toString();
+            dispValue = origValue;
+        }
+        break;
+    default:
+        break;
     }
 
-    if (pass && tempValue != tempNewValue)
+    if (pass)
     {
-        value = newValue;
-        edited = true;
-
+        m_value = origValue;
+        m_displayedValue = dispValue;
+        m_edited = true;
         return true;
     }
 
     return false;
+}
 
-} // End TopicTableModel::DataRow::setValue
-
+void TopicTableModel::DataRow::updateDisplayedValue()
+{
+    switch (m_type)
+    {
+    case CORBA::tk_long:
+    {
+        // The type of the value stored in m_value should be consistent with
+        // the CORBA::tk_* type. So this call to toInt() and the following calls
+        // should succeed.
+        const qint32 intVal = m_value.toInt();
+        m_displayedValue = m_parent->type_to_qvariant(intVal);
+        break;
+    }
+    case CORBA::tk_ulong:
+    {
+        const quint32 uintVal = m_value.toUInt();
+        m_displayedValue = m_parent->type_to_qvariant(uintVal);
+        break;
+    }
+    case CORBA::tk_short:
+    {
+        // Can't get the short value directly. Read it through toInt().
+        // Similar for other types that can't be read directly from QVariant.
+        const qint16 shortVal = static_cast<qint16>(m_value.toInt());
+        m_displayedValue = m_parent->type_to_qvariant(shortVal);
+        break;
+    }
+    case CORBA::tk_ushort:
+    {
+        const quint16 ushortVal = static_cast<quint16>(m_value.toUInt());
+        m_displayedValue = m_parent->type_to_qvariant(ushortVal);
+        break;
+    }
+    case CORBA::tk_char:
+    {
+        const char cVal = m_value.toChar().toLatin1();
+        m_displayedValue = m_parent->type_to_qvariant(cVal);
+        break;
+    }
+    case CORBA::tk_octet:
+    {
+        const quint8 octetVal = static_cast<quint8>(m_value.toUInt());
+        m_displayedValue = m_parent->type_to_qvariant(octetVal);
+        break;
+    }
+    case CORBA::tk_longlong:
+    {
+        const qint64 llVal = m_value.toLongLong();
+        m_displayedValue = m_parent->type_to_qvariant(llVal);
+        break;
+    }
+    case CORBA::tk_ulonglong:
+    {
+        const quint64 ullVal = m_value.toULongLong();
+        m_displayedValue = m_parent->type_to_qvariant(ullVal);
+        break;
+    }
+    default:
+        break;
+    }
+}
 
 /**
  * @}
