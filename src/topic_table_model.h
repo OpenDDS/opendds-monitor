@@ -30,7 +30,7 @@ public:
      * @brief Constructor for the DDS sample data model.
      * @param[in] parent The parent for this data model.
      */
-    TopicTableModel(QTableView *parent, const QString& topicName);
+    TopicTableModel(QTableView* parent, const QString& topicName);
 
     /**
      * @brief Destructor for the DDS sample data model.
@@ -115,8 +115,10 @@ public:
     bool setData(const QModelIndex &index,
                  const QVariant &value,
                  int role = Qt::EditRole);
-    
-    void updateDisplayHexAndAscii(bool new_hex, bool new_ascii);
+
+    /// Toggle the display of data fields as hex or ascii if applicable to the their types.
+    void updateDisplayHex(bool display_as_hex);
+    void updateDisplayAscii(bool display_as_ascii);
 
     /**
      * @brief Revert all changes to the original sample.
@@ -132,13 +134,7 @@ public:
         VALUE_COLUMN,
         MAX_eColumnIds_VALUE
     };
-    
-    /**
-     * @brief controls the display mode of integer & ascii types.
-     */
-    bool disp_hex = false;
-    bool disp_ascii = true;
-    
+
 signals:
 
     /**
@@ -146,54 +142,73 @@ signals:
      */
     void dataHasChanged();
 
-protected:
+private:
 
+    /**
+     * @brief controls the display mode of integer & ascii types.
+     */
+    bool m_dispHex = false;
+    bool m_dispAscii = true;
+
+    /// Convert a value to a QVariant object representing that value in ascii or hex format.
     template<typename T>
-    QVariant type_to_qvariant(T convertMe) {
+    QVariant type_to_qvariant(T convertMe)
+    {
         QVariant retMe;
 
-        if (disp_ascii && sizeof(T) == 1) {// looks stupid to have a redundant check, but the QChar wont compile with a larger type, so it is eliminated by the if constexpr in that case. Still need the original && sizeof(T)==1 so that no other type enters this path, display breaks if you don't have it.
+        if (m_dispAscii && sizeof(T) == 1)
+        {
+            // looks stupid to have a redundant check, but the QChar wont compile with a larger type,
+            // so it is eliminated by the if constexpr in that case.
+            // Still need the original && sizeof(T)==1 so that no other type enters this path,
+            // display breaks if you don't have it.
             if constexpr (sizeof(T) == 1) retMe = QChar(convertMe);
         }
-        else if (disp_hex) {
+        else if (m_dispHex)
+        {
             std::stringstream stream;
-            for (int i = sizeof(T) - 1; i >= 0; i--) {
-                stream << std::hex << (((convertMe) >> (8 * i + 4)) & 0x0F);
-                stream << std::hex << (((convertMe) >> (8 * i + 0)) & 0x0F);
+            for (int i = static_cast<int>(sizeof(T)) - 1; i >= 0; --i)
+            {
+                stream << std::hex << ((convertMe >> (8 * i + 4)) & 0x0F);
+                stream << std::hex << ((convertMe >> (8 * i + 0)) & 0x0F);
             }
             std::string tempStr = stream.str();
-            for (std::string::size_type i = 0; i < tempStr.size(); i++)
+            for (std::string::size_type i = 0; i < tempStr.size(); ++i)
+            {
                 tempStr[i] = std::toupper(tempStr[i]);
+            }
             retMe = QString(tempStr.c_str());
         }
-        else {
-            if constexpr (sizeof(T) == 1)
-                retMe = convertMe;
-            else
-                retMe = convertMe;
+        else
+        {
+            retMe = convertMe;
         }
         return retMe;
     }
 
+    /// Convert a QVariant object representing a value in ascii or hex format to the orignal value.
     template<typename T>
-    T qvariant_to_type(QVariant convertMe) {
+    T qvariant_to_type(QVariant convertMe)
+    {
         T retMe{};
 
-        if (disp_ascii && sizeof(T) == 1) {
+        if (m_dispAscii && sizeof(T) == 1)
+        {
             retMe = convertMe.toString()[0].unicode() & 0xFF;
         }
-        else if (disp_hex) {
+        else if (m_dispHex)
+        {
             try { retMe = std::stoll(convertMe.toString().toStdString(), nullptr, 16); }
             catch (...) { retMe = 0; };
         }
-        else {
+        else
+        {
             try { retMe = std::stoi(convertMe.toString().toStdString()); }
             catch (...) { retMe = 0; };
         }
         return retMe;
     }
 
-private:
     /**
      * @brief Stores information for a table row.
      */
@@ -204,26 +219,90 @@ private:
         /**
          * @brief The table row information constructor.
          */
-        DataRow();
+        DataRow(TopicTableModel* parent, QString name, CORBA::TCKind kind,
+          bool isKey, bool isOptional);
 
         /**
          * @brief The table row information destructor.
          */
         ~DataRow();
 
+        QString getName() const
+        {
+            return m_name;
+        }
+
+        CORBA::TCKind getType() const
+        {
+            return m_type;
+        }
+
+        const QVariant& getValue() const
+        {
+            return m_value;
+        }
+
+        const QVariant& getDisplayedValue() const
+        {
+            return m_displayedValue;
+        }
+
+        bool getIsKey() const
+        {
+            return m_isKey;
+        }
+
+        bool getIsOptional() const
+        {
+            return m_isOptional;
+        }
+
+        bool getEdited() const
+        {
+            return m_edited;
+        }
+
         /**
          * @brief Set the value of the data row to a new value.
          * @param[in] newValue Attempt to set the value to this value.
          * @return Returns true if the operation was successful; false otherwise.
          */
-        bool setValue(TopicTableModel* parent, const QVariant& newValue);
+        bool setValue(const QVariant& newValue);
 
-        QString name; ///< The topic member name.
-        QVariant value; ///< The topic member value.
-        CORBA::TCKind type; ///< The topic member type.
-        bool isKey; ///< The topic member key flag.
-        bool isOptional; ///< The topic member is optional flag.
-        bool edited; ///< The topic member edited flag.
+        void setEdited(bool edited)
+        {
+            m_edited = edited;
+        }
+
+        void updateDisplayedValue();
+
+    private:
+        /// The parent model for this data row.
+        TopicTableModel* m_parent;
+
+        /// The topic member name.
+        QString m_name;
+
+        /// The topic member type.
+        CORBA::TCKind m_type;
+
+        /// The topic member value corresponding to its type.
+        QVariant m_value;
+
+        /// The topic member value being displayed based on
+        /// the m_dispHex and m_dispAscii settings of the model.
+        /// Depending on the type and the display settings, this
+        /// may be different or the same as m_value.
+        QVariant m_displayedValue;
+
+        /// The topic member key flag.
+        bool m_isKey;
+
+        /// The topic member is optional flag.
+        bool m_isOptional;
+
+        /// The topic member edited flag.
+        bool m_edited;
     };
 
     /**
@@ -252,8 +331,9 @@ private:
      * @param[in] dataInfo Populate the DDS sample member from this data.
      * @return Returns true if the operation was successful; false otherwise.
      */
-    bool populateSample(std::shared_ptr<OpenDynamicData> const sample,
-                        DataRow *dataInfo);
+    bool populateSample(std::shared_ptr<OpenDynamicData> sample, DataRow* dataInfo);
+
+    void cleanupDataRow();
 
     /// The table view using this model
     QTableView* m_tableView;
@@ -268,7 +348,7 @@ private:
     std::shared_ptr<OpenDynamicData> m_sample;
 
     /// For reverting.
-    DDS::DynamicData_var m_dynamicsample;
+    DDS::DynamicData_var m_dynamicSample;
 
     /// The name of the topic for this data model
     QString m_topicName;
