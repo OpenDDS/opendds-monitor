@@ -33,7 +33,8 @@ TopicTableModel::TopicTableModel(QTableView *parent, const QString& topicName)
     // whether we want to use OpenDynamicData or DDS's DynamicData.
 
     // This is not really a blank sample, but a null sample.
-    std::shared_ptr<OpenDynamicData> blankSample = CreateOpenDynamicData(topicInfo->typeCode(), QosDictionary::getEncodingKind(), topicInfo->extensibility());
+    std::shared_ptr<OpenDynamicData> blankSample = CreateOpenDynamicData(topicInfo->typeCode(),
+      QosDictionary::getEncodingKind(), topicInfo->extensibility());
     setSample(blankSample);
 }
 
@@ -101,7 +102,7 @@ void TopicTableModel::setSample(DDS::DynamicData_var sample)
 const std::shared_ptr<OpenDynamicData> TopicTableModel::commitSample()
 {
     // Reset the edited state
-    for (size_t i = 0; i < m_data.size(); i++)
+    for (size_t i = 0; i < m_data.size(); ++i)
     {
         m_data.at(i)->setEdited(false);
     }
@@ -269,7 +270,7 @@ bool TopicTableModel::setData(const QModelIndex &index,
     }
 
     // Make sure we found the data row
-    DataRow* data = m_data.at(row);
+    DataRow* const data = m_data.at(row);
     if (!data)
     {
         return false;
@@ -309,7 +310,15 @@ void TopicTableModel::updateDisplayHex(bool display_as_hex)
     {
         return;
     }
-    // TODO(sonndinh): Complete
+
+    emit layoutAboutToBeChanged();
+    m_dispHex = display_as_hex;
+
+    for (unsigned int i = 0; i < m_data.size(); ++i)
+    {
+        m_data[i]->updateDisplayedValue();
+    }
+    emit layoutChanged();
 }
 
 void TopicTableModel::updateDisplayAscii(bool display_as_ascii)
@@ -322,120 +331,12 @@ void TopicTableModel::updateDisplayAscii(bool display_as_ascii)
     emit layoutAboutToBeChanged();
     m_dispAscii = display_as_ascii;
 
-    // TODO(sonndinh): Each DataRow keeps the original value of the member and the displayed value
-    // associated with the current m_dispAscii and m_dispHex settings. Depending on the type and
-    // settings, they can be different or the same. By keping the original value, we don't have
-    // to convert the value back and forth between the original value and the displayed value
-    // when the display settings change.
-    for (unsigned int i = 0; i < m_data.size(); i++)
+    for (unsigned int i = 0; i < m_data.size(); ++i)
     {
         m_data[i]->updateDisplayedValue();
-
-    //     switch(m_data[i]->type)
-    //     {
-    //     case CORBA::tk_long:
-    //     {
-    //         //const int32_t tmpValue = qvariant_to_type<int32_t>(m_data[i]->value);
-    //         //m_data[i]->value = type_to_qvariant(tmpValue);
-    //         m_data[i]->displayedValue = type_to_qvariant(m_data[i]->origValue);
-    //     }
-    //     break;
-    //     case CORBA::tk_short: {
-    //         int16_t tmpValue = qvariant_to_type<int16_t>(m_data[i]->value);
-    //         m_data[i]->value = type_to_qvariant(tmpValue);
-    //     }break;
-    //     case CORBA::tk_ushort: {
-    //         uint16_t tmpValue = qvariant_to_type<uint16_t>(m_data[i]->value);
-    //         m_data[i]->value = type_to_qvariant(tmpValue);
-    //     }break;
-    //     case CORBA::tk_ulong: {
-    //         uint32_t tmpValue = qvariant_to_type<uint32_t>(m_data[i]->value);
-    //         m_data[i]->value = type_to_qvariant(tmpValue);
-    //     }break;
-    //     case CORBA::tk_char:{
-    //         char tmpValue = qvariant_to_type<char>(m_data[i]->value);
-    //         m_data[i]->value = type_to_qvariant(tmpValue);
-    //     }break;
-    //     case CORBA::tk_octet: {
-    //         uint8_t tmpValue = qvariant_to_type<uint8_t>(m_data[i]->value);
-    //         m_data[i]->value = type_to_qvariant(tmpValue);
-    //     }break;
-    //     case CORBA::tk_longlong:{
-    //         qint64 tmpValue = qvariant_to_type<qint64>(m_data[i]->value);
-    //         m_data[i]->value = type_to_qvariant(tmpValue);
-    //         }break;
-    //     case CORBA::tk_ulonglong:{
-    //         quint64 tmpValue = qvariant_to_type<quint64>(m_data[i]->value);
-    //         m_data[i]->value = type_to_qvariant(tmpValue);
-    //         }break;
-    //     default:
-    //         break;
-    //     }
     }
     emit layoutChanged();
 }
-
-//------------------------------------------------------------------------------
-// void TopicTableModel::updateDisplayHexAndAscii(bool new_hex, bool new_ascii){
-//     emit layoutAboutToBeChanged();
-//     bool old_hex = disp_hex;
-//     bool old_ascii = disp_ascii;
-//     for (unsigned int i = 0; i < m_data.size(); i++) {
-//         switch(m_data[i]->type){
-//         case CORBA::tk_long: {
-//             disp_hex = old_hex; disp_ascii = old_ascii;
-//             int32_t tmpValue = qvariant_to_type<int32_t>(m_data[i]->value);
-//             disp_hex = new_hex; disp_ascii = new_ascii;
-//             m_data[i]->value = type_to_qvariant(tmpValue);
-//         }break;
-//         case CORBA::tk_short: {
-//             disp_hex = old_hex; disp_ascii = old_ascii;
-//             int16_t tmpValue = qvariant_to_type<int16_t>(m_data[i]->value);
-//             disp_hex = new_hex; disp_ascii = new_ascii;
-//             m_data[i]->value = type_to_qvariant(tmpValue);
-//         }break;
-//         case CORBA::tk_ushort: {
-//             disp_hex = old_hex; disp_ascii = old_ascii;
-//             uint16_t tmpValue = qvariant_to_type<uint16_t>(m_data[i]->value);
-//             disp_hex = new_hex; disp_ascii = new_ascii;
-//             m_data[i]->value = type_to_qvariant(tmpValue);
-//         }break;
-//         case CORBA::tk_ulong: {
-//             disp_hex = old_hex; disp_ascii = old_ascii;
-//             uint32_t tmpValue = qvariant_to_type<uint32_t>(m_data[i]->value);
-//             disp_hex = new_hex; disp_ascii = new_ascii;
-//             m_data[i]->value = type_to_qvariant(tmpValue);
-//         }break;
-//         case CORBA::tk_char:{
-//             disp_hex = old_hex; disp_ascii = old_ascii;
-//             char tmpValue = qvariant_to_type<char>(m_data[i]->value);
-//             disp_hex = new_hex; disp_ascii = new_ascii;
-//             m_data[i]->value = type_to_qvariant(tmpValue);
-//         }break;
-//         case CORBA::tk_octet: {
-//             disp_hex = old_hex; disp_ascii = old_ascii;
-//             uint8_t tmpValue = qvariant_to_type<uint8_t>(m_data[i]->value);
-//             disp_hex = new_hex; disp_ascii = new_ascii;
-//             m_data[i]->value = type_to_qvariant(tmpValue);
-//         }break;
-//         case CORBA::tk_longlong:{
-//             disp_hex = old_hex; disp_ascii = old_ascii;
-//             qint64 tmpValue = qvariant_to_type<qint64>(m_data[i]->value);
-//             disp_hex = new_hex; disp_ascii = new_ascii;
-//             m_data[i]->value = type_to_qvariant(tmpValue);
-//             }break;
-//         case CORBA::tk_ulonglong:{
-//             disp_hex = old_hex; disp_ascii = old_ascii;
-//             quint64 tmpValue = qvariant_to_type<quint64>(m_data[i]->value);
-//             disp_hex = new_hex; disp_ascii = new_ascii;
-//             m_data[i]->value = type_to_qvariant(tmpValue);
-//             }break;
-//         default:
-//             break;
-//         }
-//     }
-//     emit layoutChanged();
-// }
 
 //------------------------------------------------------------------------------
 void TopicTableModel::parseData(const std::shared_ptr<OpenDynamicData> data)
