@@ -23,19 +23,23 @@ TopicTableModel::TopicTableModel(QTableView *parent, const QString& topicName)
 
     // Create a blank sample, so the user can publish an initial instance
     std::shared_ptr<TopicInfo> topicInfo = CommonData::getTopicInfo(m_topicName);
-    if (!topicInfo || !topicInfo->typeCode())
+    if (!topicInfo)
     {
-        throw std::runtime_error(std::string("TopicTableModel: No topic information found for topic \"") + topicName.toStdString() + "\"");
+        throw std::runtime_error(std::string("TopicTableModel: No topic information found for topic \"") +
+                                              topicName.toStdString() + "\"");
     }
 
     // TODO: Keep the call to setSample for blank OpenDynamicData sample and maybe
     // call setSample overloads conditionally depending on the monitor's settings, i.e.,
     // whether we want to use OpenDynamicData or DDS's DynamicData.
 
-    // This is not really a blank sample, but a null sample.
-    std::shared_ptr<OpenDynamicData> blankSample = CreateOpenDynamicData(topicInfo->typeCode(),
-      QosDictionary::getEncodingKind(), topicInfo->extensibility());
-    setSample(blankSample);
+    if (topicInfo->typeMode() == TypeDiscoveryMode::TypeCode)
+    {
+        // This is not really a blank sample, but a null sample.
+        std::shared_ptr<OpenDynamicData> blankSample = CreateOpenDynamicData(topicInfo->typeCode(),
+          QosDictionary::getEncodingKind(), topicInfo->extensibility());
+        setSample(blankSample);
+    }
 }
 
 
@@ -109,7 +113,7 @@ const std::shared_ptr<OpenDynamicData> TopicTableModel::commitSample()
 
     // Create a new sample
     std::shared_ptr<TopicInfo> topicInfo = CommonData::getTopicInfo(m_topicName);
-    if (!topicInfo || !topicInfo->typeCode())
+    if (!topicInfo || topicInfo->typeMode() != TypeDiscoveryMode::TypeCode)
     {
         return nullptr;
     }
@@ -301,7 +305,20 @@ bool TopicTableModel::setData(const QModelIndex &index,
 //------------------------------------------------------------------------------
 void TopicTableModel::revertChanges()
 {
-    setSample(m_sample);
+    std::shared_ptr<TopicInfo> topicInfo = CommonData::getTopicInfo(m_topicName);
+    if (!topicInfo)
+    {
+        return;
+    }
+
+    if (topicInfo->typeMode() == TypeDiscoveryMode::TypeCode)
+    {
+        setSample(m_sample);
+    }
+    else
+    {
+        setSample(m_dynamicSample);
+    }
 }
 
 void TopicTableModel::updateDisplayHex(bool display_as_hex)

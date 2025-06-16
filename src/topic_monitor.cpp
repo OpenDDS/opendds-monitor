@@ -47,6 +47,8 @@ TopicMonitor::TopicMonitor(const QString& topicName)
         throw std::runtime_error("No domain participant");
     }
 
+    // The operation mode is determined by whether the TypeCode for the topic is available
+    // at the time the TopicMonitor is instantiated.
     if (topicInfo->typeCode())
     {
         // Use the existing mechanism based on TypeCode.
@@ -72,6 +74,7 @@ TopicMonitor::TopicMonitor(const QString& topicName)
         {
             throw std::runtime_error(std::string("Failed to create recorder for topic \"") + topicInfo->topicName() + "\"");
         }
+        topicInfo->typeMode(TypeDiscoveryMode::TypeCode);
     }
     else
     {

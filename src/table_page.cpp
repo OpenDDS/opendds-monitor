@@ -24,11 +24,6 @@ TablePage::TablePage(const QString& topicName, QWidget *parent) :
 {
     setupUi(this);
 
-//     QFont monoFont("Monospace", 10);
-//     monoFont.setStyleHint(QFont::Monospace);
-//     topicTableView->setFont(monoFont);
-//     historyTable->setFont(monoFont);
-
     matchedPubTitleLabel->hide(); // Pub match count not supported yet
     matchedSubTitleLabel->hide(); // Sub match count not supported yet
     unfreezeButton->hide();
@@ -40,7 +35,6 @@ TablePage::TablePage(const QString& topicName, QWidget *parent) :
     // Create a data model for this topic
     m_tableModel = std::make_unique<TopicTableModel>(topicTableView, m_topicName);
     topicTableView->setModel(m_tableModel.get());
-    //topicTableView->setColumnWidth(TopicTableModel::STATUS_COLUMN, 21);
     connect(m_tableModel.get(), SIGNAL(dataHasChanged()), this, SLOT(dataHasChanged()));
 
     // Create a topic monitor to receive the data samples
@@ -64,15 +58,25 @@ TablePage::~TablePage()
 void TablePage::on_clearSamplesButton_clicked()
 {
     std::shared_ptr<TopicInfo> topicInfo = CommonData::getTopicInfo(m_topicName);
-    if (!topicInfo || !topicInfo->typeCode())
+    if (!topicInfo)
     {
         return;
     }
 
-    std::shared_ptr<OpenDynamicData> blankSample =
-      CreateOpenDynamicData(topicInfo->typeCode(), QosDictionary::getEncodingKind(), topicInfo->extensibility());
-    CommonData::flushSamples(m_topicName);
-    m_tableModel->setSample(blankSample);
+    if (topicInfo->typeMode() == TypeDiscoveryMode::TypeCode)
+    {
+        std::shared_ptr<OpenDynamicData> blankSample = CreateOpenDynamicData(topicInfo->typeCode(),
+          QosDictionary::getEncodingKind(), topicInfo->extensibility());
+        CommonData::flushSamples(m_topicName);
+        m_tableModel->setSample(blankSample);
+    }
+    else
+    {
+        QMessageBox msgBox;
+        msgBox.setIcon(QMessageBox::Warning);
+        msgBox.setText("TablePage::on_clearSamplesButton_clicked: Not supported for dynamic type");
+        msgBox.exec();
+    }
 
     refreshPage();
 }
@@ -86,9 +90,8 @@ void TablePage::on_filterButton_clicked()
     QModelIndexList indexList = selectionModel->selectedIndexes();
     QString initialText = "";
 
-
     // Create a default filter based on the table selection
-    for (int i = 0; i < indexList.size(); i++)
+    for (int i = 0; i < indexList.size(); ++i)
     {
         // Skip non-name selections
         if (indexList.at(i).column() != TopicTableModel::NAME_COLUMN)
@@ -138,8 +141,7 @@ void TablePage::on_filterButton_clicked()
             initialText += " = " + valueString;
         }
 
-    } // End initial filter loop
-
+    }
 
     bool ok = false;
     QString usageString;
@@ -165,11 +167,10 @@ void TablePage::on_filterButton_clicked()
 
     // Make sure we have an information object for this topic
     std::shared_ptr<TopicInfo> topicInfo = CommonData::getTopicInfo(m_topicName);
-    if (topicInfo == nullptr)
+    if (!topicInfo)
     {
         return;
     }
-
 
     if (!filter.isEmpty())
     {
@@ -196,12 +197,10 @@ void TablePage::on_filterButton_clicked()
     m_topicMonitor->setFilter(filter);
     m_refreshTimer.start(REFRESH_TIMEOUT);
 
-
     // We're getting data now, so show the correct freeze button state
     freezeButton->show();
     unfreezeButton->hide();
-
-} // End TablePage::on_filterButton_clicked
+}
 
 
 //------------------------------------------------------------------------------
@@ -263,7 +262,7 @@ void TablePage::on_iniButton_clicked()
     QTextStream out(&iniFile);
 
     out << "[" << m_topicName << "]\n";
-    for (int i = 0; i < m_tableModel->rowCount(); i++)
+    for (int i = 0; i < m_tableModel->rowCount(); ++i)
     {
         QModelIndex nameIndex =
             m_tableModel->index(i, TopicTableModel::NAME_COLUMN);
@@ -277,8 +276,7 @@ void TablePage::on_iniButton_clicked()
     }
 
     iniFile.close();
-
-} // End TablePage::on_iniButton_clicked
+}
 
 
 //------------------------------------------------------------------------------
@@ -292,14 +290,30 @@ void TablePage::on_revertButton_clicked()
 //------------------------------------------------------------------------------
 void TablePage::on_publishButton_clicked()
 {
-    const std::shared_ptr<OpenDynamicData> sample = m_tableModel->commitSample();
-    if (!sample)
+    std::shared_ptr<TopicInfo> topicInfo = CommonData::getTopicInfo(m_topicName);
+    if (!topicInfo)
     {
         return;
     }
 
-    m_topicReplayer->publishSample(sample);
-    revertButton->setEnabled(false);
+    if (topicInfo->typeMode() == TypeDiscoveryMode::TypeCode)
+    {
+        const std::shared_ptr<OpenDynamicData> sample = m_tableModel->commitSample();
+        if (!sample)
+        {
+            return;
+        }
+
+        m_topicReplayer->publishSample(sample);
+        revertButton->setEnabled(false);
+    }
+    else
+    {
+        QMessageBox msgBox;
+        msgBox.setIcon(QMessageBox::Warning);
+        msgBox.setText("TablePage::on_publishButton_clicked: Not supported for dynamic type");
+        msgBox.exec();
+    }
 }
 
 
@@ -307,7 +321,7 @@ void TablePage::on_publishButton_clicked()
 void TablePage::on_historyTable_itemSelectionChanged()
 {
     QList<QTableWidgetItem*> items = historyTable->selectedItems();
-    for (int i = 0; i < items.count(); i++)
+    for (int i = 0; i < items.count(); ++i)
     {
         QTableWidgetItem* selectedItem = items.at(i);
         if (selectedItem->row() != 0)
@@ -328,7 +342,7 @@ void TablePage::on_newPlotButton_clicked()
     QStringList selectedVariables;
 
     // Populate the list of variables we want to plot
-    for (int i = 0; i < indexList.size(); i++)
+    for (int i = 0; i < indexList.size(); ++i)
     {
         if (indexList.at(i).column() == TopicTableModel::NAME_COLUMN)
         {
@@ -346,7 +360,7 @@ void TablePage::on_newPlotButton_clicked()
     QVBoxLayout *layout = new QVBoxLayout(plotDialog);
     GraphPage *graphPage = new GraphPage(plotDialog);
     static int plotCounter = 0;
-    plotCounter++;
+    ++plotCounter;
 
     plotDialog->setAttribute(Qt::WA_DeleteOnClose);
     plotDialog->setObjectName("plotDialog");
@@ -377,12 +391,11 @@ void TablePage::on_newPlotButton_clicked()
     plotDialog->show();
 
     // Add the selected variables to the plot page
-    for (int i = 0; i < selectedVariables.size(); i++)
+    for (int i = 0; i < selectedVariables.size(); ++i)
     {
         graphPage->addVariable(m_topicName, selectedVariables.at(i));
     }
-
-} // End TablePage::on_newPlotButton_clicked
+}
 
 
 //------------------------------------------------------------------------------
@@ -395,7 +408,7 @@ void TablePage::on_attachPlotButton_clicked()
     QStringList graphNames;
 
     // Populate the list of variables we want to plot
-    for (int i = 0; i < indexList.size(); i++)
+    for (int i = 0; i < indexList.size(); ++i)
     {
         if (indexList.at(i).column() == TopicTableModel::NAME_COLUMN)
         {
@@ -412,12 +425,12 @@ void TablePage::on_attachPlotButton_clicked()
 
     // Find the target graph page object
     QWidgetList mainWidgets = QApplication::topLevelWidgets();
-    for (int i = 0; i < mainWidgets.count(); i++)
+    for (int i = 0; i < mainWidgets.count(); ++i)
     {
         QList<GraphPage*> graphWidgets =
             mainWidgets.at(i)->findChildren<GraphPage*>();
 
-        for (int ii = 0; ii < graphWidgets.count(); ii++)
+        for (int ii = 0; ii < graphWidgets.count(); ++ii)
         {
             if (!graphWidgets.at(ii) ||
                 graphWidgets.at(ii)->objectName().isEmpty())
@@ -467,12 +480,11 @@ void TablePage::on_attachPlotButton_clicked()
     }
 
     // Add the selected variables to the plot page
-    for (int i = 0; i < selectedVariables.size(); i++)
+    for (int i = 0; i < selectedVariables.size(); ++i)
     {
         graphPage->addVariable(m_topicName, selectedVariables.at(i));
     }
-
-} // End TablePage::on_attachPlotButton_clicked
+}
 
 
 //------------------------------------------------------------------------------
@@ -483,7 +495,7 @@ void TablePage::on_recordButton_clicked()
     QStringList selectedVariables;
 
     // Populate the list of variables we want to plot
-    for (int i = 0; i < indexList.size(); i++)
+    for (int i = 0; i < indexList.size(); ++i)
     {
         if (indexList.at(i).column() == TopicTableModel::NAME_COLUMN)
         {
@@ -500,8 +512,7 @@ void TablePage::on_recordButton_clicked()
 
     RecorderDialog* recorder = new RecorderDialog(m_topicName, selectedVariables, this);
     recorder->show();
-
-} // End TablePage::on_recordButton_clicked
+}
 
 
 //------------------------------------------------------------------------------
@@ -583,7 +594,7 @@ void TablePage::refreshPage()
     m_historyList = sampleNames;
     historyTable->clearContents();
     historyTable->setRowCount(sampleNames.size());
-    for (int i = 0; i < sampleNames.size(); i++)
+    for (int i = 0; i < sampleNames.size(); ++i)
     {
         QTableWidgetItem* item = new QTableWidgetItem;
         item->setText(sampleNames.at(i));
@@ -607,8 +618,7 @@ void TablePage::refreshPage()
             setSample(item->text());
         }
     }
-
-} // End TablePage::refreshPage
+}
 
 
 //------------------------------------------------------------------------------
@@ -630,12 +640,14 @@ void TablePage::setSample(const QString& sampleName)
     const auto topicInfo = CommonData::getTopicInfo(m_topicName);
     if (!topicInfo)
     {
-        std::cerr << "TablePage::setSample: No topic info available for topic \""
-                  << m_topicName.toStdString() << "\"" << std::endl;
+        QMessageBox msgBox;
+        msgBox.setIcon(QMessageBox::Warning);
+        msgBox.setText(QString("TablePage::setSample: No topic info available for topic \"") +
+                       m_topicName + "\"");
         return;
     }
 
-    if (topicInfo->typeCode())
+    if (topicInfo->typeMode() == TypeDiscoveryMode::TypeCode)
     {
         auto sample = CommonData::copySample(m_topicName, index);
         if (sample != nullptr)
