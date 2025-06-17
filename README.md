@@ -19,6 +19,11 @@ A Qt application for monitoring OpenDDS domain participants and topics.
 * Windows Server 2022 (VS2022)
 * Windows Server 2019 (VS2019)
 
+## Installing
+```
+git clone --recurse-submodules https://github.com/Airbotix-Technology-Pvt-Ltd/opendds-monitor.git
+```
+
 ## Building
 
 Assuming a valid development environment, OpenDDS environment variables are set, and Qt / Qwt installs are discoverable:
