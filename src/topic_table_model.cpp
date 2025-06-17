@@ -296,6 +296,8 @@ bool TopicTableModel::setData(const QModelIndex &index,
     {
         return false;
     }
+    
+    data->setEdited(true);
 
     emit dataHasChanged();
     return true;
@@ -1216,7 +1218,6 @@ bool TopicTableModel::DataRow::setValue(const QVariant& newValue)
     {
         m_value = origValue;
         m_displayedValue = dispValue;
-        m_edited = true;
         return true;
     }
 
