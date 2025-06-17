@@ -521,7 +521,7 @@ TopicInfo::TopicInfo()
   , m_readerQos{QosDictionary::DataReader::bestEffort()}
   , m_extensibility{OpenDDS::DCPS::Extensibility::APPENDABLE}
   , m_hasKey{true}
-  , m_typeMode{TypeDiscoveryMode::TypeCode}
+  , m_typeMode{TypeDiscoveryMode::DynamicType}
   , m_typeCodeLength{0}
 {}
 
