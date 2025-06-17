@@ -255,177 +255,135 @@ void GraphPage::graphAttributesChanged()
 } // End GraphPage::graphAttributesChanged
 
 
-//------------------------------------------------------------------------------
 void GraphPage::updateGraph()
 {
-    // If we only have 1 variable, we don't need the selection combo or
-    // trash icon shown
-    if (variableCombo->count() <= 1)
-    {
+    if (variableCombo->count() <= 1) {
         trashButton->setEnabled(false);
         variableCombo->hide();
-    }
-    else
-    {
+    } else {
         trashButton->setEnabled(true);
         variableCombo->show();
     }
 
-
-    // If we have nothing to plot, we can bail
-    if (m_plotData.isEmpty())
-    {
+    if (m_plotData.isEmpty()) {
         return;
     }
 
     const int viewSize = m_propertiesUI->viewSpinBox->value();
-    PlotData* plot = NULL;
+    PlotData* plot = nullptr;
     m_xCounter += 1.0;
+    // Step 1: Find custom X-axis
+    PlotData* xAxisPlot = nullptr;
+    if (m_propertiesUI->customXCheckBox->isChecked()) {
+        for (int i = 0; i < m_plotData.count(); ++i) {
+            PlotData* p = m_plotData.at(i);
+            if (p && p->isAxisData) {
+                xAxisPlot = p;
+                break;
+            }
+        }
+    }
 
+    // Update custom X-axis
+    if (xAxisPlot) {
+        QVariant latestXValue = CommonData::readValue(
+            xAxisPlot->topicName, xAxisPlot->variableName);
 
-    // Shift the x data back one array position
-    if (m_xData[0] < m_xCounter)
-    {
-        for (int c = MAX_HISTORY - 1; c > 0; c--)
-        {
+        if (latestXValue.isValid()) {
+            for (int c = MAX_HISTORY - 1; c > 0; c--) {
+                xAxisPlot->xData[c] = xAxisPlot->xData[c - 1];
+                xAxisPlot->yData[c] = xAxisPlot->yData[c - 1];
+            }
+
+            xAxisPlot->xData[0] = m_xCounter;
+            xAxisPlot->yData[0] = latestXValue.toDouble();
+        } 
+    }
+
+    // Shift the internal time-based x array
+    if (m_xData[0] < m_xCounter) {
+        for (int c = MAX_HISTORY - 1; c > 0; c--) {
             m_xData[c] = m_xData[c - 1];
         }
         m_xData[0] = m_xCounter;
     }
 
-
-    //--------------------------------------------------------------------------
-    // Setup the plot xaxis view
-    // Stretch the data to fit the view if the number of ticks is less than
-    // the view.
-    if (m_xCounter < viewSize)
-    {
+    // Setup X view range
+    if (m_propertiesUI->customXCheckBox->isChecked() && xAxisPlot) {
+        m_xMax = xAxisPlot->yData[0];
+        m_xMin = m_xMax - viewSize;
+    } else if (m_xCounter < viewSize) {
         m_xMin = m_xData[MAX_HISTORY - 1];
         m_xMax = m_xData[MAX_HISTORY - (int)m_xCounter - 1];
-    }
-
-    // If we're at the far right of the plot, show the latest data
-    else if (m_xMax + 1.0 == m_xCounter)
-    {
+    } else if (m_xMax + 1.0 == m_xCounter) {
         m_xMin = m_xCounter - viewSize + 1.0;
         m_xMax = m_xCounter;
-    }
-
-    // If we're at the end of the history and are scrolled to the far right,
-    // shift the min/max up
-    else if (m_xMin <= m_xData[MAX_HISTORY - 1] &&
-        m_xData[MAX_HISTORY - 1] != 0.0)
-    {
+    } else if (m_xMin <= m_xData[MAX_HISTORY - 1] && m_xData[MAX_HISTORY - 1] != 0.0) {
         m_xMin = m_xData[MAX_HISTORY - 1];
         m_xMax = m_xData[MAX_HISTORY - viewSize];
-    }
-
-    // If we are panned left or right, hold the position
-    else if (m_xMax + 1.5 < m_xCounter)
-    {
+    } else if (m_xMax + 1.5 < m_xCounter) {
         m_xMin = m_xMax - viewSize + 1.0;
-    }
-
-    // It should never get here, but if it does, just show the latest data.
-    else
-    {
+    } else {
         m_xMin = m_xCounter - viewSize + 1.0;
         m_xMax = m_xCounter;
     }
 
-
-    // Update the x-axis label. If a custom x axis is enabled, the label will
-    // be set in the variable loop below.
-    if (m_propertiesUI->customXCheckBox->isChecked() == false)
-    {
+    if (!m_propertiesUI->customXCheckBox->isChecked()) {
         m_xAxis->addLabel(m_xCounter, QTime::currentTime().toString());
     }
+    else{
+        qwtPlot->setAxisScaleDraw(QwtPlot::xBottom, new QwtScaleDraw());
+    }
 
-
-    //--------------------------------------------------------------------------
-    // Loop through each variable and attach the latest data
-    for (int i = 0; i < m_plotData.count(); i++)
-    {
-        int arrayStart = 0;
+    // Plot each variable
+    for (int i = 0; i < m_plotData.count(); i++) {
         plot = m_plotData.at(i);
         if (!plot)
-        {
+            continue;
+
+        QVariant latestValue = CommonData::readValue(plot->topicName, plot->variableName);
+        if (!latestValue.isValid()) {
             continue;
         }
 
-        // If the latest data isn't valid, skip it
-        QVariant latestValue = CommonData::readValue(
-            plot->topicName, plot->variableName);
-        if (!latestValue.isValid())
-        {
-            continue;
-        }
-
-        // Shift the data back one position
-        for (int c = MAX_HISTORY - 1; c > 0; c--)
-        {
+        for (int c = MAX_HISTORY - 1; c > 0; c--) {
             plot->xData[c] = plot->xData[c - 1];
             plot->yData[c] = plot->yData[c - 1];
         }
 
-
-        // Get the starting axis array element
-        for (int c = 0; c < MAX_HISTORY; c++)
-        {
-            if (plot->xData[c] == m_xMax)
-            {
+        int arrayStart = 0;
+        for (int c = 0; c < MAX_HISTORY; c++) {
+            if (plot->xData[c] == m_xMax) {
                 arrayStart = c;
                 break;
             }
         }
 
-        // Store the latest value
-        plot->xData[0] = m_xCounter;
+        double xValue = m_xCounter;
+        if (xAxisPlot && plot != xAxisPlot) {
+            xValue = xAxisPlot->yData[0]; // Use custom x-axis value
+        }
+
+        plot->xData[0] = xValue;
         plot->yData[0] = latestValue.toDouble();
 
 
-        // Apply the bias and populate the view arrays
-        for (int c = 0; c < viewSize; c++)
-        {
-            plot->xViewData[c] = plot->xData[c + arrayStart];
-            plot->yViewData[c] = plot->yData[c + arrayStart] *
-                plot->biasScale +
-                plot->biasShift;
+        for (int c = 0; c < viewSize; c++) {
+            if (c + arrayStart < MAX_HISTORY) {
+                plot->xViewData[c] = plot->xData[c + arrayStart];
+                plot->yViewData[c] = plot->yData[c + arrayStart] *
+                    plot->biasScale + plot->biasShift;
+            }
         }
 
-
-        // If this data has been marked as a custom x-axis, set the x-axis
-        // label to the value
-        if (plot->isAxisData == true)
-        {
-            const double axisValue = plot->yData[0];
-
-            // If the value is a normalized time, show it as a time
-            if (m_propertiesUI->customXTimeCheckBox->isChecked() == true)
-            {
-                QTime timeValue(0, 0, 0, 0);
-                timeValue = timeValue.addSecs((int)axisValue);
-                m_xAxis->addLabel(m_xCounter, timeValue.toString());
-            }
-            else
-            {
-                m_xAxis->addLabel(m_xCounter, QString::number(axisValue));
-            }
-
-            continue;
-        }
-
-
-        // Set the color of the line based on the plot index
-        switch (i)
-        {
-            case 0: plot->color.setRgb(0, 0, 255, 255); break; // Blue
-            case 1: plot->color.setRgb(255, 0, 0, 255); break; // Red
-            case 2: plot->color.setRgb(0, 200, 0, 255); break; // Green
-            case 3: plot->color.setRgb(0, 0, 0, 255); break; // Black
-            case 4: plot->color.setRgb(255, 155, 0, 255); break; // Orange
-            case 5: plot->color.setRgb(255, 0, 255, 255); break; // Purple
-            default: plot->color.setRgb(0, 0, 0, 255); break; // Black
+        switch (i) {
+            case 0: plot->color.setRgb(0, 0, 255, 255); break;
+            case 1: plot->color.setRgb(255, 0, 0, 255); break;
+            case 2: plot->color.setRgb(0, 200, 0, 255); break;
+            case 3: plot->color.setRgb(0, 0, 0, 255); break;
+            case 4: plot->color.setRgb(255, 155, 0, 255); break;
+            case 5: plot->color.setRgb(255, 0, 255, 255); break;
+            default: plot->color.setRgb(0, 0, 0, 255); break;
         }
 
         const QString newTitle =
@@ -434,16 +392,12 @@ void GraphPage::updateGraph()
 
         plot->curve->setTitle(newTitle);
         plot->curve->setPen(plot->color);
-        plot->curve->setSamples(plot->xViewData,
-            plot->yViewData,
-            viewSize);
-
-    } // End plot line loop
+        plot->curve->setSamples(plot->xViewData, plot->yViewData, viewSize);
+    }
 
     qwtPlot->setAxisScale(QwtPlot::xBottom, m_xMin, m_xMax);
     qwtPlot->replot();
-
-} // End GraphPage::updateGraph
+}
 
 
 //------------------------------------------------------------------------------
@@ -464,13 +418,17 @@ void GraphPage::pointClicked(const QPoint& point)
     double yValue = plot->curve->sample(closestGraphPoint).y();
 
     // Draw the point on the plot
-    m_marker->setLabel(QwtText(QString::number(yValue)));
+    QString labelText = QString("X=%1, Y=%2")
+                        .arg(xValue, 0, 'f', 2)
+                        .arg(yValue, 0, 'f', 2);
+    m_marker->setLabel(QwtText(labelText));
     m_marker->setValue(xValue, yValue);
     m_marker->attach(qwtPlot);
 
     qwtPlot->replot();
 
 } // End GraphPage::pointClicked
+
 
 
 //------------------------------------------------------------------------------
