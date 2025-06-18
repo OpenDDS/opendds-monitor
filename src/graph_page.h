@@ -12,7 +12,8 @@
 #include <qwt_event_pattern.h>
 #include <QKeyEvent>
 #include <QWheelEvent>
-
+#include <QDrag>
+#include <QMimeData>
 
 #include <QDragEnterEvent>
 #include <QDragMoveEvent>
@@ -75,7 +76,6 @@
 class GraphPage : public QWidget, public Ui::GraphPage
 {
     Q_OBJECT
-
 public:
 
     /**

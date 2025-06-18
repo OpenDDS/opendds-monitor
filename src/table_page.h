@@ -8,7 +8,7 @@
 #include <QStringList>
 #include <QString>
 #include <QTimer>
-
+#include "graph_page.h"
 #include <memory>
 
 class TopicTableModel;
@@ -35,6 +35,7 @@ public:
      * @brief Destructor for TablePage.
      */
     ~TablePage();
+   
 
 private slots:
 
@@ -156,6 +157,10 @@ private:
 
     /// Stores the history sample names.
     QStringList m_historyList;
+
+    QList<QDialog*> plotWindows;
+    QMap<QDialog*, int> plotCounts; // track plots per window
+
 
 };
 

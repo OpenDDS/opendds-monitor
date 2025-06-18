@@ -7,7 +7,7 @@
 #include "topic_replayer.h"
 #include "topic_monitor.h"
 #include "dds_data.h"
-#include "graph_page.h"
+
 #include "qos_dictionary.h"
 
 #include <QMessageBox>
@@ -51,7 +51,6 @@ TablePage::TablePage(const QString& topicName, QWidget *parent) :
     m_refreshTimer.start(REFRESH_TIMEOUT);
 
 }
-
 
 //------------------------------------------------------------------------------
 TablePage::~TablePage()
@@ -319,70 +318,72 @@ void TablePage::on_historyTable_itemSelectionChanged()
     }
 }
 
-
-//------------------------------------------------------------------------------
 void TablePage::on_newPlotButton_clicked()
 {
     QItemSelectionModel* selectionModel = topicTableView->selectionModel();
     QModelIndexList indexList = selectionModel->selectedIndexes();
     QStringList selectedVariables;
 
-    // Populate the list of variables we want to plot
-    for (int i = 0; i < indexList.size(); i++)
+    for (const auto& index : indexList)
     {
-        if (indexList.at(i).column() == TopicTableModel::NAME_COLUMN)
+        if (index.column() == TopicTableModel::NAME_COLUMN)
+            selectedVariables << index.data(Qt::DisplayRole).toString();
+    }
+
+    if (selectedVariables.isEmpty())
+        return;
+
+    // Find or create a window with <4 plots
+    QDialog* targetWindow = nullptr;
+
+    for (QDialog* win : plotWindows)
+    {
+        if (plotCounts[win] < 4)
         {
-            selectedVariables << indexList.at(i).data(Qt::DisplayRole).toString();
+            targetWindow = win;
+            break;
         }
     }
 
-    // If nothing was selected, don't create the plot page
-    if (selectedVariables.isEmpty())
+    if (!targetWindow)
     {
-        return;
+        targetWindow = new QDialog(this);
+        targetWindow->setAttribute(Qt::WA_DeleteOnClose);
+        targetWindow->setWindowTitle("DDS Plot Group");
+
+        // ✅ Allow full window controls: minimize, maximize, close
+        targetWindow->setWindowFlags(Qt::Window |
+                                    Qt::WindowTitleHint |
+                                    Qt::WindowMinMaxButtonsHint |
+                                    Qt::WindowCloseButtonHint);
+
+        targetWindow->setLayout(new QGridLayout());
+
+        // ✅ Remove fixed size and allow user resizing
+        targetWindow->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+        targetWindow->resize(800, 600);  // Initial size, resizable after
+        targetWindow->show();
+
+        plotWindows.append(targetWindow);
+        plotCounts[targetWindow] = 0;
     }
 
-    QDialog *plotDialog = new QDialog(this);
-    QVBoxLayout *layout = new QVBoxLayout(plotDialog);
-    GraphPage *graphPage = new GraphPage(plotDialog);
-    static int plotCounter = 0;
-    plotCounter++;
 
-    plotDialog->setAttribute(Qt::WA_DeleteOnClose);
-    plotDialog->setObjectName("plotDialog");
-    plotDialog->setWindowFlags(
-        Qt::CustomizeWindowHint |
-        Qt::WindowTitleHint |
-        Qt::Window |
-        Qt::WindowCloseButtonHint);
+    // Create graph and add to the current window's layout
+    GraphPage* graphPage = new GraphPage(targetWindow);
+    QGridLayout* layout = qobject_cast<QGridLayout*>(targetWindow->layout());
 
-    QString windowTitle =
-        "DDS Variable Plot " +
-        QString::number(plotCounter) +
-        " [" + m_topicName + "]";
+    int count = plotCounts[targetWindow];
+    int row = count / 2;
+    int col = count % 2;
 
-    // Store the graph object name for reference with attaching new members
-    QString objectName =
-        "Plot " +
-        QString::number(plotCounter) +
-        " [" + m_topicName + "]";
-    graphPage->setObjectName(objectName);
+    layout->addWidget(graphPage, row, col);
+    plotCounts[targetWindow]++;
 
-    layout->addWidget(graphPage);
-    plotDialog->setWindowTitle(windowTitle);
-    plotDialog->setWindowIcon(QIcon(":/images/monitor.png"));
-    plotDialog->setSizeGripEnabled(true);
-    plotDialog->setLayout(layout);
-    plotDialog->resize(700, 500);
-    plotDialog->show();
-
-    // Add the selected variables to the plot page
-    for (int i = 0; i < selectedVariables.size(); i++)
-    {
-        graphPage->addVariable(m_topicName, selectedVariables.at(i));
-    }
-
-} // End TablePage::on_newPlotButton_clicked
+    // Add selected variables to graph
+    for (const QString& variable : selectedVariables)
+        graphPage->addVariable(m_topicName, variable);
+}
 
 
 //------------------------------------------------------------------------------
