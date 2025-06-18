@@ -108,8 +108,42 @@ GraphPage::GraphPage(QWidget* parent) :
     connect(m_picker, SIGNAL(appended(const QPoint&)),
         this, SLOT(pointClicked(const QPoint&)));
 
+    m_userZoomed = false; // Initialize zoom flag
+
+    // --- Enable Zooming with Mouse Wheel ---
+    QwtPlotMagnifier* magnifier = new QwtPlotMagnifier(qwtPlot->canvas());
+    magnifier->setAxisEnabled(QwtPlot::xBottom, true);
+    magnifier->setAxisEnabled(QwtPlot::yLeft, true);
+    magnifier->setMouseButton(Qt::NoButton); // No click needed, just wheel
+
+    // --- Enable Panning with Middle Mouse Drag ---
+    QwtPlotPanner* panner = new QwtPlotPanner(qwtPlot->canvas());
+    panner->setMouseButton(Qt::LeftButton); // Hold middle mouse to drag
+
+    // --- Install event filter to detect zoom/pan actions ---
+    qwtPlot->canvas()->installEventFilter(this);
+
 } // End GraphPage::GraphPage
 
+bool GraphPage::eventFilter(QObject* obj, QEvent* event)
+{
+    if (obj == qwtPlot->canvas()) {
+        if (event->type() == QEvent::Wheel || event->type() == QEvent::MouseMove) {
+            m_userZoomed = true;
+        } else if (event->type() == QEvent::MouseButtonPress) {
+            QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
+            if (mouseEvent->button() == Qt::RightButton) {
+                // Reset zoom on right-click
+                m_userZoomed = false;
+                qwtPlot->setAxisAutoScale(QwtPlot::xBottom);
+                qwtPlot->setAxisAutoScale(QwtPlot::yLeft);
+                qwtPlot->replot();
+                return true; // Consume the event
+            }
+        }
+    }
+    return QWidget::eventFilter(obj, event);
+}
 
 //------------------------------------------------------------------------------
 GraphPage::~GraphPage()
@@ -395,7 +429,9 @@ void GraphPage::updateGraph()
         plot->curve->setSamples(plot->xViewData, plot->yViewData, viewSize);
     }
 
-    qwtPlot->setAxisScale(QwtPlot::xBottom, m_xMin, m_xMax);
+    if (!m_userZoomed) {
+        qwtPlot->setAxisScale(QwtPlot::xBottom, m_xMin, m_xMax);
+    }
     qwtPlot->replot();
 }
 
