@@ -1,3 +1,24 @@
+### **Enhanced Graphing Functionality**
+
+**Key Features Added:**
+
+* ✅ **Custom X-Y Plotting:**
+
+  * Enabled x\:y plotting when the **"Custom X Plot"** checkbox is checked.
+  * Updated `pointClicked` to display both `xValue` and `yValue`.
+
+* 🔍 **Graph Interaction Improvements:**
+
+  * **Zooming & Panning** added using mouse wheel and drag.
+  * Plot **freezes during zoom/pan** to preserve view state.
+  * **Right-click resets view** to default.
+
+* 🪟 **Multi-Graph Support:**
+
+  * A single window can now hold up to **4 graphs** (2×2 grid layout).
+  * Automatically opens a new `PlotWindow` when the current one is full.
+
+
 # OpenDDS Monitor
 
 A Qt application for monitoring OpenDDS domain participants and topics.
