@@ -589,6 +589,7 @@ void TopicTableModel::setDataRow(DataRow* const data_row,
                                  const DDS::DynamicData_var& data,
                                  DDS::MemberId id)
 {
+  std::cout << "TopicTableModel::setDataRow: member Id = " << id << std::endl;
     switch (data_row->getType()) {
     case CORBA::tk_long: {
         CORBA::Long value;
@@ -652,9 +653,13 @@ void TopicTableModel::setDataRow(DataRow* const data_row,
         break;
     }
     case CORBA::tk_char: {
-        CORBA::Char value[2] = { 0, 0 };
-        if (check_rc(data->get_char8_value(value[0], id), "get_char8_value failed")) {
-            data_row->setValue(QString(value));
+        //CORBA::Char value[2] = { 0, 0 };
+        //if (check_rc(data->get_char8_value(value[0], id), "get_char8_value failed")) {
+        //    data_row->setValue(QString(value));
+        //}
+        char tmp;
+        if (check_rc(data->get_char8_value(tmp, id), "get_char8_value failed")) {
+            data_row->setValue(tmp);
         }
         break;
     }
@@ -733,6 +738,7 @@ void TopicTableModel::setDataRow(DataRow* const data_row,
                 std::cerr << "get_descriptor failed for enum literal with value " << value << std::endl;
                 break;
             }
+            std::cerr << "TopicTableModel::setDataRow: enum literal name: " << enum_lit_md->name() << std::endl;
             data_row->setValue(enum_lit_md->name());
         }
         break;
@@ -758,6 +764,7 @@ void TopicTableModel::parseCollection(const DDS::DynamicData_var& data, const st
     DDS::DynamicType_var elem_type = OpenDDS::XTypes::get_base_type(td->element_type());
     const OpenDDS::XTypes::TypeKind elem_tk = elem_type->get_kind();
 
+    std::cout << "namePrefix: " << namePrefix << ". Count (of elements): " << count << std::endl;
     for (unsigned int i = 0; i < count; ++i) {
         DDS::MemberId id = data->get_member_id_at_index(i);
         if (id == OpenDDS::XTypes::MEMBER_ID_INVALID) {
@@ -1115,17 +1122,33 @@ bool TopicTableModel::DataRow::setValue(const QVariant& newValue)
         }
         origValue = strVal;
 
-        CORBA::TypeCode_var enumTypeCode = m_parent->m_sample->getTypeCode();
-        const CORBA::ULong memberCount = enumTypeCode->member_count();
-        for (CORBA::ULong i = 0; i < memberCount; ++i)
+        std::shared_ptr<TopicInfo> topicInfo = CommonData::getTopicInfo(m_parent->m_topicName);
+        if (!topicInfo) {
+            std::cerr << "Failed to get TopicInfo for topic\"" << m_parent->m_topicName.toStdString() << "\"" << std::endl;
+            return false;
+        }
+
+        if (topicInfo->typeMode() == TypeDiscoveryMode::TypeCode)
         {
-            if (origValue == enumTypeCode->member_name(i))
+            CORBA::TypeCode_var enumTypeCode = m_parent->m_sample->getTypeCode();
+            const CORBA::ULong memberCount = enumTypeCode->member_count();
+            for (CORBA::ULong i = 0; i < memberCount; ++i)
             {
-                pass = true;
-                dispValue = origValue;
-                break;
+                if (origValue == enumTypeCode->member_name(i))
+                {
+                    pass = true;
+                    dispValue = origValue;
+                    break;
+                }
             }
         }
+        else
+        {
+            // TODO(sonndinh): Verify that the input string matches one of the enumerators.
+            pass = true;
+            dispValue = origValue;
+        }
+        std::cout << "TopicTableModel::DataRow::setValue: origValue: " << origValue.toString().toStdString() << ". dispValue: " << dispValue.toString().toStdString() << std::endl;
         break;
     }
     case CORBA::tk_ushort:
@@ -1164,6 +1187,7 @@ bool TopicTableModel::DataRow::setValue(const QVariant& newValue)
         break;
     case CORBA::tk_char:
         pass = newValue.canConvert<QChar>();
+        std::cout << "TopicTableModel::DataRow::setValue: pass = " << (pass ? "true" : "false") << std::endl;
         if (pass)
         {
             const QChar charVal = newValue.toChar();
