@@ -652,9 +652,9 @@ void TopicTableModel::setDataRow(DataRow* const data_row,
         break;
     }
     case CORBA::tk_char: {
-        CORBA::Char value[2] = { 0, 0 };
-        if (check_rc(data->get_char8_value(value[0], id), "get_char8_value failed")) {
-            data_row->setValue(QString(value));
+        char tmp;
+        if (check_rc(data->get_char8_value(tmp, id), "get_char8_value failed")) {
+            data_row->setValue(tmp);
         }
         break;
     }
@@ -1115,16 +1115,31 @@ bool TopicTableModel::DataRow::setValue(const QVariant& newValue)
         }
         origValue = strVal;
 
-        CORBA::TypeCode_var enumTypeCode = m_parent->m_sample->getTypeCode();
-        const CORBA::ULong memberCount = enumTypeCode->member_count();
-        for (CORBA::ULong i = 0; i < memberCount; ++i)
+        std::shared_ptr<TopicInfo> topicInfo = CommonData::getTopicInfo(m_parent->m_topicName);
+        if (!topicInfo) {
+            std::cerr << "Failed to get TopicInfo for topic\"" << m_parent->m_topicName.toStdString() << "\"" << std::endl;
+            return false;
+        }
+
+        if (topicInfo->typeMode() == TypeDiscoveryMode::TypeCode)
         {
-            if (origValue == enumTypeCode->member_name(i))
+            CORBA::TypeCode_var enumTypeCode = m_parent->m_sample->getTypeCode();
+            const CORBA::ULong memberCount = enumTypeCode->member_count();
+            for (CORBA::ULong i = 0; i < memberCount; ++i)
             {
-                pass = true;
-                dispValue = origValue;
-                break;
+                if (origValue == enumTypeCode->member_name(i))
+                {
+                    pass = true;
+                    dispValue = origValue;
+                    break;
+                }
             }
+        }
+        else
+        {
+            // TODO: Verify that the input string matches one of the enumerators.
+            pass = true;
+            dispValue = origValue;
         }
         break;
     }
