@@ -154,6 +154,16 @@ private:
     /// The topic extensibility
     OpenDDS::DCPS::Extensibility m_extensibility;
 
+    // Evaluate a filter on a dynamic data sample.
+    bool evaluateDynamicFilter(DDS::DynamicData_ptr data, const QString &filter);
+
+    // Compare the values of a field with the filter value.
+    template <typename T>
+    bool compareValues(const T &fieldValue, const T &filterValue, const QString &op);
+
+    // Compare string values with the filter value.
+    bool compareStrings(const QString &fieldValue, const QString &filterValue, const QString &op);
+
 #if OPENDDS_MAJOR_VERSION == 3 && OPENDDS_MINOR_VERSION >= 24
     struct FilterTypeSupport : OpenDDS::DCPS::TypeSupportImpl {
       FilterTypeSupport(const DynamicMetaStruct& metastruct, OpenDDS::DCPS::Extensibility exten);

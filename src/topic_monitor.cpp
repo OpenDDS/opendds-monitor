@@ -280,8 +280,28 @@ void TopicMonitor::on_data_available(DDS::DataReader_ptr dr)
     }
 
     for (unsigned int i = 0; i < messages.length(); ++i) {
-        if (infos[i].valid_data) {
-            // TODO: Apply content filtering when it's supported.
+        if (infos[i].valid_data)
+        {
+            bool passFilter = true;
+            if (!m_filter.isEmpty())
+            {
+                try
+                {
+                    passFilter = evaluateDynamicFilter(messages[i].in(), m_filter);
+                }
+                catch (const std::exception &e)
+                {
+                    std::cerr << "Filter evaluation failed for topic "
+                              << m_topicName.toStdString() << ": " << e.what() << std::endl;
+                    passFilter = false;
+                }
+
+                if (!passFilter)
+                {
+                    continue; // Skip this sample
+                }
+            }
+
             QDateTime dataTime = QDateTime::fromMSecsSinceEpoch(
                 (static_cast<unsigned long long>(infos[i].source_timestamp.sec) * 1000) +
                 (static_cast<unsigned long long>(infos[i].source_timestamp.nanosec) * 1e-6));
@@ -289,6 +309,7 @@ void TopicMonitor::on_data_available(DDS::DataReader_ptr dr)
             CommonData::storeDynamicSample(m_topicName, sampleName,
                                            DDS::DynamicData::_duplicate(messages[i].in()));
         }
+
     }
 }
 
@@ -304,6 +325,223 @@ void TopicMonitor::unpause()
 {
     m_paused = false;
 }
+
+bool TopicMonitor::evaluateDynamicFilter(DDS::DynamicData_ptr data, const QString &filter)
+{
+    // Simple filter implementation for basic field comparisons
+    QString trimmedFilter = filter.trimmed();
+
+    QStringList operators = {">=", "<=", "!=", "=", ">", "<"};
+    QString op;
+    QString fieldName;
+    QString value;
+
+    for (const QString &testOp : operators)
+    {
+        int pos = trimmedFilter.indexOf(testOp);
+        if (pos > 0)
+        {
+            op = testOp;
+            fieldName = trimmedFilter.left(pos).trimmed();
+            value = trimmedFilter.mid(pos + testOp.length()).trimmed();
+            break;
+        }
+    }
+
+    if (op.isEmpty() || fieldName.isEmpty())
+    {
+        std::cerr << "Invalid filter format: " << filter.toStdString() << std::endl;
+        return false;
+    }
+
+    // Remove quotes if present
+    if (value.startsWith('"') && value.endsWith('"'))
+    {
+        value = value.mid(1, value.length() - 2);
+    }
+    else if (value.startsWith('\'') && value.endsWith('\''))
+    {
+        value = value.mid(1, value.length() - 2);
+    }
+
+    try
+    {
+        // Get the member ID for the field
+        DDS::DynamicType_var type = data->type();
+        DDS::MemberId memberId = 0;
+
+        // Try to find member by name
+        bool memberFound = false;
+        DDS::UInt32 memberCount = type->get_member_count();
+
+        for (DDS::UInt32 i = 0; i < memberCount; ++i)
+        {
+            DDS::DynamicTypeMember_var member;
+            if (type->get_member_by_index(member, i) == DDS::RETCODE_OK)
+            {
+                DDS::MemberDescriptor_var desc;
+                if (member->get_descriptor(desc) == DDS::RETCODE_OK)
+                {
+                    if (QString(desc->name()) == fieldName)
+                    {
+                        memberId = desc->id();
+                        memberFound = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!memberFound)
+        {
+            std::cerr << "Field '" << fieldName.toStdString() << "' not found in type" << std::endl;
+            return false;
+        }
+
+        // Get the field value based on type
+        DDS::TypeKind kind = type->get_kind();
+        DDS::DynamicTypeMember_var member;
+        type->get_member(member, memberId);
+        DDS::MemberDescriptor_var desc;
+        member->get_descriptor(desc);
+        DDS::TypeKind memberKind = desc->type()->get_kind();
+
+        // Handle different data types using OpenDDS::XTypes constants
+        using namespace OpenDDS::XTypes;
+        switch (memberKind)
+        {
+        case TK_INT32:
+        {
+            DDS::Int32 fieldValue;
+            if (data->get_int32_value(fieldValue, memberId) == DDS::RETCODE_OK)
+            {
+                int filterValue = value.toInt();
+                return compareValues(fieldValue, filterValue, op);
+            }
+            break;
+        }
+        case TK_UINT32:
+        {
+            DDS::UInt32 fieldValue;
+            if (data->get_uint32_value(fieldValue, memberId) == DDS::RETCODE_OK)
+            {
+                unsigned int filterValue = value.toUInt();
+                return compareValues(fieldValue, filterValue, op);
+            }
+            break;
+        }
+        case TK_INT16:
+        {
+            DDS::Int16 fieldValue;
+            if (data->get_int16_value(fieldValue, memberId) == DDS::RETCODE_OK)
+            {
+                short filterValue = value.toShort();
+                return compareValues(fieldValue, filterValue, op);
+            }
+            break;
+        }
+        case TK_UINT16:
+        {
+            DDS::UInt16 fieldValue;
+            if (data->get_uint16_value(fieldValue, memberId) == DDS::RETCODE_OK)
+            {
+                unsigned short filterValue = value.toUShort();
+                return compareValues(fieldValue, filterValue, op);
+            }
+            break;
+        }
+        case TK_FLOAT32:
+        {
+            DDS::Float32 fieldValue;
+            if (data->get_float32_value(fieldValue, memberId) == DDS::RETCODE_OK)
+            {
+                float filterValue = value.toFloat();
+                return compareValues(fieldValue, filterValue, op);
+            }
+            break;
+        }
+        case TK_FLOAT64:
+        {
+            DDS::Float64 fieldValue;
+            if (data->get_float64_value(fieldValue, memberId) == DDS::RETCODE_OK)
+            {
+                double filterValue = value.toDouble();
+                return compareValues(fieldValue, filterValue, op);
+            }
+            break;
+        }
+        case TK_STRING8:
+        {
+            DDS::String8_var fieldValue;
+            if (data->get_string_value(fieldValue, memberId) == DDS::RETCODE_OK)
+            {
+                QString fieldStr = QString::fromUtf8(fieldValue);
+                return compareStrings(fieldStr, value, op);
+            }
+            break;
+        }
+        case TK_BOOLEAN:
+        {
+            DDS::Boolean fieldValue;
+            if (data->get_boolean_value(fieldValue, memberId) == DDS::RETCODE_OK)
+            {
+                bool filterValue = (value.toLower() == "true" || value == "1");
+                if (op == "=")
+                    return fieldValue == filterValue;
+                if (op == "!=")
+                    return fieldValue != filterValue;
+            }
+            break;
+        }
+        default:
+            std::cerr << "Unsupported field type for filtering: " << memberKind << std::endl;
+            return false;
+        }
+    }
+    catch (const std::exception &e)
+    {
+        std::cerr << "Exception in filter evaluation: " << e.what() << std::endl;
+        return false;
+    }
+
+    return false;
+}
+
+template <typename T>
+bool TopicMonitor::compareValues(const T &fieldValue, const T &filterValue, const QString &op)
+{
+    if (op == "=")
+        return fieldValue == filterValue;
+    if (op == "!=")
+        return fieldValue != filterValue;
+    if (op == ">")
+        return fieldValue > filterValue;
+    if (op == "<")
+        return fieldValue < filterValue;
+    if (op == ">=")
+        return fieldValue >= filterValue;
+    if (op == "<=")
+        return fieldValue <= filterValue;
+    return false;
+}
+
+bool TopicMonitor::compareStrings(const QString &fieldValue, const QString &filterValue, const QString &op)
+{
+    if (op == "=")
+        return fieldValue == filterValue;
+    if (op == "!=")
+        return fieldValue != filterValue;
+    if (op == ">")
+        return fieldValue > filterValue;
+    if (op == "<")
+        return fieldValue < filterValue;
+    if (op == ">=")
+        return fieldValue >= filterValue;
+    if (op == "<=")
+        return fieldValue <= filterValue;
+    return false;
+}
+
 
 
 #if OPENDDS_MAJOR_VERSION == 3 && OPENDDS_MINOR_VERSION >= 24
