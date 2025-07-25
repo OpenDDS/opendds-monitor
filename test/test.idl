@@ -79,4 +79,13 @@ struct ComplexMessage {
   ComplexTypes ct;
 };
 
+@topic
+struct OptionalFieldsMessage {
+  unsigned short sourceId;
+  string sourceName;
+  @optional double latitude;
+  @optional double longitude;
+  long long time;
+};
+
 };

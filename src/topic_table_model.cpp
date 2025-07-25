@@ -809,8 +809,9 @@ void TopicTableModel::parseCollection(const DDS::DynamicData_var& data, const st
 void TopicTableModel::parseAggregated(const DDS::DynamicData_var& data, const std::string& namePrefix)
 {
     DDS::DynamicType_var type = data->type();
-    const unsigned int count = data->get_item_count();
-    for (unsigned int i = 0; i < count; ++i) {
+    const CORBA::ULong total_member_count = type->get_member_count(); // Get the whole member, even if it was optional and empty
+    for (CORBA::ULong i = 0; i < total_member_count; ++i)
+    {
         DDS::MemberId id = data->get_member_id_at_index(i);
         if (id == OpenDDS::XTypes::MEMBER_ID_INVALID) {
             std::cerr << "Failed to get MemberId at index " << i << std::endl;
