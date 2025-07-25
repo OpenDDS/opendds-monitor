@@ -157,6 +157,24 @@ private:
     // Evaluate a filter on a dynamic data sample.
     bool evaluateDynamicFilter(DDS::DynamicData_ptr data, const QString &filter);
 
+    // Evaluate a complex filter expression with AND, OR, NOT operators
+    bool evaluateFilterExpression(DDS::DynamicData_ptr data, const QString &expression);
+
+    // Split expression on a given operator while respecting parentheses
+    QStringList splitOnOperator(const QString &expression, const QString &op);
+
+    // Evaluate a simple comparison (field op value)
+    bool evaluateSimpleComparison(DDS::DynamicData_ptr data, const QString &expression);
+
+    // Evaluate IN and NOT IN operators
+    bool evaluateInOperator(DDS::DynamicData_ptr data, const QString &fieldName, const QString &valueList, bool isNotIn);
+
+    // Evaluate LIKE operator for pattern matching
+    bool evaluateLikeOperator(DDS::DynamicData_ptr data, const QString &fieldName, const QString &pattern);
+
+    // Convert SQL LIKE pattern to regex
+    QString sqlLikeToRegex(const QString &likePattern);
+
     // Compare the values of a field with the filter value.
     template <typename T>
     bool compareValues(const T &fieldValue, const T &filterValue, const QString &op);
