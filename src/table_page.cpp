@@ -68,10 +68,13 @@ void TablePage::on_clearSamplesButton_clicked()
     }
     else
     {
-        QMessageBox msgBox;
-        msgBox.setIcon(QMessageBox::Warning);
-        msgBox.setText("TablePage::on_clearSamplesButton_clicked: Not supported for dynamic type");
-        msgBox.exec();
+        m_refreshTimer.stop();
+        CommonData::flushSamples(m_topicName);
+        m_topicMonitor->setFilter("");
+        m_refreshTimer.start(REFRESH_TIMEOUT);
+
+        freezeButton->show();
+        unfreezeButton->hide();
     }
 
     refreshPage();
@@ -305,7 +308,8 @@ void TablePage::on_batchButton_clicked()
     }
 }
 
-void TablePage::export_batch_csv(){
+void TablePage::export_batch_csv()
+{
     // prompt the csv file name
     QString fileName = QFileDialog::getSaveFileName(
         this,
@@ -346,8 +350,10 @@ void TablePage::export_batch_csv(){
             out << item->text() << ",";
             for (int i = 0; i < m_tableModel->rowCount(); ++i)
             {
-                QModelIndex valueIndex = m_tableModel->index(i, TopicTableModel::VALUE_COLUMN);
-                out << m_tableModel->data(valueIndex).toString() << ",";
+                QModelIndex nameIndex = m_tableModel->index(i, TopicTableModel::NAME_COLUMN);
+                QString memberName = m_tableModel->data(nameIndex).toString();
+                QVariant memberValue = CommonData::readValue(m_topicName, memberName, j);
+                out << memberValue.toString() << ",";
             }
             out << "\n";
         }
@@ -364,9 +370,11 @@ void TablePage::export_batch_single()
         "",
         "All Files (*)");
 
-    if (!fileName.isEmpty()) {
+    if (!fileName.isEmpty())
+    {
         QFileInfo fi(fileName);
-        if (fi.suffix().isEmpty()) {
+        if (fi.suffix().isEmpty())
+        {
             fileName += ".txt";
         }
     }
@@ -396,9 +404,9 @@ void TablePage::export_batch_single()
             for (int j = 0; j < m_tableModel->rowCount(); ++j)
             {
                 QModelIndex nameIndex = m_tableModel->index(j, TopicTableModel::NAME_COLUMN);
-                QModelIndex valueIndex = m_tableModel->index(j, TopicTableModel::VALUE_COLUMN);
-                out << m_tableModel->data(nameIndex).toString() << ": "
-                    << m_tableModel->data(valueIndex).toString() << "\n";
+                QString memberName = m_tableModel->data(nameIndex).toString();
+                QVariant memberValue = CommonData::readValue(m_topicName, memberName, i);
+                out << memberName << ": " << memberValue.toString() << "\n";
             }
             out << "\n";
         }
@@ -408,7 +416,8 @@ void TablePage::export_batch_single()
     QMessageBox::information(this, "Export Complete", "Sample has been exported to: " + fileName);
 }
 
-void TablePage::export_batch_folder(){
+void TablePage::export_batch_folder()
+{
     // just like before but export to a folder, each sample in a separate file
     QString folderPath = QFileDialog::getExistingDirectory(
         this,
@@ -442,9 +451,9 @@ void TablePage::export_batch_folder(){
             for (int j = 0; j < m_tableModel->rowCount(); ++j)
             {
                 QModelIndex nameIndex = m_tableModel->index(j, TopicTableModel::NAME_COLUMN);
-                QModelIndex valueIndex = m_tableModel->index(j, TopicTableModel::VALUE_COLUMN);
-                out << m_tableModel->data(nameIndex).toString() << ": "
-                    << m_tableModel->data(valueIndex).toString() << "\n";
+                QString memberName = m_tableModel->data(nameIndex).toString();
+                QVariant memberValue = CommonData::readValue(m_topicName, memberName, i);
+                out << memberName << ": " << memberValue.toString() << "\n";
             }
             file.close();
         }
