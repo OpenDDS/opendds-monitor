@@ -88,7 +88,7 @@ void TablePage::on_filterButton_clicked()
     const std::string topicName = m_topicName.toStdString();
     QItemSelectionModel* selectionModel = topicTableView->selectionModel();
     QModelIndexList indexList = selectionModel->selectedIndexes();
-    QString initialText = "";
+    QString initialText = m_topicMonitor->getFilter();
 
     // Create a default filter based on the table selection
     for (int i = 0; i < indexList.size(); ++i)
