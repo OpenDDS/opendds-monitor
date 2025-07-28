@@ -12,6 +12,8 @@
 
 #include <QInputDialog>
 #include <QMessageBox>
+#include <QDir>
+#include <QStandardPaths>
 
 #include <iostream>
 #include <exception>
@@ -310,11 +312,23 @@ void TablePage::on_batchButton_clicked()
 
 void TablePage::export_batch_csv()
 {
-    // prompt the csv file name
+    // Create Export directory if it doesn't exist
+    QString exportDir = QDir::currentPath() + "/Export";
+    QDir dir;
+    if (!dir.exists(exportDir))
+    {
+        if (!dir.mkpath(exportDir))
+        {
+            QMessageBox::warning(this, "Export Error", "Could not create Export directory.");
+            return;
+        }
+    }
+
+    // prompt the csv file name with Export directory as default
     QString fileName = QFileDialog::getSaveFileName(
         this,
         "Export to CSV",
-        "",
+        exportDir + "/export.csv",
         "CSV Files (*.csv);;All Files (*)");
     if (fileName.isEmpty())
     {
@@ -364,10 +378,22 @@ void TablePage::export_batch_csv()
 
 void TablePage::export_batch_single()
 {
+    // Create Export directory if it doesn't exist
+    QString exportDir = QDir::currentPath() + "/Export";
+    QDir dir;
+    if (!dir.exists(exportDir))
+    {
+        if (!dir.mkpath(exportDir))
+        {
+            QMessageBox::warning(this, "Export Error", "Could not create Export directory.");
+            return;
+        }
+    }
+
     QString fileName = QFileDialog::getSaveFileName(
         this,
         "Export Sample",
-        "",
+        exportDir + "/export.txt",
         "All Files (*)");
 
     if (!fileName.isEmpty())
@@ -418,11 +444,23 @@ void TablePage::export_batch_single()
 
 void TablePage::export_batch_folder()
 {
+    // Create Export directory if it doesn't exist
+    QString exportDir = QDir::currentPath() + "/Export";
+    QDir dir;
+    if (!dir.exists(exportDir))
+    {
+        if (!dir.mkpath(exportDir))
+        {
+            QMessageBox::warning(this, "Export Error", "Could not create Export directory.");
+            return;
+        }
+    }
+
     // just like before but export to a folder, each sample in a separate file
     QString folderPath = QFileDialog::getExistingDirectory(
         this,
         "Select Export Folder",
-        "",
+        exportDir,
         QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     if (folderPath.isEmpty())
     {
