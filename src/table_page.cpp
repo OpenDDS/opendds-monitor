@@ -10,6 +10,7 @@
 #include "graph_page.h"
 #include "qos_dictionary.h"
 
+#include <QInputDialog>
 #include <QMessageBox>
 
 #include <iostream>
@@ -150,11 +151,10 @@ void TablePage::on_filterButton_clicked()
     usageString += "Example usage: color = 'BLUE' AND id = 1\n";
 
     // Prompt the user for the topic filter string
-    QString filter = QInputDialog::getText(
+    QString filter = QInputDialog::getMultiLineText(
         this,
         "Topic Filter",
         usageString,
-        QLineEdit::Normal,
         initialText,
         &ok);
 

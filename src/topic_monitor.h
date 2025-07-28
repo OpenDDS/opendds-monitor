@@ -157,6 +157,9 @@ private:
     // Evaluate a filter on a dynamic data sample.
     bool evaluateDynamicFilter(DDS::DynamicData_ptr data, const QString &filter);
 
+    // Clean up the filter string by removing whitespace, comment, double spaces, enters, etc.
+    QString cleanFilter(const QString &filter);
+
     // Evaluate a complex filter expression with AND, OR, NOT operators
     bool evaluateFilterExpression(DDS::DynamicData_ptr data, const QString &expression);
 

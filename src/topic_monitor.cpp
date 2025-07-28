@@ -330,11 +330,20 @@ void TopicMonitor::unpause()
 bool TopicMonitor::evaluateDynamicFilter(DDS::DynamicData_ptr data, const QString &filter)
 {
     try {
-        return evaluateFilterExpression(data, filter.trimmed());
+        return evaluateFilterExpression(data, cleanFilter(filter));
     } catch (const std::exception& e) {
         std::cerr << "Filter evaluation error: " << e.what() << std::endl;
         return false;
     }
+}
+
+QString TopicMonitor::cleanFilter(const QString &filter)
+{
+    QString cleaned = filter.simplified();
+    cleaned.replace(QRegExp("\\s+"), " "); // Replace multiple spaces with a single space
+    cleaned.replace(QRegExp("--.*"), ""); // Remove comments starting with --
+    cleaned.replace(QRegExp("/\\*.*?\\*/", Qt::CaseInsensitive), ""); // Remove C-style comments
+    return cleaned.trimmed();
 }
 
 bool TopicMonitor::evaluateFilterExpression(DDS::DynamicData_ptr data, const QString &expression)

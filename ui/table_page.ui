@@ -41,7 +41,7 @@
       <bool>false</bool>
      </attribute>
      <attribute name="verticalHeaderDefaultSectionSize">
-      <number>19</number>
+      <number>23</number>
      </attribute>
      <column>
       <property name="text">
@@ -74,7 +74,7 @@
       <bool>false</bool>
      </attribute>
      <attribute name="verticalHeaderDefaultSectionSize">
-      <number>19</number>
+      <number>23</number>
      </attribute>
     </widget>
    </item>
@@ -203,6 +203,26 @@
        <property name="icon">
         <iconset resource="../ddsmon.qrc">
          <normaloff>:/images/exportdoc.png</normaloff>:/images/exportdoc.png</iconset>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="batchButton">
+       <property name="maximumSize">
+        <size>
+         <width>35</width>
+         <height>35</height>
+        </size>
+       </property>
+       <property name="toolTip">
+        <string>Export batch</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset>
+         <normaloff>../images/exportbatch.png</normaloff>../images/exportbatch.png</iconset>
        </property>
       </widget>
      </item>
