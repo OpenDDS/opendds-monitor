@@ -312,7 +312,6 @@ void TablePage::on_batchButton_clicked()
 
 void TablePage::export_batch_csv()
 {
-    // Create Export directory if it doesn't exist
     QString exportDir = QDir::currentPath() + "/Export";
     QDir dir;
     if (!dir.exists(exportDir))
@@ -324,7 +323,6 @@ void TablePage::export_batch_csv()
         }
     }
 
-    // prompt the csv file name with Export directory as default
     QString fileName = QFileDialog::getSaveFileName(
         this,
         "Export to CSV",
@@ -378,7 +376,6 @@ void TablePage::export_batch_csv()
 
 void TablePage::export_batch_single()
 {
-    // Create Export directory if it doesn't exist
     QString exportDir = QDir::currentPath() + "/Export";
     QDir dir;
     if (!dir.exists(exportDir))
@@ -444,7 +441,6 @@ void TablePage::export_batch_single()
 
 void TablePage::export_batch_folder()
 {
-    // Create Export directory if it doesn't exist
     QString exportDir = QDir::currentPath() + "/Export";
     QDir dir;
     if (!dir.exists(exportDir))
@@ -456,7 +452,6 @@ void TablePage::export_batch_folder()
         }
     }
 
-    // just like before but export to a folder, each sample in a separate file
     QString folderPath = QFileDialog::getExistingDirectory(
         this,
         "Select Export Folder",
