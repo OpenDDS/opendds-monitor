@@ -16,12 +16,10 @@
 #include <iostream>
 #include <exception>
 
-
 //------------------------------------------------------------------------------
-TablePage::TablePage(const QString& topicName, QWidget *parent) :
-    QWidget(parent),
-    m_topicName(topicName),
-    m_refreshTimer(this)
+TablePage::TablePage(const QString &topicName, QWidget *parent) : QWidget(parent),
+                                                                  m_topicName(topicName),
+                                                                  m_refreshTimer(this)
 {
     setupUi(this);
 
@@ -44,16 +42,13 @@ TablePage::TablePage(const QString& topicName, QWidget *parent) :
 
     connect(&m_refreshTimer, SIGNAL(timeout()), this, SLOT(refreshPage()));
     m_refreshTimer.start(REFRESH_TIMEOUT);
-
 }
-
 
 //------------------------------------------------------------------------------
 TablePage::~TablePage()
 {
     CommonData::flushSamples(m_topicName);
 }
-
 
 //------------------------------------------------------------------------------
 void TablePage::on_clearSamplesButton_clicked()
@@ -67,7 +62,7 @@ void TablePage::on_clearSamplesButton_clicked()
     if (topicInfo->typeMode() == TypeDiscoveryMode::TypeCode)
     {
         std::shared_ptr<OpenDynamicData> blankSample = CreateOpenDynamicData(topicInfo->typeCode(),
-          QosDictionary::getEncodingKind(), topicInfo->extensibility());
+                                                                             QosDictionary::getEncodingKind(), topicInfo->extensibility());
         CommonData::flushSamples(m_topicName);
         m_tableModel->setSample(blankSample);
     }
@@ -82,12 +77,11 @@ void TablePage::on_clearSamplesButton_clicked()
     refreshPage();
 }
 
-
 //------------------------------------------------------------------------------
 void TablePage::on_filterButton_clicked()
 {
     const std::string topicName = m_topicName.toStdString();
-    QItemSelectionModel* selectionModel = topicTableView->selectionModel();
+    QItemSelectionModel *selectionModel = topicTableView->selectionModel();
     QModelIndexList indexList = selectionModel->selectedIndexes();
     QString initialText = m_topicMonitor->getFilter();
 
@@ -141,7 +135,6 @@ void TablePage::on_filterButton_clicked()
         {
             initialText += " = " + valueString;
         }
-
     }
 
     bool ok = false;
@@ -180,7 +173,7 @@ void TablePage::on_filterButton_clicked()
         {
             OpenDDS::DCPS::FilterEvaluator filterTest(filter.toUtf8().data(), false);
         }
-        catch (const std::exception& e)
+        catch (const std::exception &e)
         {
             QString errorMessage = e.what();
             QMessageBox::warning(
@@ -202,14 +195,13 @@ void TablePage::on_filterButton_clicked()
     unfreezeButton->hide();
 }
 
-
 //------------------------------------------------------------------------------
 void TablePage::on_useLatestButton_clicked()
 {
     // Use the latest sample if the button is checked
     if (useLatestButton->isChecked() && historyTable->rowCount() > 1)
     {
-        QTableWidgetItem* item = historyTable->item(0, 0);
+        QTableWidgetItem *item = historyTable->item(0, 0);
         if (item)
         {
             historyTable->clearSelection();
@@ -222,7 +214,6 @@ void TablePage::on_useLatestButton_clicked()
     refreshPage();
 }
 
-
 //------------------------------------------------------------------------------
 void TablePage::on_freezeButton_clicked()
 {
@@ -231,7 +222,6 @@ void TablePage::on_freezeButton_clicked()
     m_topicMonitor->pause();
 }
 
-
 //------------------------------------------------------------------------------
 void TablePage::on_unfreezeButton_clicked()
 {
@@ -239,7 +229,6 @@ void TablePage::on_unfreezeButton_clicked()
     unfreezeButton->hide();
     m_topicMonitor->unpause();
 }
-
 
 //------------------------------------------------------------------------------
 void TablePage::on_iniButton_clicked()
@@ -255,7 +244,6 @@ void TablePage::on_iniButton_clicked()
     {
         return;
     }
-
 
     QFile iniFile(iniPath);
     iniFile.open(QIODevice::WriteOnly | QIODevice::Text);
@@ -278,6 +266,191 @@ void TablePage::on_iniButton_clicked()
     iniFile.close();
 }
 
+//------------------------------------------------------------------------------
+void TablePage::on_batchButton_clicked()
+{
+    // Prompt the user about save options (dropdown option csv, single file, export to folder)
+
+    QStringList options;
+    options << "CSV (single file)" << "Single file" << "Export to folder";
+
+    bool ok = false;
+    QString choice = QInputDialog::getItem(
+        this,
+        "Batch Export Options",
+        "Choose export format:",
+        options,
+        0,
+        false,
+        &ok);
+
+    if (!ok || choice.isEmpty())
+    {
+        return;
+    }
+
+    switch (choice.toStdString()[0])
+    {
+    case 'C':
+        export_batch_csv();
+        break;
+    case 'S':
+        export_batch_single();
+        break;
+    case 'E':
+        export_batch_folder();
+        break;
+    default:
+        break;
+    }
+}
+
+void TablePage::export_batch_csv(){
+    // prompt the csv file name
+    QString fileName = QFileDialog::getSaveFileName(
+        this,
+        "Export to CSV",
+        "",
+        "CSV Files (*.csv);;All Files (*)");
+    if (fileName.isEmpty())
+    {
+        return;
+    }
+
+    if (!fileName.endsWith(".csv"))
+    {
+        fileName += ".csv";
+    }
+
+    QFile file(fileName);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+    {
+        QMessageBox::warning(this, "Export Error", "Could not open file for writing.");
+        return;
+    }
+
+    QTextStream out(&file);
+    out.setCodec("UTF-8");
+    out << "Sample Name,";
+    for (int i = 0; i < m_tableModel->rowCount(); ++i)
+    {
+        QModelIndex nameIndex = m_tableModel->index(i, TopicTableModel::NAME_COLUMN);
+        out << m_tableModel->data(nameIndex).toString() << ",";
+    }
+    out << "\n";
+    for (int j = 0; j < historyTable->rowCount(); ++j)
+    {
+        QTableWidgetItem *item = historyTable->item(j, 0);
+        if (item)
+        {
+            out << item->text() << ",";
+            for (int i = 0; i < m_tableModel->rowCount(); ++i)
+            {
+                QModelIndex valueIndex = m_tableModel->index(i, TopicTableModel::VALUE_COLUMN);
+                out << m_tableModel->data(valueIndex).toString() << ",";
+            }
+            out << "\n";
+        }
+    }
+    file.close();
+    QMessageBox::information(this, "Export Complete", "Data has been exported to: " + fileName);
+}
+
+void TablePage::export_batch_single()
+{
+    QString fileName = QFileDialog::getSaveFileName(
+        this,
+        "Export Sample",
+        "",
+        "All Files (*)");
+
+    if (!fileName.isEmpty()) {
+        QFileInfo fi(fileName);
+        if (fi.suffix().isEmpty()) {
+            fileName += ".txt";
+        }
+    }
+
+    if (fileName.isEmpty())
+    {
+        return;
+    }
+
+    QFile file(fileName);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+    {
+        QMessageBox::warning(this, "Export Error", "Could not open file for writing.");
+        return;
+    }
+    QTextStream out(&file);
+    out.setCodec("UTF-8");
+
+    for (int i = 0; i < historyTable->rowCount(); ++i)
+    {
+        QTableWidgetItem *item = historyTable->item(i, 0);
+        if (item)
+        {
+            QString sampleName = item->text();
+            out << "Sample: " << sampleName << "\n";
+
+            for (int j = 0; j < m_tableModel->rowCount(); ++j)
+            {
+                QModelIndex nameIndex = m_tableModel->index(j, TopicTableModel::NAME_COLUMN);
+                QModelIndex valueIndex = m_tableModel->index(j, TopicTableModel::VALUE_COLUMN);
+                out << m_tableModel->data(nameIndex).toString() << ": "
+                    << m_tableModel->data(valueIndex).toString() << "\n";
+            }
+            out << "\n";
+        }
+    }
+
+    file.close();
+    QMessageBox::information(this, "Export Complete", "Sample has been exported to: " + fileName);
+}
+
+void TablePage::export_batch_folder(){
+    // just like before but export to a folder, each sample in a separate file
+    QString folderPath = QFileDialog::getExistingDirectory(
+        this,
+        "Select Export Folder",
+        "",
+        QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+    if (folderPath.isEmpty())
+    {
+        return;
+    }
+
+    for (int i = 0; i < historyTable->rowCount(); ++i)
+    {
+        QTableWidgetItem *item = historyTable->item(i, 0);
+        if (item)
+        {
+            QString sampleName = item->text();
+            QString fileName = folderPath + "/" + sampleName + ".txt";
+
+            QFile file(fileName);
+            if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+            {
+                QMessageBox::warning(this, "Export Error", "Could not open file for writing: " + fileName);
+                continue;
+            }
+            QTextStream out(&file);
+            out.setCodec("UTF-8");
+
+            out << "Sample: " << sampleName << "\n";
+
+            for (int j = 0; j < m_tableModel->rowCount(); ++j)
+            {
+                QModelIndex nameIndex = m_tableModel->index(j, TopicTableModel::NAME_COLUMN);
+                QModelIndex valueIndex = m_tableModel->index(j, TopicTableModel::VALUE_COLUMN);
+                out << m_tableModel->data(nameIndex).toString() << ": "
+                    << m_tableModel->data(valueIndex).toString() << "\n";
+            }
+            file.close();
+        }
+    }
+    QMessageBox::information(this, "Export Complete", "All samples have been exported to: " + folderPath);
+}
 
 //------------------------------------------------------------------------------
 void TablePage::on_revertButton_clicked()
@@ -285,7 +458,6 @@ void TablePage::on_revertButton_clicked()
     m_tableModel->revertChanges();
     revertButton->setEnabled(false);
 }
-
 
 //------------------------------------------------------------------------------
 void TablePage::on_publishButton_clicked()
@@ -316,14 +488,13 @@ void TablePage::on_publishButton_clicked()
     }
 }
 
-
 //------------------------------------------------------------------------------
 void TablePage::on_historyTable_itemSelectionChanged()
 {
-    QList<QTableWidgetItem*> items = historyTable->selectedItems();
+    QList<QTableWidgetItem *> items = historyTable->selectedItems();
     for (int i = 0; i < items.count(); ++i)
     {
-        QTableWidgetItem* selectedItem = items.at(i);
+        QTableWidgetItem *selectedItem = items.at(i);
         if (selectedItem->row() != 0)
         {
             useLatestButton->setChecked(false);
@@ -333,11 +504,10 @@ void TablePage::on_historyTable_itemSelectionChanged()
     }
 }
 
-
 //------------------------------------------------------------------------------
 void TablePage::on_newPlotButton_clicked()
 {
-    QItemSelectionModel* selectionModel = topicTableView->selectionModel();
+    QItemSelectionModel *selectionModel = topicTableView->selectionModel();
     QModelIndexList indexList = selectionModel->selectedIndexes();
     QStringList selectedVariables;
 
@@ -397,13 +567,12 @@ void TablePage::on_newPlotButton_clicked()
     }
 }
 
-
 //------------------------------------------------------------------------------
 void TablePage::on_attachPlotButton_clicked()
 {
-    QItemSelectionModel* selectionModel = topicTableView->selectionModel();
+    QItemSelectionModel *selectionModel = topicTableView->selectionModel();
     QModelIndexList indexList = selectionModel->selectedIndexes();
-    QMap<QString, GraphPage*> graphPages;
+    QMap<QString, GraphPage *> graphPages;
     QStringList selectedVariables;
     QStringList graphNames;
 
@@ -422,13 +591,12 @@ void TablePage::on_attachPlotButton_clicked()
         return;
     }
 
-
     // Find the target graph page object
     QWidgetList mainWidgets = QApplication::topLevelWidgets();
     for (int i = 0; i < mainWidgets.count(); ++i)
     {
-        QList<GraphPage*> graphWidgets =
-            mainWidgets.at(i)->findChildren<GraphPage*>();
+        QList<GraphPage *> graphWidgets =
+            mainWidgets.at(i)->findChildren<GraphPage *>();
 
         for (int ii = 0; ii < graphWidgets.count(); ++ii)
         {
@@ -452,7 +620,6 @@ void TablePage::on_attachPlotButton_clicked()
 
     graphNames.removeDuplicates();
     graphNames.sort();
-
 
     QString targetPlotName = graphNames.at(0);
 
@@ -486,11 +653,10 @@ void TablePage::on_attachPlotButton_clicked()
     }
 }
 
-
 //------------------------------------------------------------------------------
 void TablePage::on_recordButton_clicked()
 {
-    QItemSelectionModel* selectionModel = topicTableView->selectionModel();
+    QItemSelectionModel *selectionModel = topicTableView->selectionModel();
     QModelIndexList indexList = selectionModel->selectedIndexes();
     QStringList selectedVariables;
 
@@ -509,14 +675,12 @@ void TablePage::on_recordButton_clicked()
         return;
     }
 
-
-    RecorderDialog* recorder = new RecorderDialog(m_topicName, selectedVariables, this);
+    RecorderDialog *recorder = new RecorderDialog(m_topicName, selectedVariables, this);
     recorder->show();
 }
 
-
 //------------------------------------------------------------------------------
-void TablePage::on_topicTableView_pressed(const QModelIndex& index)
+void TablePage::on_topicTableView_pressed(const QModelIndex &index)
 {
     if (index.column() == TopicTableModel::VALUE_COLUMN)
     {
@@ -525,15 +689,16 @@ void TablePage::on_topicTableView_pressed(const QModelIndex& index)
 }
 
 //------------------------------------------------------------------------------
-void TablePage::on_hexButton_clicked() {
+void TablePage::on_hexButton_clicked()
+{
     m_tableModel->updateDisplayHex(hexButton->isChecked());
 }
 
 //------------------------------------------------------------------------------
-void TablePage::on_asciiButton_clicked() {
+void TablePage::on_asciiButton_clicked()
+{
     m_tableModel->updateDisplayAscii(asciiButton->isChecked());
 }
-
 
 //------------------------------------------------------------------------------
 void TablePage::dataHasChanged()
@@ -541,34 +706,32 @@ void TablePage::dataHasChanged()
     revertButton->setEnabled(true);
 }
 
-
 //------------------------------------------------------------------------------
 void TablePage::refreshPage()
 {
     // Display the number of readers and writers for this topic
     const std::string topicName = m_topicName.toStdString();
 
-    //dds::sub::DataReader<DynamicData> dr =
-    //    CommonData::m_ddsManager->getReader<DynamicData>
-    //    (topicName, DATA_READER_NAME);
+    // dds::sub::DataReader<DynamicData> dr =
+    //     CommonData::m_ddsManager->getReader<DynamicData>
+    //     (topicName, DATA_READER_NAME);
 
-    //dds::pub::DataWriter<DynamicData> dw =
-    //    CommonData::m_ddsManager->getWriter<DynamicData>(topicName);
+    // dds::pub::DataWriter<DynamicData> dw =
+    //     CommonData::m_ddsManager->getWriter<DynamicData>(topicName);
 
-    //if (dr != nullptr && dw != nullptr)
+    // if (dr != nullptr && dw != nullptr)
     //{
-    //    dds::core::status::SubscriptionMatchedStatus subStatus =
-    //        dr->subscription_matched_status();
-    //    dds::core::status::PublicationMatchedStatus pubStatus =
-    //        dw->publication_matched_status();
+    //     dds::core::status::SubscriptionMatchedStatus subStatus =
+    //         dr->subscription_matched_status();
+    //     dds::core::status::PublicationMatchedStatus pubStatus =
+    //         dw->publication_matched_status();
 
     //    matchedSubLabel->setText(QString::number(pubStatus.current_count()));
     //    matchedPubLabel->setText(QString::number(subStatus.current_count()));
     //}
 
-
     // Disable the plot buttons if we don't have a valid selection
-    QItemSelectionModel* selectionModel = topicTableView->selectionModel();
+    QItemSelectionModel *selectionModel = topicTableView->selectionModel();
     QModelIndexList indexList = selectionModel->selectedIndexes();
     if (indexList.isEmpty())
     {
@@ -583,7 +746,6 @@ void TablePage::refreshPage()
         recordButton->setEnabled(true);
     }
 
-
     // Don't repopulate the history widget is nothing changed
     QStringList sampleNames = CommonData::getSampleList(m_topicName);
     if (m_historyList == sampleNames)
@@ -596,7 +758,7 @@ void TablePage::refreshPage()
     historyTable->setRowCount(sampleNames.size());
     for (int i = 0; i < sampleNames.size(); ++i)
     {
-        QTableWidgetItem* item = new QTableWidgetItem;
+        QTableWidgetItem *item = new QTableWidgetItem;
         item->setText(sampleNames.at(i));
         historyTable->setItem(i, 0, item);
 
@@ -609,7 +771,7 @@ void TablePage::refreshPage()
     // Use the latest sample if the button is checked
     if (useLatestButton->isChecked() && historyTable->rowCount() > 0)
     {
-        QTableWidgetItem* item = historyTable->item(0, 0);
+        QTableWidgetItem *item = historyTable->item(0, 0);
         if (item)
         {
             historyTable->clearSelection();
@@ -620,9 +782,8 @@ void TablePage::refreshPage()
     }
 }
 
-
 //------------------------------------------------------------------------------
-void TablePage::setSample(const QString& sampleName)
+void TablePage::setSample(const QString &sampleName)
 {
     if (sampleName.isEmpty())
     {
@@ -666,7 +827,6 @@ void TablePage::setSample(const QString& sampleName)
 
     revertButton->setEnabled(false);
 }
-
 
 /**
  * @}
