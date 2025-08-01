@@ -98,10 +98,10 @@ TopicMonitor::TopicMonitor(const QString &topicName)
                                             topicInfo->topicQos(),
                                             0,
                                             0);
-        if (!m_topic)
-        {
-            throw std::runtime_error(std::string("Failed to create topic \"") + topicInfo->topicName() + "\"");
-        }
+        // if (!m_topic)
+        // {
+        //     throw std::runtime_error(std::string("Failed to create topic \"") + topicInfo->topicName() + "\"");
+        // }
 
         DDS::Subscriber_var subscriber = participant->create_subscriber(topicInfo->subQos(),
                                                                         0,
