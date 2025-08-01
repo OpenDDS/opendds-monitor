@@ -16,16 +16,9 @@
 #include <iostream>
 #include <stdexcept>
 
-
 //------------------------------------------------------------------------------
-TopicMonitor::TopicMonitor(const QString& topicName)
-    : m_topicName(topicName)
-    , m_filter("")
-    , m_recorder_listener(OpenDDS::DCPS::make_rch<RecorderListener>(OpenDDS::DCPS::ref(*this)))
-    , m_recorder(nullptr)
-    , m_dr_listener(new DataReaderListenerImpl(*this))
-    , m_topic(nullptr)
-    , m_paused(false)
+TopicMonitor::TopicMonitor(const QString &topicName)
+    : m_topicName(topicName), m_filter(""), m_recorder_listener(OpenDDS::DCPS::make_rch<RecorderListener>(OpenDDS::DCPS::ref(*this))), m_recorder(nullptr), m_dr_listener(new DataReaderListenerImpl(*this)), m_topic(nullptr), m_paused(false)
 {
     // Make sure we have an information object for this topic
     std::shared_ptr<TopicInfo> topicInfo = CommonData::getTopicInfo(topicName);
@@ -36,7 +29,7 @@ TopicMonitor::TopicMonitor(const QString& topicName)
 
     // Store extensibility
     m_extensibility = topicInfo->extensibility();
-    OpenDDS::DCPS::Service_Participant* service = TheServiceParticipant;
+    OpenDDS::DCPS::Service_Participant *service = TheServiceParticipant;
     DDS::DomainParticipant_var participant;
     if (CommonData::m_ddsManager)
     {
@@ -83,6 +76,23 @@ TopicMonitor::TopicMonitor(const QString& topicName)
         // When this is called, the information about this topic including its
         // DynamicType should be already obtained. The topic's type should also be
         // registered with the local domain participant.
+
+        std::cout << "Creating topic \"" << topicInfo->topicName() << "\" with DynamicDataReader" << std::endl;
+        std::cout << "type: " << topicInfo->typeName() << "\"" << std::endl;
+        std::cout << "hasKey: " << (topicInfo->hasKey() ? "true" : "false") << std::endl;
+
+        if (!participant)
+        {
+            throw std::runtime_error("DomainParticipant is null");
+        }
+        if (topicInfo->topicName().empty())
+        {
+            throw std::runtime_error("Topic name is empty");
+        }
+        if (topicInfo->typeName().empty())
+        {
+            throw std::runtime_error("Type name is empty");
+        }
         m_topic = participant->create_topic(topicInfo->topicName().c_str(),
                                             topicInfo->typeName().c_str(),
                                             topicInfo->topicQos(),
@@ -113,27 +123,23 @@ TopicMonitor::TopicMonitor(const QString& topicName)
     }
 }
 
-
 //------------------------------------------------------------------------------
 TopicMonitor::~TopicMonitor()
 {
     close();
 }
 
-
 //------------------------------------------------------------------------------
-void TopicMonitor::setFilter(const QString& filter)
+void TopicMonitor::setFilter(const QString &filter)
 {
     m_filter = filter;
 }
-
 
 //------------------------------------------------------------------------------
 QString TopicMonitor::getFilter() const
 {
     return m_filter;
 }
-
 
 //------------------------------------------------------------------------------
 void TopicMonitor::close()
@@ -146,20 +152,20 @@ void TopicMonitor::close()
     if (m_recorder)
     {
         // The set_deleted is not visible in >=3.12
-        //OpenDDS::DCPS::RecorderImpl* readerImpl =
+        // OpenDDS::DCPS::RecorderImpl* readerImpl =
         //    dynamic_cast<OpenDDS::DCPS::RecorderImpl*>(m_recorder);
-        //if (readerImpl)
+        // if (readerImpl)
         //{
         //    readerImpl->remove_all_associations();
         //    readerImpl->set_deleted(true);
         //}
 
-        OpenDDS::DCPS::Service_Participant* service = TheServiceParticipant;
+        OpenDDS::DCPS::Service_Participant *service = TheServiceParticipant;
         service->delete_recorder(m_recorder);
         m_recorder = nullptr;
     }
 
-    DDS::DomainParticipant* domain = CommonData::m_ddsManager ? CommonData::m_ddsManager->getDomainParticipant() : nullptr;
+    DDS::DomainParticipant *domain = CommonData::m_ddsManager ? CommonData::m_ddsManager->getDomainParticipant() : nullptr;
     if (domain)
     {
         domain->delete_topic(m_topic);
@@ -167,10 +173,9 @@ void TopicMonitor::close()
     m_topic = nullptr;
 }
 
-
 //------------------------------------------------------------------------------
-void TopicMonitor::on_sample_data_received(OpenDDS::DCPS::Recorder*,
-                                           const OpenDDS::DCPS::RawDataSample& rawSample)
+void TopicMonitor::on_sample_data_received(OpenDDS::DCPS::Recorder *,
+                                           const OpenDDS::DCPS::RawDataSample &rawSample)
 {
     if (m_paused)
     {
@@ -202,9 +207,9 @@ void TopicMonitor::on_sample_data_received(OpenDDS::DCPS::Recorder*,
     OpenDDS::DCPS::Serializer serial(
         rawSample.sample_.get(), rawSample.encoding_kind_, static_cast<OpenDDS::DCPS::Endianness>(rawSample.header_.byte_order_));
 
-    //RJ 2022-01-20 With OpenDDS 3.19.0, the entire message header is read before the sample gets passed to this function.
-    //Code that strips off the RTPS header has been removed.
-    //Same with the reset_alignment call in the serializer. That has already happened before the sample is passed to this function.
+    // RJ 2022-01-20 With OpenDDS 3.19.0, the entire message header is read before the sample gets passed to this function.
+    // Code that strips off the RTPS header has been removed.
+    // Same with the reset_alignment call in the serializer. That has already happened before the sample is passed to this function.
 
     std::shared_ptr<OpenDynamicData> sample = CreateOpenDynamicData(m_typeCode, globalEncoding, m_extensibility);
     if (globalEncoding != OpenDDS::DCPS::Encoding::KIND_XCDR1)
@@ -219,7 +224,7 @@ void TopicMonitor::on_sample_data_received(OpenDDS::DCPS::Recorder*,
     }
 
     (*(sample.get())) << serial;
-    //sample->dump();
+    // sample->dump();
 
     // If a filter was specified, make sure the sample passes
     if (!m_filter.isEmpty())
@@ -242,7 +247,7 @@ void TopicMonitor::on_sample_data_received(OpenDDS::DCPS::Recorder*,
             FilterTypeSupport typeSupport(metaInfo, m_extensibility);
             pass = filterTest.eval(mbCopy.get(), encoding, typeSupport, noParams);
         }
-        catch (const std::exception& e)
+        catch (const std::exception &e)
         {
             std::cerr << "Exception: " << e.what() << std::endl;
             pass = false;
@@ -252,7 +257,6 @@ void TopicMonitor::on_sample_data_received(OpenDDS::DCPS::Recorder*,
         {
             return;
         }
-
     }
 
     const QDateTime dataTime = QDateTime::fromMSecsSinceEpoch(
@@ -265,7 +269,8 @@ void TopicMonitor::on_sample_data_received(OpenDDS::DCPS::Recorder*,
 
 void TopicMonitor::on_data_available(DDS::DataReader_ptr dr)
 {
-    if (m_paused) {
+    if (m_paused)
+    {
         return;
     }
 
@@ -273,14 +278,16 @@ void TopicMonitor::on_data_available(DDS::DataReader_ptr dr)
     DDS::DynamicDataSeq messages;
     DDS::SampleInfoSeq infos;
     const DDS::ReturnCode_t ret = ddr->take(messages, infos, DDS::LENGTH_UNLIMITED,
-      DDS::ANY_SAMPLE_STATE, DDS::ANY_VIEW_STATE, DDS::ANY_INSTANCE_STATE);
-    if (ret != DDS::RETCODE_OK && ret != DDS::RETCODE_NO_DATA) {
+                                            DDS::ANY_SAMPLE_STATE, DDS::ANY_VIEW_STATE, DDS::ANY_INSTANCE_STATE);
+    if (ret != DDS::RETCODE_OK && ret != DDS::RETCODE_NO_DATA)
+    {
         std::cerr << "Failed to take samples for topic "
                   << m_topicName.toStdString() << std::endl;
         return;
     }
 
-    for (unsigned int i = 0; i < messages.length(); ++i) {
+    for (unsigned int i = 0; i < messages.length(); ++i)
+    {
         if (infos[i].valid_data)
         {
             bool passFilter = true;
@@ -310,7 +317,6 @@ void TopicMonitor::on_data_available(DDS::DataReader_ptr dr)
             CommonData::storeDynamicSample(m_topicName, sampleName,
                                            DDS::DynamicData::_duplicate(messages[i].in()));
         }
-
     }
 }
 
@@ -320,7 +326,6 @@ void TopicMonitor::pause()
     m_paused = true;
 }
 
-
 //------------------------------------------------------------------------------
 void TopicMonitor::unpause()
 {
@@ -329,9 +334,12 @@ void TopicMonitor::unpause()
 
 bool TopicMonitor::evaluateDynamicFilter(DDS::DynamicData_ptr data, const QString &filter)
 {
-    try {
+    try
+    {
         return evaluateFilterExpression(data, cleanFilter(filter));
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception &e)
+    {
         std::cerr << "Filter evaluation error: " << e.what() << std::endl;
         return false;
     }
@@ -340,8 +348,8 @@ bool TopicMonitor::evaluateDynamicFilter(DDS::DynamicData_ptr data, const QStrin
 QString TopicMonitor::cleanFilter(const QString &filter)
 {
     QString cleaned = filter.simplified();
-    cleaned.replace(QRegExp("\\s+"), " "); // Replace multiple spaces with a single space
-    cleaned.replace(QRegExp("--.*"), ""); // Remove comments starting with --
+    cleaned.replace(QRegExp("\\s+"), " ");                            // Replace multiple spaces with a single space
+    cleaned.replace(QRegExp("--.*"), "");                             // Remove comments starting with --
     cleaned.replace(QRegExp("/\\*.*?\\*/", Qt::CaseInsensitive), ""); // Remove C-style comments
     return cleaned.trimmed();
 }
@@ -349,45 +357,57 @@ QString TopicMonitor::cleanFilter(const QString &filter)
 bool TopicMonitor::evaluateFilterExpression(DDS::DynamicData_ptr data, const QString &expression)
 {
     QString expr = expression.trimmed();
-    if (expr.isEmpty()) {
+    if (expr.isEmpty())
+    {
         return true;
     }
 
     // parentheses first
-    while (expr.contains('(')) {
+    while (expr.contains('('))
+    {
         int depth = 0;
         int start = -1;
         int end = -1;
-        
-        for (int i = 0; i < expr.length(); ++i) {
-            if (expr[i] == '(') {
-                if (depth == 0) start = i;
+
+        for (int i = 0; i < expr.length(); ++i)
+        {
+            if (expr[i] == '(')
+            {
+                if (depth == 0)
+                    start = i;
                 depth++;
-            } else if (expr[i] == ')') {
+            }
+            else if (expr[i] == ')')
+            {
                 depth--;
-                if (depth == 0) {
+                if (depth == 0)
+                {
                     end = i;
                     break;
                 }
             }
         }
-        
-        if (start == -1 || end == -1) {
+
+        if (start == -1 || end == -1)
+        {
             throw std::runtime_error("Mismatched parentheses in filter expression");
         }
-        
+
         QString innerExpr = expr.mid(start + 1, end - start - 1);
         bool innerResult = evaluateFilterExpression(data, innerExpr);
-        
+
         // Replace the parenthetical expression with its result
         expr = expr.left(start) + (innerResult ? "TRUE" : "FALSE") + expr.mid(end + 1);
     }
 
     // OR is the lowest precedence
     QStringList orParts = splitOnOperator(expr, " OR ");
-    if (orParts.size() > 1) {
-        for (const QString &part : orParts) {
-            if (evaluateFilterExpression(data, part)) {
+    if (orParts.size() > 1)
+    {
+        for (const QString &part : orParts)
+        {
+            if (evaluateFilterExpression(data, part))
+            {
                 return true;
             }
         }
@@ -396,9 +416,12 @@ bool TopicMonitor::evaluateFilterExpression(DDS::DynamicData_ptr data, const QSt
 
     // Higher than OR
     QStringList andParts = splitOnOperator(expr, " AND ");
-    if (andParts.size() > 1) {
-        for (const QString &part : andParts) {
-            if (!evaluateFilterExpression(data, part)) {
+    if (andParts.size() > 1)
+    {
+        for (const QString &part : andParts)
+        {
+            if (!evaluateFilterExpression(data, part))
+            {
                 return false;
             }
         }
@@ -406,16 +429,19 @@ bool TopicMonitor::evaluateFilterExpression(DDS::DynamicData_ptr data, const QSt
     }
 
     // Highest precedence
-    if (expr.startsWith("NOT ", Qt::CaseInsensitive)) {
+    if (expr.startsWith("NOT ", Qt::CaseInsensitive))
+    {
         QString notExpr = expr.mid(4).trimmed();
         return !evaluateFilterExpression(data, notExpr);
     }
 
     // Handle boolean literals
-    if (expr.compare("TRUE", Qt::CaseInsensitive) == 0) {
+    if (expr.compare("TRUE", Qt::CaseInsensitive) == 0)
+    {
         return true;
     }
-    if (expr.compare("FALSE", Qt::CaseInsensitive) == 0) {
+    if (expr.compare("FALSE", Qt::CaseInsensitive) == 0)
+    {
         return false;
     }
 
@@ -429,13 +455,19 @@ QStringList TopicMonitor::splitOnOperator(const QString &expression, const QStri
     int pos = 0;
     int depth = 0;
     int lastSplit = 0;
-    
-    while (pos < expression.length()) {
-        if (expression[pos] == '(') {
+
+    while (pos < expression.length())
+    {
+        if (expression[pos] == '(')
+        {
             depth++;
-        } else if (expression[pos] == ')') {
+        }
+        else if (expression[pos] == ')')
+        {
             depth--;
-        } else if (depth == 0 && expression.mid(pos).startsWith(op, Qt::CaseInsensitive)) {
+        }
+        else if (depth == 0 && expression.mid(pos).startsWith(op, Qt::CaseInsensitive))
+        {
             parts.append(expression.mid(lastSplit, pos - lastSplit).trimmed());
             pos += op.length();
             lastSplit = pos;
@@ -443,18 +475,19 @@ QStringList TopicMonitor::splitOnOperator(const QString &expression, const QStri
         }
         pos++;
     }
-    
-    if (lastSplit < expression.length()) {
+
+    if (lastSplit < expression.length())
+    {
         parts.append(expression.mid(lastSplit).trimmed());
     }
-    
+
     return parts;
 }
 
 bool TopicMonitor::evaluateSimpleComparison(DDS::DynamicData_ptr data, const QString &expression)
 {
     QString expr = expression.trimmed();
-    
+
     QStringList operators = {">=", "<=", "!=", "<>", "=", ">", "<", " LIKE ", " IN ", " NOT IN "};
     QString op;
     QString fieldName;
@@ -488,15 +521,18 @@ bool TopicMonitor::evaluateSimpleComparison(DDS::DynamicData_ptr data, const QSt
         value = value.mid(1, value.length() - 2);
     }
 
-    if (op == "<>") {
+    if (op == "<>")
+    {
         op = "!=";
     }
 
-    if (op == "IN" || op == "NOT IN") {
+    if (op == "IN" || op == "NOT IN")
+    {
         return evaluateInOperator(data, fieldName, value, op == "NOT IN");
     }
 
-    if (op == "LIKE") {
+    if (op == "LIKE")
+    {
         return evaluateLikeOperator(data, fieldName, value);
     }
 
@@ -697,45 +733,57 @@ bool TopicMonitor::evaluateInOperator(DDS::DynamicData_ptr data, const QString &
 {
     // Parse the value list (e.g., "(1, 2, 3)" or "('a', 'b', 'c')")
     QString cleanList = valueList.trimmed();
-    if (cleanList.startsWith('(') && cleanList.endsWith(')')) {
+    if (cleanList.startsWith('(') && cleanList.endsWith(')'))
+    {
         cleanList = cleanList.mid(1, cleanList.length() - 2);
     }
 
     QStringList values = cleanList.split(',');
-    for (QString &val : values) {
+    for (QString &val : values)
+    {
         val = val.trimmed();
-        if (val.startsWith('"') && val.endsWith('"')) {
+        if (val.startsWith('"') && val.endsWith('"'))
+        {
             val = val.mid(1, val.length() - 2);
-        } else if (val.startsWith('\'') && val.endsWith('\'')) {
+        }
+        else if (val.startsWith('\'') && val.endsWith('\''))
+        {
             val = val.mid(1, val.length() - 2);
         }
     }
 
     // Check if field value matches any of the values in the list
-    for (const QString &val : values) {
+    for (const QString &val : values)
+    {
         QString comparison = fieldName + " = " + val;
-        if (evaluateSimpleComparison(data, comparison)) {
+        if (evaluateSimpleComparison(data, comparison))
+        {
             return !isNotIn;
         }
     }
-    
+
     return isNotIn;
 }
 
 bool TopicMonitor::evaluateLikeOperator(DDS::DynamicData_ptr data, const QString &fieldName, const QString &pattern)
 {
-    try {
+    try
+    {
         DDS::DynamicType_var type = data->type();
         DDS::MemberId memberId = 0;
         bool memberFound = false;
         DDS::UInt32 memberCount = type->get_member_count();
 
-        for (DDS::UInt32 i = 0; i < memberCount; ++i) {
+        for (DDS::UInt32 i = 0; i < memberCount; ++i)
+        {
             DDS::DynamicTypeMember_var member;
-            if (type->get_member_by_index(member, i) == DDS::RETCODE_OK) {
+            if (type->get_member_by_index(member, i) == DDS::RETCODE_OK)
+            {
                 DDS::MemberDescriptor_var desc;
-                if (member->get_descriptor(desc) == DDS::RETCODE_OK) {
-                    if (QString(desc->name()) == fieldName) {
+                if (member->get_descriptor(desc) == DDS::RETCODE_OK)
+                {
+                    if (QString(desc->name()) == fieldName)
+                    {
                         memberId = desc->id();
                         memberFound = true;
                         break;
@@ -744,7 +792,8 @@ bool TopicMonitor::evaluateLikeOperator(DDS::DynamicData_ptr data, const QString
             }
         }
 
-        if (!memberFound) {
+        if (!memberFound)
+        {
             std::cerr << "Field '" << fieldName.toStdString() << "' not found for LIKE operation" << std::endl;
             return false;
         }
@@ -756,13 +805,17 @@ bool TopicMonitor::evaluateLikeOperator(DDS::DynamicData_ptr data, const QString
         DDS::TypeKind memberKind = desc->type()->get_kind();
 
         QString fieldValue;
-        
-        if (memberKind == OpenDDS::XTypes::TK_STRING8) {
+
+        if (memberKind == OpenDDS::XTypes::TK_STRING8)
+        {
             DDS::String8_var stringValue;
-            if (data->get_string_value(stringValue, memberId) == DDS::RETCODE_OK) {
+            if (data->get_string_value(stringValue, memberId) == DDS::RETCODE_OK)
+            {
                 fieldValue = QString::fromUtf8(stringValue);
             }
-        } else {
+        }
+        else
+        {
             std::cerr << "LIKE operator only supported for string fields" << std::endl;
             return false;
         }
@@ -771,8 +824,9 @@ bool TopicMonitor::evaluateLikeOperator(DDS::DynamicData_ptr data, const QString
         QString regexPattern = sqlLikeToRegex(pattern);
         QRegExp regex(regexPattern, Qt::CaseInsensitive);
         return regex.exactMatch(fieldValue);
-        
-    } catch (const std::exception &e) {
+    }
+    catch (const std::exception &e)
+    {
         std::cerr << "Exception in LIKE evaluation: " << e.what() << std::endl;
         return false;
     }
@@ -781,7 +835,7 @@ bool TopicMonitor::evaluateLikeOperator(DDS::DynamicData_ptr data, const QString
 QString TopicMonitor::sqlLikeToRegex(const QString &likePattern)
 {
     QString regex = likePattern;
-    
+
     regex.replace("\\", "\\\\");
     regex.replace(".", "\\.");
     regex.replace("^", "\\^");
@@ -796,10 +850,10 @@ QString TopicMonitor::sqlLikeToRegex(const QString &likePattern)
     regex.replace("(", "\\(");
     regex.replace(")", "\\)");
     regex.replace("|", "\\|");
-    
+
     regex.replace("%", ".*");
     regex.replace("_", ".");
-    
+
     return regex;
 }
 
@@ -838,64 +892,62 @@ bool TopicMonitor::compareStrings(const QString &fieldValue, const QString &filt
     return false;
 }
 
-
-
 #if OPENDDS_MAJOR_VERSION == 3 && OPENDDS_MINOR_VERSION >= 24
-TopicMonitor::FilterTypeSupport::FilterTypeSupport(const DynamicMetaStruct& metastruct, OpenDDS::DCPS::Extensibility exten)
-  : meta_(metastruct)
-  , ext_(exten)
-{}
+TopicMonitor::FilterTypeSupport::FilterTypeSupport(const DynamicMetaStruct &metastruct, OpenDDS::DCPS::Extensibility exten)
+    : meta_(metastruct), ext_(exten)
+{
+}
 
-const OpenDDS::DCPS::MetaStruct&
+const OpenDDS::DCPS::MetaStruct &
 TopicMonitor::FilterTypeSupport::getMetaStructForType() const
 {
-  return meta_;
+    return meta_;
 }
 
 OpenDDS::DCPS::SerializedSizeBound
-TopicMonitor::FilterTypeSupport::serialized_size_bound(const OpenDDS::DCPS::Encoding&) const
+TopicMonitor::FilterTypeSupport::serialized_size_bound(const OpenDDS::DCPS::Encoding &) const
 {
-  return OpenDDS::DCPS::SerializedSizeBound();
+    return OpenDDS::DCPS::SerializedSizeBound();
 }
 
 OpenDDS::DCPS::SerializedSizeBound
-TopicMonitor::FilterTypeSupport::key_only_serialized_size_bound(const OpenDDS::DCPS::Encoding&) const
+TopicMonitor::FilterTypeSupport::key_only_serialized_size_bound(const OpenDDS::DCPS::Encoding &) const
 {
-  return OpenDDS::DCPS::SerializedSizeBound();
+    return OpenDDS::DCPS::SerializedSizeBound();
 }
 
 OpenDDS::DCPS::Extensibility
 TopicMonitor::FilterTypeSupport::max_extensibility() const
 {
-  return OpenDDS::DCPS::FINAL;
+    return OpenDDS::DCPS::FINAL;
 }
 
-OpenDDS::XTypes::TypeIdentifier&
+OpenDDS::XTypes::TypeIdentifier &
 TopicMonitor::FilterTypeSupport::getMinimalTypeIdentifier() const
 {
-  static OpenDDS::XTypes::TypeIdentifier ti;
-  return ti;
+    static OpenDDS::XTypes::TypeIdentifier ti;
+    return ti;
 }
 
-const OpenDDS::XTypes::TypeMap&
+const OpenDDS::XTypes::TypeMap &
 TopicMonitor::FilterTypeSupport::getMinimalTypeMap() const
 {
-  static OpenDDS::XTypes::TypeMap tm;
-  return tm;
+    static OpenDDS::XTypes::TypeMap tm;
+    return tm;
 }
 
-const OpenDDS::XTypes::TypeIdentifier&
+const OpenDDS::XTypes::TypeIdentifier &
 TopicMonitor::FilterTypeSupport::getCompleteTypeIdentifier() const
 {
-  static OpenDDS::XTypes::TypeIdentifier ti;
-  return ti;
+    static OpenDDS::XTypes::TypeIdentifier ti;
+    return ti;
 }
 
-const OpenDDS::XTypes::TypeMap&
+const OpenDDS::XTypes::TypeMap &
 TopicMonitor::FilterTypeSupport::getCompleteTypeMap() const
 {
-  static OpenDDS::XTypes::TypeMap tm;
-  return tm;
+    static OpenDDS::XTypes::TypeMap tm;
+    return tm;
 }
 #endif
 
