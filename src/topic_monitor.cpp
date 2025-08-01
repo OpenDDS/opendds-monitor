@@ -77,31 +77,15 @@ TopicMonitor::TopicMonitor(const QString &topicName)
         // DynamicType should be already obtained. The topic's type should also be
         // registered with the local domain participant.
 
-        std::cout << "Creating topic \"" << topicInfo->topicName() << "\" with DynamicDataReader" << std::endl;
-        std::cout << "type: " << topicInfo->typeName() << "\"" << std::endl;
-        std::cout << "hasKey: " << (topicInfo->hasKey() ? "true" : "false") << std::endl;
-
-        if (!participant)
-        {
-            throw std::runtime_error("DomainParticipant is null");
-        }
-        if (topicInfo->topicName().empty())
-        {
-            throw std::runtime_error("Topic name is empty");
-        }
-        if (topicInfo->typeName().empty())
-        {
-            throw std::runtime_error("Type name is empty");
-        }
         m_topic = participant->create_topic(topicInfo->topicName().c_str(),
                                             topicInfo->typeName().c_str(),
                                             topicInfo->topicQos(),
-                                            0,
-                                            0);
-        // if (!m_topic)
-        // {
-        //     throw std::runtime_error(std::string("Failed to create topic \"") + topicInfo->topicName() + "\"");
-        // }
+                                            DDS::TopicListener::_nil(),
+                                            ::OpenDDS::DCPS::DEFAULT_STATUS_MASK);
+        if (!m_topic)
+        {
+            throw std::runtime_error(std::string("Failed to create topic \"") + topicInfo->topicName() + "\"");
+        }
 
         DDS::Subscriber_var subscriber = participant->create_subscriber(topicInfo->subQos(),
                                                                         0,
