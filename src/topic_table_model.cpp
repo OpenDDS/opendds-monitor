@@ -594,35 +594,47 @@ void TopicTableModel::setDataRow(DataRow *const data_row,
                                  const DDS::DynamicData_var &data,
                                  DDS::MemberId id)
 {
+    // Helper function to check NO_DATA and set value
+    auto setValueOrNotPresent = [&](DDS::ReturnCode_t ret, auto value, const char *errorMsg) -> bool
+    {
+        if (ret == DDS::RETCODE_NO_DATA && data_row->getIsOptional())
+        {
+            data_row->setValue("(not present)");
+            return true;
+        }
+        else if (check_rc(ret, errorMsg))
+        {
+            data_row->setValue(value);
+            return true;
+        }
+        return false;
+    };
+
     switch (data_row->getType())
     {
     case CORBA::tk_long:
     {
         CORBA::Long value;
         DDS::ReturnCode_t ret = data->get_int32_value(value, id);
-        if (ret == DDS::RETCODE_NO_DATA && data_row->getIsOptional())
-        {
-            data_row->setValue("(not present)");
-        }
-        else if (check_rc(ret, "get_int32_value failed"))
-        {
-            data_row->setValue(static_cast<int32_t>(value));
-        }
+        setValueOrNotPresent(ret, static_cast<int32_t>(value), "get_int32_value failed");
         break;
     }
     case CORBA::tk_short:
     {
         CORBA::Short value;
         DDS::ReturnCode_t ret = data->get_int16_value(value, id);
-        if (ret != DDS::RETCODE_OK)
-        {
-            ACE_INT8 tmp;
-            ret = data->get_int8_value(tmp, id);
-            value = static_cast<CORBA::Short>(tmp);
-        }
         if (ret == DDS::RETCODE_NO_DATA && data_row->getIsOptional())
         {
             data_row->setValue("(not present)");
+        }
+        else if (ret != DDS::RETCODE_OK)
+        {
+            ACE_INT8 tmp;
+            ret = data->get_int8_value(tmp, id);
+            if (setValueOrNotPresent(ret, static_cast<int16_t>(static_cast<CORBA::Short>(tmp)), "get_int8_value failed"))
+            {
+                // Value was set, nothing more to do
+            }
         }
         else if (check_rc(ret, "get_int16_value failed"))
         {
@@ -634,15 +646,18 @@ void TopicTableModel::setDataRow(DataRow *const data_row,
     {
         CORBA::UShort value;
         DDS::ReturnCode_t ret = data->get_uint16_value(value, id);
-        if (ret != DDS::RETCODE_OK)
-        {
-            ACE_UINT8 tmp;
-            ret = data->get_uint8_value(tmp, id);
-            value = static_cast<CORBA::UShort>(tmp);
-        }
         if (ret == DDS::RETCODE_NO_DATA && data_row->getIsOptional())
         {
             data_row->setValue("(not present)");
+        }
+        else if (ret != DDS::RETCODE_OK)
+        {
+            ACE_UINT8 tmp;
+            ret = data->get_uint8_value(tmp, id);
+            if (setValueOrNotPresent(ret, static_cast<uint16_t>(static_cast<CORBA::UShort>(tmp)), "get_uint8_value failed"))
+            {
+                // Value was set, nothing more to do
+            }
         }
         else if (check_rc(ret, "get_uint16_value failed"))
         {
@@ -654,140 +669,70 @@ void TopicTableModel::setDataRow(DataRow *const data_row,
     {
         CORBA::ULong value;
         DDS::ReturnCode_t ret = data->get_uint32_value(value, id);
-        if (ret == DDS::RETCODE_NO_DATA && data_row->getIsOptional())
-        {
-            data_row->setValue("(not present)");
-        }
-        else if (check_rc(ret, "get_uint32_value failed"))
-        {
-            data_row->setValue(static_cast<uint32_t>(value));
-        }
+        setValueOrNotPresent(ret, static_cast<uint32_t>(value), "get_uint32_value failed");
         break;
     }
     case CORBA::tk_float:
     {
         CORBA::Float value;
         DDS::ReturnCode_t ret = data->get_float32_value(value, id);
-        if (ret == DDS::RETCODE_NO_DATA && data_row->getIsOptional())
-        {
-            data_row->setValue("(not present)");
-        }
-        else if (check_rc(ret, "get_float32_value failed"))
-        {
-            data_row->setValue(static_cast<float>(value));
-        }
+        setValueOrNotPresent(ret, static_cast<float>(value), "get_float32_value failed");
         break;
     }
     case CORBA::tk_double:
     {
         CORBA::Double value;
         DDS::ReturnCode_t ret = data->get_float64_value(value, id);
-        if (ret == DDS::RETCODE_NO_DATA && data_row->getIsOptional())
-        {
-            data_row->setValue("(not present)");
-        }
-        else if (check_rc(ret, "get_float64_value failed"))
-        {
-            data_row->setValue(static_cast<double>(value));
-        }
+        setValueOrNotPresent(ret, static_cast<double>(value), "get_float64_value failed");
         break;
     }
     case CORBA::tk_boolean:
     {
         CORBA::Boolean value;
         DDS::ReturnCode_t ret = data->get_boolean_value(value, id);
-        if (ret == DDS::RETCODE_NO_DATA && data_row->getIsOptional())
-        {
-            data_row->setValue("(not present)");
-        }
-        else if (check_rc(ret, "get_boolean_value failed"))
-        {
-            data_row->setValue(static_cast<bool>(value));
-        }
+        setValueOrNotPresent(ret, static_cast<bool>(value), "get_boolean_value failed");
         break;
     }
     case CORBA::tk_char:
     {
         char tmp;
         DDS::ReturnCode_t ret = data->get_char8_value(tmp, id);
-        if (ret == DDS::RETCODE_NO_DATA && data_row->getIsOptional())
-        {
-            data_row->setValue("(not present)");
-        }
-        else if (check_rc(ret, "get_char8_value failed"))
-        {
-            data_row->setValue(tmp);
-        }
+        setValueOrNotPresent(ret, tmp, "get_char8_value failed");
         break;
     }
     case CORBA::tk_wchar:
     {
         CORBA::WChar value[2] = {0, 0};
         DDS::ReturnCode_t ret = data->get_char16_value(value[0], id);
-        if (ret == DDS::RETCODE_NO_DATA && data_row->getIsOptional())
-        {
-            data_row->setValue("(not present)");
-        }
-        else if (check_rc(ret, "get_char16_value failed"))
-        {
-            data_row->setValue(QString(ACE_Wide_To_Ascii(value).char_rep()));
-        }
+        setValueOrNotPresent(ret, QString(ACE_Wide_To_Ascii(value).char_rep()), "get_char16_value failed");
         break;
     }
     case CORBA::tk_octet:
     {
         CORBA::Octet value;
         DDS::ReturnCode_t ret = data->get_byte_value(value, id);
-        if (ret == DDS::RETCODE_NO_DATA && data_row->getIsOptional())
-        {
-            data_row->setValue("(not present)");
-        }
-        else if (check_rc(ret, "get_byte_value failed"))
-        {
-            data_row->setValue(static_cast<uint8_t>(value));
-        }
+        setValueOrNotPresent(ret, static_cast<uint8_t>(value), "get_byte_value failed");
         break;
     }
     case CORBA::tk_longlong:
     {
         CORBA::LongLong value;
         DDS::ReturnCode_t ret = data->get_int64_value(value, id);
-        if (ret == DDS::RETCODE_NO_DATA && data_row->getIsOptional())
-        {
-            data_row->setValue("(not present)");
-        }
-        else if (check_rc(ret, "get_int64_value failed"))
-        {
-            data_row->setValue(static_cast<qint64>(value));
-        }
+        setValueOrNotPresent(ret, static_cast<qint64>(value), "get_int64_value failed");
         break;
     }
     case CORBA::tk_ulonglong:
     {
         CORBA::ULongLong value;
         DDS::ReturnCode_t ret = data->get_uint64_value(value, id);
-        if (ret == DDS::RETCODE_NO_DATA && data_row->getIsOptional())
-        {
-            data_row->setValue("(not present)");
-        }
-        else if (check_rc(ret, "get_uint64_value failed"))
-        {
-            data_row->setValue(static_cast<quint64>(value));
-        }
+        setValueOrNotPresent(ret, static_cast<quint64>(value), "get_uint64_value failed");
         break;
     }
     case CORBA::tk_string:
     {
         CORBA::String_var value;
         DDS::ReturnCode_t ret = data->get_string_value(value, id);
-        if (ret == DDS::RETCODE_NO_DATA && data_row->getIsOptional())
-        {
-            data_row->setValue("(not present)");
-        }
-        else if (check_rc(ret, "get_string_value failed"))
-        {
-            data_row->setValue(value.in());
-        }
+        setValueOrNotPresent(ret, value.in(), "get_string_value failed");
         break;
     }
     case CORBA::tk_enum:
