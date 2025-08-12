@@ -107,9 +107,6 @@ public:
       TopicMonitor& m_monitor;
     };
 
-    virtual bool isTypeRegistered(DDS::DomainParticipant_ptr participant, const std::string& typeName) const;
-    virtual void logParticipantTypes(DDS::DomainParticipant_ptr participant) const;
-
     /**
      * @brief Stop receiving samples.
      */

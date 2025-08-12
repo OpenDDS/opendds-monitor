@@ -9,7 +9,6 @@
 #include <dds/DCPS/EncapsulationHeader.h>
 #include <dds/DCPS/Message_Block_Ptr.h>
 #include <dds/DCPS/XTypes/DynamicTypeSupport.h>
-#include <dds/DCPS/DomainParticipantImpl.h>
 
 #include <QDateTime>
 #include <QRegExp>
@@ -21,22 +20,12 @@
 TopicMonitor::TopicMonitor(const QString &topicName)
     : m_topicName(topicName), m_filter(""), m_recorder_listener(OpenDDS::DCPS::make_rch<RecorderListener>(OpenDDS::DCPS::ref(*this))), m_recorder(nullptr), m_dr_listener(new DataReaderListenerImpl(*this)), m_topic(nullptr), m_paused(false)
 {
-    std::cout << "=== TopicMonitor Constructor Start ===" << std::endl;
-    std::cout << "Initializing TopicMonitor for topic: \"" << topicName.toStdString() << "\"" << std::endl;
-
     // Make sure we have an information object for this topic
     std::shared_ptr<TopicInfo> topicInfo = CommonData::getTopicInfo(topicName);
     if (topicInfo == nullptr)
     {
-        std::cerr << "CRITICAL ERROR: Unable to find topic information for topic \"" << topicName.toStdString() << "\"" << std::endl;
         throw std::runtime_error(std::string("Unable to find topic information for topic \"") + topicName.toStdString() + "\"");
     }
-
-    std::cout << "Topic info retrieved successfully:" << std::endl;
-    std::cout << "  - Topic name: \"" << topicInfo->topicName() << "\"" << std::endl;
-    std::cout << "  - Type name: \"" << topicInfo->typeName() << "\"" << std::endl;
-    std::cout << "  - Has TypeCode: " << (topicInfo->typeCode() ? "YES" : "NO") << std::endl;
-    std::cout << "  - Has key: " << (topicInfo->hasKey() ? "YES" : "NO") << std::endl;
 
     // Store extensibility
     m_extensibility = topicInfo->extensibility();
@@ -49,27 +38,7 @@ TopicMonitor::TopicMonitor(const QString &topicName)
 
     if (!participant)
     {
-        std::cerr << "CRITICAL ERROR: No domain participant available!" << std::endl;
-        std::cerr << "  - CommonData::m_ddsManager exists: " << (CommonData::m_ddsManager ? "YES" : "NO") << std::endl;
         throw std::runtime_error("No domain participant");
-    }
-
-    // Add participant debugging information
-    std::cout << "Domain participant obtained successfully" << std::endl;
-    DDS::DomainId_t domainId = participant->get_domain_id();
-    std::cout << "Domain participant domain ID: " << domainId << std::endl;
-
-    // Check if we can cast to OpenDDS implementation
-    OpenDDS::DCPS::DomainParticipantImpl *participantImpl =
-        dynamic_cast<OpenDDS::DCPS::DomainParticipantImpl *>(participant.in());
-    if (!participantImpl)
-    {
-        std::cerr << "WARNING: Could not cast participant to OpenDDS::DCPS::DomainParticipantImpl" << std::endl;
-        std::cerr << "This may limit debugging capabilities but should not prevent topic creation" << std::endl;
-    }
-    else
-    {
-        std::cout << "Successfully cast participant to OpenDDS implementation" << std::endl;
     }
 
     // The operation mode is determined by whether the TypeCode for the topic is available
@@ -77,11 +46,6 @@ TopicMonitor::TopicMonitor(const QString &topicName)
     if (topicInfo->typeCode())
     {
         // Use the existing mechanism based on TypeCode.
-        std::cout << "Creating topic with TypeCode approach..." << std::endl;
-        std::cout << "Topic name: \"" << topicInfo->topicName() << "\"" << std::endl;
-        std::cout << "Type name: \"" << topicInfo->typeName() << "\"" << std::endl;
-        std::cout << "Has key: " << (topicInfo->hasKey() ? "YES" : "NO") << std::endl;
-
         m_typeCode = topicInfo->typeCode();
         m_topic = service->create_typeless_topic(participant,
                                                  topicInfo->topicName().c_str(),
@@ -92,15 +56,8 @@ TopicMonitor::TopicMonitor(const QString &topicName)
                                                  DDS::INCONSISTENT_TOPIC_STATUS);
         if (!m_topic)
         {
-            std::cerr << "DETAILED ERROR: Failed to create typeless topic \"" << topicInfo->topicName() << "\"" << std::endl;
-            std::cerr << "  - Topic name: \"" << topicInfo->topicName() << "\"" << std::endl;
-            std::cerr << "  - Type name: \"" << topicInfo->typeName() << "\"" << std::endl;
-            std::cerr << "  - Has key: " << (topicInfo->hasKey() ? "YES" : "NO") << std::endl;
-            std::cerr << "  - Domain ID: " << participant->get_domain_id() << std::endl;
             throw std::runtime_error(std::string("Failed to create typeless topic \"") + topicInfo->topicName() + "\"");
         }
-
-        std::cout << "Typeless topic \"" << topicInfo->topicName() << "\" created successfully" << std::endl;
 
         m_recorder = service->create_recorder(participant,
                                               m_topic,
@@ -119,61 +76,6 @@ TopicMonitor::TopicMonitor(const QString &topicName)
         // When this is called, the information about this topic including its
         // DynamicType should be already obtained. The topic's type should also be
         // registered with the local domain participant.
-
-        std::cout << "Creating topic with DynamicDataReader approach..." << std::endl;
-        std::cout << "Topic name: \"" << topicInfo->topicName() << "\"" << std::endl;
-        std::cout << "Type name: \"" << topicInfo->typeName() << "\"" << std::endl;
-
-        // Check if we can cast to OpenDDS implementation for debugging
-        OpenDDS::DCPS::DomainParticipantImpl *participantImpl =
-            dynamic_cast<OpenDDS::DCPS::DomainParticipantImpl *>(participant.in());
-
-        if (!participantImpl)
-        {
-            std::cerr << "WARNING: Could not cast to OpenDDS::DCPS::DomainParticipantImpl" << std::endl;
-            std::cerr << "Type registration check will be skipped" << std::endl;
-        }
-        else
-        {
-            std::cout << "Successfully cast participant to OpenDDS implementation" << std::endl;
-        }
-
-        // Check if a topic with this name already exists
-        DDS::Topic_var existingTopic = participant->find_topic(topicInfo->topicName().c_str(), DDS::Duration_t{0, 0});
-        if (existingTopic)
-        {
-            std::cout << "Topic \"" << topicInfo->topicName() << "\" already exists" << std::endl;
-            // Check if the existing topic has the same type
-            CORBA::String_var existingTypeName = existingTopic->get_type_name();
-            if (strcmp(existingTypeName.in(), topicInfo->typeName().c_str()) != 0)
-            {
-                std::cerr << "ERROR: Topic \"" << topicInfo->topicName()
-                          << "\" already exists with different type name: \""
-                          << existingTypeName.in() << "\" (expected: \""
-                          << topicInfo->typeName() << "\")" << std::endl;
-            }
-        }
-
-        // Validate QoS settings
-        DDS::TopicQos topicQos = topicInfo->topicQos();
-        std::cout << "Topic QoS durability kind: " << topicQos.durability.kind << std::endl;
-        std::cout << "Topic QoS reliability kind: " << topicQos.reliability.kind << std::endl;
-
-        // Check domain participant status
-        DDS::DomainParticipantQos participantQos;
-        if (participant->get_qos(participantQos) == DDS::RETCODE_OK)
-        {
-            std::cout << "Domain participant QoS retrieved successfully" << std::endl;
-        }
-        else
-        {
-            std::cerr << "WARNING: Could not retrieve domain participant QoS" << std::endl;
-        }
-
-        // Check domain ID
-        DDS::DomainId_t domainId = participant->get_domain_id();
-        std::cout << "Domain participant domain ID: " << domainId << std::endl;
-
         m_topic = participant->create_topic(topicInfo->topicName().c_str(),
                                             topicInfo->typeName().c_str(),
                                             topicInfo->topicQos(),
@@ -181,27 +83,8 @@ TopicMonitor::TopicMonitor(const QString &topicName)
                                             0);
         if (!m_topic)
         {
-            // Enhanced error reporting
-            std::cerr << "DETAILED ERROR: Failed to create topic \"" << topicInfo->topicName() << "\"" << std::endl;
-            std::cerr << "  - Topic name: \"" << topicInfo->topicName() << "\"" << std::endl;
-            std::cerr << "  - Type name: \"" << topicInfo->typeName() << "\"" << std::endl;
-            std::cerr << "  - Domain ID: " << domainId << std::endl;
-            std::cerr << "  - OpenDDS cast successful: " << (participantImpl ? "YES" : "NO") << std::endl;
-            std::cerr << "  - Existing topic found: " << (existingTopic ? "YES" : "NO") << std::endl;
-
-            // Try to get more specific error information
-            DDS::StatusCondition_var condition = participant->get_statuscondition();
-            if (condition)
-            {
-                DDS::StatusMask mask = condition->get_enabled_statuses();
-                std::cerr << "  - Participant status mask: 0x" << std::hex << mask << std::dec << std::endl;
-            }
-
-            throw std::runtime_error(std::string("Failed to create topic \"") + topicInfo->topicName() +
-                                     "\". Check type registration and QoS compatibility.");
+            throw std::runtime_error(std::string("Failed to create topic \"") + topicInfo->topicName() + "\"");
         }
-
-        std::cout << "Topic \"" << topicInfo->topicName() << "\" created successfully" << std::endl;
 
         DDS::Subscriber_var subscriber = participant->create_subscriber(topicInfo->subQos(),
                                                                         0,
@@ -221,39 +104,6 @@ TopicMonitor::TopicMonitor(const QString &topicName)
         }
         topicInfo->typeMode(TypeDiscoveryMode::DynamicType);
     }
-}
-
-bool TopicMonitor::isTypeRegistered(DDS::DomainParticipant_ptr participant, const std::string &typeName) const
-{
-    if (!participant)
-    {
-        return false;
-    }
-
-    // Cast to OpenDDS implementation to access lookup_typesupport
-    OpenDDS::DCPS::DomainParticipantImpl *participantImpl =
-        dynamic_cast<OpenDDS::DCPS::DomainParticipantImpl *>(participant);
-
-    if (!participantImpl)
-    {
-        std::cerr << "WARNING: Could not cast to OpenDDS::DCPS::DomainParticipantImpl in isTypeRegistered" << std::endl;
-        return false;
-    }
-
-    // Note: The lookup_typesupport method may not be available in all OpenDDS versions
-    // This method is a simplified version that returns true to indicate we cannot verify
-    std::cout << "Type registration check skipped - method not available in this OpenDDS version" << std::endl;
-    return true;
-}
-
-void TopicMonitor::logParticipantTypes(DDS::DomainParticipant_ptr participant) const
-{
-    if (!participant)
-    {
-        std::cerr << "Cannot log types - participant is null" << std::endl;
-        return;
-    }
-    std::cout << "Type enumeration not available through standard DDS API" << std::endl;
 }
 
 //------------------------------------------------------------------------------
