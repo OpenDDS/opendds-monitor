@@ -16,7 +16,6 @@
 
 class OpenDynamicData;
 
-
 /**
  * @brief Table model for DDS topic samples
  */
@@ -25,12 +24,11 @@ class TopicTableModel : public QAbstractTableModel
     Q_OBJECT
 
 public:
-
     /**
      * @brief Constructor for the DDS sample data model.
      * @param[in] parent The parent for this data model.
      */
-    TopicTableModel(QTableView* parent, const QString& topicName);
+    TopicTableModel(QTableView *parent, const QString &topicName);
 
     /**
      * @brief Destructor for the DDS sample data model.
@@ -128,7 +126,7 @@ public:
     /// Table column IDs for this data model
     enum eColumnIds
     {
-        //STATUS_COLUMN,
+        // STATUS_COLUMN,
         NAME_COLUMN,
         TYPE_COLUMN,
         VALUE_COLUMN,
@@ -143,7 +141,6 @@ signals:
     void dataHasChanged();
 
 private:
-
     /**
      * @brief controls the display mode of integer & ascii types.
      */
@@ -151,7 +148,7 @@ private:
     bool m_dispAscii = true;
 
     /// Convert a value to a QVariant object representing that value in ascii or hex format.
-    template<typename T>
+    template <typename T>
     QVariant type_to_qvariant(T convertMe)
     {
         QVariant retMe;
@@ -162,7 +159,8 @@ private:
             // so it is eliminated by the if constexpr in that case.
             // Still need the original && sizeof(T)==1 so that no other type enters this path,
             // display breaks if you don't have it.
-            if constexpr (sizeof(T) == 1) retMe = QChar(convertMe);
+            if constexpr (sizeof(T) == 1)
+                retMe = QChar(convertMe);
         }
         else if (m_dispHex)
         {
@@ -187,7 +185,7 @@ private:
     }
 
     /// Convert a QVariant object representing a value in ascii or hex format to the orignal value.
-    template<typename T>
+    template <typename T>
     T qvariant_to_type(QVariant convertMe)
     {
         T retMe{};
@@ -198,13 +196,25 @@ private:
         }
         else if (m_dispHex)
         {
-            try { retMe = std::stoll(convertMe.toString().toStdString(), nullptr, 16); }
-            catch (...) { retMe = 0; };
+            try
+            {
+                retMe = std::stoll(convertMe.toString().toStdString(), nullptr, 16);
+            }
+            catch (...)
+            {
+                retMe = 0;
+            };
         }
         else
         {
-            try { retMe = std::stoi(convertMe.toString().toStdString()); }
-            catch (...) { retMe = 0; };
+            try
+            {
+                retMe = std::stoi(convertMe.toString().toStdString());
+            }
+            catch (...)
+            {
+                retMe = 0;
+            };
         }
         return retMe;
     }
@@ -215,12 +225,11 @@ private:
     class DataRow
     {
     public:
-
         /**
          * @brief The table row information constructor.
          */
-        DataRow(TopicTableModel* parent, QString name, CORBA::TCKind kind,
-          bool isKey, bool isOptional);
+        DataRow(TopicTableModel *parent, QString name, CORBA::TCKind kind,
+                bool isKey, bool isOptional);
 
         /**
          * @brief The table row information destructor.
@@ -237,12 +246,12 @@ private:
             return m_type;
         }
 
-        const QVariant& getValue() const
+        const QVariant &getValue() const
         {
             return m_value;
         }
 
-        const QVariant& getDisplayedValue() const
+        const QVariant &getDisplayedValue() const
         {
             return m_displayedValue;
         }
@@ -262,23 +271,33 @@ private:
             return m_edited;
         }
 
+        bool getNotPresent() const
+        {
+            return m_notPresent;
+        }
+
         /**
          * @brief Set the value of the data row to a new value.
          * @param[in] newValue Attempt to set the value to this value.
          * @return Returns true if the operation was successful; false otherwise.
          */
-        bool setValue(const QVariant& newValue);
+        bool setValue(const QVariant &newValue);
 
         void setEdited(bool edited)
         {
             m_edited = edited;
         }
 
+        void setNotPresent(bool notPresent)
+        {
+            m_notPresent = notPresent;
+        }
+
         void updateDisplayedValue();
 
     private:
         /// The parent model for this data row.
-        TopicTableModel* m_parent;
+        TopicTableModel *m_parent;
 
         /// The topic member name.
         QString m_name;
@@ -303,6 +322,9 @@ private:
 
         /// The topic member edited flag.
         bool m_edited;
+
+        /// Flag indicating if this optional field has no value (not present).
+        bool m_notPresent;
     };
 
     /**
@@ -315,15 +337,15 @@ private:
     /// Convert from DDS::TypeKind to CORBA::TCKind. Needed to parse DynamicData.
     CORBA::TCKind typekind_to_tckind(DDS::TypeKind tk);
 
-    bool check_rc(DDS::ReturnCode_t rc, const char* what);
+    bool check_rc(DDS::ReturnCode_t rc, const char *what);
 
-    void setDataRow(DataRow* row, const DDS::DynamicData_var& data, DDS::MemberId id);
+    void setDataRow(DataRow *row, const DDS::DynamicData_var &data, DDS::MemberId id);
 
-    void parseCollection(const DDS::DynamicData_var& data, const std::string& namePrefix);
-    void parseAggregated(const DDS::DynamicData_var& data, const std::string& namePrefix);
+    void parseCollection(const DDS::DynamicData_var &data, const std::string &namePrefix);
+    void parseAggregated(const DDS::DynamicData_var &data, const std::string &namePrefix);
 
     /// Parse a DynamicData object into m_data
-    void parseData(const DDS::DynamicData_var& data, const std::string& namePrefix);
+    void parseData(const DDS::DynamicData_var &data, const std::string &namePrefix);
 
     /**
      * @brief Populate a DDS sample member.
@@ -331,18 +353,18 @@ private:
      * @param[in] dataInfo Populate the DDS sample member from this data.
      * @return Returns true if the operation was successful; false otherwise.
      */
-    bool populateSample(std::shared_ptr<OpenDynamicData> sample, DataRow* dataInfo);
+    bool populateSample(std::shared_ptr<OpenDynamicData> sample, DataRow *dataInfo);
 
     void cleanupDataRow();
 
     /// The table view using this model
-    QTableView* m_tableView;
+    QTableView *m_tableView;
 
     /// Stores the names of all column titles
     QStringList m_columnHeaders;
 
     /// Stores the data values for this model
-    std::vector<DataRow*> m_data;
+    std::vector<DataRow *> m_data;
 
     /// Stores the data sample for reverting.
     std::shared_ptr<OpenDynamicData> m_sample;
@@ -352,7 +374,6 @@ private:
 
     /// The name of the topic for this data model
     QString m_topicName;
-
 };
 
 #endif

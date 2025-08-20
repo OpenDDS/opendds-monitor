@@ -169,9 +169,24 @@ QVariant TopicTableModel::headerData(int section,
 //------------------------------------------------------------------------------
 Qt::ItemFlags TopicTableModel::flags(const QModelIndex &index) const
 {
+    const int row = index.row();
+
+    // Make sure the data row is valid
+    if (row < 0 || static_cast<size_t>(row) >= m_data.size() || !m_data.at(row))
+    {
+        return Qt::NoItemFlags;
+    }
+
+    const DataRow *const member = m_data.at(row);
+
     // Is this data editable?
     if (index.column() == VALUE_COLUMN)
     {
+        // Non-present fields are not editable
+        if (member->getNotPresent())
+        {
+            return Qt::ItemIsEnabled;
+        }
         return Qt::ItemIsEnabled | Qt::ItemIsEditable;
     }
 
@@ -198,6 +213,25 @@ QVariant TopicTableModel::data(const QModelIndex &index, int role) const
     }
 
     const DataRow *const member = m_data.at(row);
+
+    // Handle styling for non-present fields
+    if (column == VALUE_COLUMN && member->getNotPresent())
+    {
+        if (role == Qt::DisplayRole)
+        {
+            return QString("(not present)");
+        }
+        else if (role == Qt::ForegroundRole)
+        {
+            // Make text greyed out
+            return QColor(Qt::gray);
+        }
+        else if (role == Qt::BackgroundRole)
+        {
+            // Use default background
+            return QVariant();
+        }
+    }
 
     if (column == VALUE_COLUMN && member->getEdited() == true)
     {
@@ -280,6 +314,12 @@ bool TopicTableModel::setData(const QModelIndex &index,
     // Make sure we found the data row
     DataRow *const data = m_data.at(row);
     if (!data)
+    {
+        return false;
+    }
+
+    // Don't allow editing of non-present fields
+    if (data->getNotPresent())
     {
         return false;
     }
@@ -599,12 +639,13 @@ void TopicTableModel::setDataRow(DataRow *const data_row,
     {
         if (ret == DDS::RETCODE_NO_DATA && data_row->getIsOptional())
         {
-            data_row->setValue("(not present)");
+            data_row->setNotPresent(true);
             return true;
         }
         else if (check_rc(ret, errorMsg))
         {
             data_row->setValue(value);
+            data_row->setNotPresent(false);
             return true;
         }
         return false;
@@ -625,7 +666,7 @@ void TopicTableModel::setDataRow(DataRow *const data_row,
         DDS::ReturnCode_t ret = data->get_int16_value(value, id);
         if (ret == DDS::RETCODE_NO_DATA && data_row->getIsOptional())
         {
-            data_row->setValue("(not present)");
+            data_row->setNotPresent(true);
         }
         else if (ret != DDS::RETCODE_OK)
         {
@@ -639,6 +680,7 @@ void TopicTableModel::setDataRow(DataRow *const data_row,
         else if (check_rc(ret, "get_int16_value failed"))
         {
             data_row->setValue(static_cast<int16_t>(value));
+            data_row->setNotPresent(false);
         }
         break;
     }
@@ -648,7 +690,7 @@ void TopicTableModel::setDataRow(DataRow *const data_row,
         DDS::ReturnCode_t ret = data->get_uint16_value(value, id);
         if (ret == DDS::RETCODE_NO_DATA && data_row->getIsOptional())
         {
-            data_row->setValue("(not present)");
+            data_row->setNotPresent(true);
         }
         else if (ret != DDS::RETCODE_OK)
         {
@@ -662,6 +704,7 @@ void TopicTableModel::setDataRow(DataRow *const data_row,
         else if (check_rc(ret, "get_uint16_value failed"))
         {
             data_row->setValue(static_cast<uint16_t>(value));
+            data_row->setNotPresent(false);
         }
         break;
     }
@@ -1132,7 +1175,7 @@ bool TopicTableModel::populateSample(std::shared_ptr<OpenDynamicData> const samp
 //------------------------------------------------------------------------------
 TopicTableModel::DataRow::DataRow(TopicTableModel *parent, QString name,
                                   CORBA::TCKind kind, bool isKey, bool isOptional)
-    : m_parent(parent), m_name(name), m_type(kind), m_isKey(isKey), m_isOptional(isOptional), m_edited(false)
+    : m_parent(parent), m_name(name), m_type(kind), m_isKey(isKey), m_isOptional(isOptional), m_edited(false), m_notPresent(false)
 {
 }
 
@@ -1147,163 +1190,156 @@ bool TopicTableModel::DataRow::setValue(const QVariant &newValue)
     QVariant origValue = newValue, dispValue;
     bool pass = false;
 
-    if (newValue.toString() == "(not present)")
+    // Reset the not present flag when setting a new value
+    m_notPresent = false;
+
+    switch (m_type)
     {
-        origValue = newValue.toString();
-        dispValue = origValue;
-        pass = true;
+    case CORBA::tk_long:
+    {
+        const int intVal = newValue.toInt(&pass);
+        if (pass)
+        {
+            origValue = intVal;
+            dispValue = m_parent->type_to_qvariant(intVal);
+        }
+        break;
     }
-    else
+    case CORBA::tk_short:
     {
-
-        switch (m_type)
+        const int intVal = newValue.toInt(&pass);
+        if (pass)
         {
-        case CORBA::tk_long:
+            // Truncate the input value to fit the type of the member.
+            const qint16 shortVal = static_cast<qint16>(intVal);
+            origValue = shortVal;
+            dispValue = m_parent->type_to_qvariant(shortVal);
+        }
+        break;
+    }
+    case CORBA::tk_enum:
+    {
+        // Make sure the input value matches one of the enumerators.
+        const QString strVal = newValue.toString();
+        if (strVal.isEmpty())
         {
-            const int intVal = newValue.toInt(&pass);
-            if (pass)
-            {
-                origValue = intVal;
-                dispValue = m_parent->type_to_qvariant(intVal);
-            }
             break;
         }
-        case CORBA::tk_short:
+        origValue = strVal;
+
+        std::shared_ptr<TopicInfo> topicInfo = CommonData::getTopicInfo(m_parent->m_topicName);
+        if (!topicInfo)
         {
-            const int intVal = newValue.toInt(&pass);
-            if (pass)
-            {
-                // Truncate the input value to fit the type of the member.
-                const qint16 shortVal = static_cast<qint16>(intVal);
-                origValue = shortVal;
-                dispValue = m_parent->type_to_qvariant(shortVal);
-            }
-            break;
+            std::cerr << "Failed to get TopicInfo for topic\"" << m_parent->m_topicName.toStdString() << "\"" << std::endl;
+            return false;
         }
-        case CORBA::tk_enum:
+
+        if (topicInfo->typeMode() == TypeDiscoveryMode::TypeCode)
         {
-            // Make sure the input value matches one of the enumerators.
-            const QString strVal = newValue.toString();
-            if (strVal.isEmpty())
+            CORBA::TypeCode_var enumTypeCode = m_parent->m_sample->getTypeCode();
+            const CORBA::ULong memberCount = enumTypeCode->member_count();
+            for (CORBA::ULong i = 0; i < memberCount; ++i)
             {
-                break;
-            }
-            origValue = strVal;
-
-            std::shared_ptr<TopicInfo> topicInfo = CommonData::getTopicInfo(m_parent->m_topicName);
-            if (!topicInfo)
-            {
-                std::cerr << "Failed to get TopicInfo for topic\"" << m_parent->m_topicName.toStdString() << "\"" << std::endl;
-                return false;
-            }
-
-            if (topicInfo->typeMode() == TypeDiscoveryMode::TypeCode)
-            {
-                CORBA::TypeCode_var enumTypeCode = m_parent->m_sample->getTypeCode();
-                const CORBA::ULong memberCount = enumTypeCode->member_count();
-                for (CORBA::ULong i = 0; i < memberCount; ++i)
+                if (origValue == enumTypeCode->member_name(i))
                 {
-                    if (origValue == enumTypeCode->member_name(i))
-                    {
-                        pass = true;
-                        dispValue = origValue;
-                        break;
-                    }
+                    pass = true;
+                    dispValue = origValue;
+                    break;
                 }
             }
-            else
-            {
-                // TODO: Verify that the input string matches one of the enumerators.
-                pass = true;
-                dispValue = origValue;
-            }
-            break;
         }
-        case CORBA::tk_ushort:
+        else
         {
-            const unsigned int uintVal = newValue.toUInt(&pass);
-            if (pass)
-            {
-                const quint16 ushortVal = static_cast<quint16>(uintVal);
-                origValue = ushortVal;
-                dispValue = m_parent->type_to_qvariant(ushortVal);
-            }
-            break;
-        }
-        case CORBA::tk_ulong:
-        {
-            const unsigned int uintVal = newValue.toUInt(&pass);
-            if (pass)
-            {
-                origValue = uintVal;
-                dispValue = m_parent->type_to_qvariant(uintVal);
-            }
-            break;
-        }
-        case CORBA::tk_float:
-            origValue = newValue.toFloat(&pass);
-            dispValue = origValue;
-            break;
-        case CORBA::tk_double:
-            origValue = newValue.toDouble(&pass);
-            dispValue = origValue;
-            break;
-        case CORBA::tk_boolean:
-            origValue = newValue.toBool();
-            dispValue = origValue;
+            // TODO: Verify that the input string matches one of the enumerators.
             pass = true;
-            break;
-        case CORBA::tk_char:
-            pass = newValue.canConvert<QChar>();
-            if (pass)
-            {
-                const QChar charVal = newValue.toChar();
-                origValue = charVal;
-                dispValue = m_parent->type_to_qvariant(charVal.toLatin1());
-            }
-            break;
-        case CORBA::tk_octet:
+            dispValue = origValue;
+        }
+        break;
+    }
+    case CORBA::tk_ushort:
+    {
+        const unsigned int uintVal = newValue.toUInt(&pass);
+        if (pass)
         {
-            const unsigned int uintVal = newValue.toUInt(&pass);
-            if (pass)
-            {
-                const quint8 octetVal = static_cast<quint8>(uintVal);
-                origValue = octetVal;
-                dispValue = m_parent->type_to_qvariant(octetVal);
-            }
-            break;
+            const quint16 ushortVal = static_cast<quint16>(uintVal);
+            origValue = ushortVal;
+            dispValue = m_parent->type_to_qvariant(ushortVal);
         }
-        case CORBA::tk_longlong:
+        break;
+    }
+    case CORBA::tk_ulong:
+    {
+        const unsigned int uintVal = newValue.toUInt(&pass);
+        if (pass)
         {
-            const qlonglong llVal = newValue.toLongLong(&pass);
-            if (pass)
-            {
-                origValue = llVal;
-                dispValue = m_parent->type_to_qvariant(llVal);
-            }
-            break;
+            origValue = uintVal;
+            dispValue = m_parent->type_to_qvariant(uintVal);
         }
-        case CORBA::tk_ulonglong:
+        break;
+    }
+    case CORBA::tk_float:
+        origValue = newValue.toFloat(&pass);
+        dispValue = origValue;
+        break;
+    case CORBA::tk_double:
+        origValue = newValue.toDouble(&pass);
+        dispValue = origValue;
+        break;
+    case CORBA::tk_boolean:
+        origValue = newValue.toBool();
+        dispValue = origValue;
+        pass = true;
+        break;
+    case CORBA::tk_char:
+        pass = newValue.canConvert<QChar>();
+        if (pass)
         {
-            const qulonglong ullVal = newValue.toULongLong(&pass);
-            if (pass)
-            {
-                origValue = ullVal;
-                dispValue = m_parent->type_to_qvariant(ullVal);
-            }
-            break;
+            const QChar charVal = newValue.toChar();
+            origValue = charVal;
+            dispValue = m_parent->type_to_qvariant(charVal.toLatin1());
         }
-        case CORBA::tk_string:
-            pass = newValue.canConvert<QString>();
-            if (pass)
-            {
-                origValue = newValue.toString();
-                dispValue = origValue;
-            }
-            break;
-        default:
-            break;
+        break;
+    case CORBA::tk_octet:
+    {
+        const unsigned int uintVal = newValue.toUInt(&pass);
+        if (pass)
+        {
+            const quint8 octetVal = static_cast<quint8>(uintVal);
+            origValue = octetVal;
+            dispValue = m_parent->type_to_qvariant(octetVal);
         }
+        break;
+    }
+    case CORBA::tk_longlong:
+    {
+        const qlonglong llVal = newValue.toLongLong(&pass);
+        if (pass)
+        {
+            origValue = llVal;
+            dispValue = m_parent->type_to_qvariant(llVal);
+        }
+        break;
+    }
+    case CORBA::tk_ulonglong:
+    {
+        const qulonglong ullVal = newValue.toULongLong(&pass);
+        if (pass)
+        {
+            origValue = ullVal;
+            dispValue = m_parent->type_to_qvariant(ullVal);
+        }
+        break;
+    }
+    case CORBA::tk_string:
+        pass = newValue.canConvert<QString>();
+        if (pass)
+        {
+            origValue = newValue.toString();
+            dispValue = origValue;
+        }
+        break;
+    default:
+        break;
     }
     if (pass)
     {
