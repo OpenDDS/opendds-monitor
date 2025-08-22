@@ -14,6 +14,12 @@
 #include <QMessageBox>
 #include <QDir>
 #include <QStandardPaths>
+#include <QDialog>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QTextEdit>
+#include <QLabel>
+#include <QPushButton>
 
 #include <iostream>
 #include <exception>
@@ -142,26 +148,68 @@ void TablePage::on_filterButton_clicked()
         }
     }
 
-    bool ok = false;
-    QString usageString;
-    usageString += "Install a topic filter using SQL syntax.\n";
-    usageString += "A blank string will remove any existing filter.\n";
-    usageString += "Example usage: color = 'BLUE' AND id = 1\n";
+    QDialog filterDialog(this);
+    filterDialog.setWindowTitle("Topic Filter");
+    filterDialog.setModal(true);
+    filterDialog.resize(500, 300);
 
-    // Prompt the user for the topic filter string
-    QString filter = QInputDialog::getMultiLineText(
-        this,
-        "Topic Filter",
-        usageString,
-        initialText,
-        &ok);
+    QVBoxLayout *layout = new QVBoxLayout(&filterDialog);
 
-    // Only abort if the user didn't click 'ok'.
-    // An empty string will remove the filter.
-    if (!ok)
+    QLabel *instructionLabel = new QLabel(&filterDialog);
+    instructionLabel->setText("Install a topic filter using SQL syntax.\n"
+                              "A blank string will remove any existing filter.\n"
+                              "Example usage: color = 'BLUE' AND id = 1");
+    instructionLabel->setWordWrap(true);
+    layout->addWidget(instructionLabel);
+
+    // Text edit for filter input
+    QTextEdit *filterTextEdit = new QTextEdit(&filterDialog);
+    filterTextEdit->setPlainText(initialText);
+    layout->addWidget(filterTextEdit);
+
+    // Button layout
+    QHBoxLayout *buttonLayout = new QHBoxLayout();
+
+    QPushButton *clearButton = new QPushButton("Clear", &filterDialog);
+    QPushButton *okButton = new QPushButton("OK", &filterDialog);
+    QPushButton *cancelButton = new QPushButton("Cancel", &filterDialog);
+
+    buttonLayout->addWidget(clearButton);
+    buttonLayout->addStretch();
+    buttonLayout->addWidget(okButton);
+    buttonLayout->addWidget(cancelButton);
+
+    layout->addLayout(buttonLayout);
+
+    bool clearClicked = false;
+
+    connect(clearButton, &QPushButton::clicked, [&filterDialog, &clearClicked, this]()
+            {
+        clearClicked = true;
+        m_refreshTimer.stop();
+        CommonData::flushSamples(m_topicName);
+        m_topicMonitor->setFilter("");
+        m_refreshTimer.start(REFRESH_TIMEOUT);
+        
+        freezeButton->show();
+        unfreezeButton->hide();
+        
+        filterDialog.accept(); });
+
+    connect(okButton, &QPushButton::clicked, &filterDialog, &QDialog::accept);
+    connect(cancelButton, &QPushButton::clicked, &filterDialog, &QDialog::reject);
+
+    if (filterDialog.exec() != QDialog::Accepted)
     {
         return;
     }
+
+    if (clearClicked)
+    {
+        return;
+    }
+
+    QString filter = filterTextEdit->toPlainText();
 
     // Make sure we have an information object for this topic
     std::shared_ptr<TopicInfo> topicInfo = CommonData::getTopicInfo(m_topicName);
