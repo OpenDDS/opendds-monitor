@@ -89,9 +89,9 @@ TopicMonitor::TopicMonitor(const QString &topicName)
                 throw std::runtime_error(std::string("Failed to create topic \"") + topicInfo->topicName() + "\"");
             }
         }
-        catch (const CORBA::Exception &ex)
+        catch (std::runtime_error &e)
         {
-            std::cerr << "Exception while creating topic: " << ex << std::endl;
+            std::cerr << "Error creating topic: " << e.what() << std::endl;
             throw;
         }
 
