@@ -37,24 +37,24 @@ jobs:
     steps:
       # Clone git repositories
       - name: 'Checkout opendds-monitor'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           submodules: true
       - name: 'Checkout MPC'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: DOCGroup/MPC
           path: MPC
           fetch-depth: 1
       - name: 'Checkout ACE_TAO'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: DOCGroup/ACE_TAO
           ref: ace6tao2
           path: ACE_TAO
           fetch-depth: 1
       - name: 'Checkout OpenDDS'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: OpenDDS/OpenDDS
           ref: ${{ matrix.opendds_branch }}
