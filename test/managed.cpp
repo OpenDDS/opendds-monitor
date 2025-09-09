@@ -40,10 +40,10 @@ int main(int argc, char* argv[])
   bool enable_result = dds_manager->enableDomain();
   OPENDDS_ASSERT(enable_result);
 
-  bool register_basic_message_result = dds_manager->registerTopic<test::BasicMessage>(basic_topic_name, STD_QOS::LATEST_RELIABLE);
+  bool register_basic_message_result = dds_manager->registerTopic<test::BasicMessage>(basic_topic_name, STD_QOS::QosType::LATEST_RELIABLE);
   OPENDDS_ASSERT(register_basic_message_result);
 
-  bool register_complex_message_result = dds_manager->registerTopic<test::ComplexMessage>(complex_topic_name, STD_QOS::LATEST_RELIABLE);
+  bool register_complex_message_result = dds_manager->registerTopic<test::ComplexMessage>(complex_topic_name, STD_QOS::QosType::LATEST_RELIABLE);
   OPENDDS_ASSERT(register_complex_message_result);
 
   bool create_basic_message_publisher_result = dds_manager->createPublisher(basic_topic_name);
