@@ -82,16 +82,9 @@ TopicMonitor::TopicMonitor(const QString &topicName)
                                             0,
                                             0);
 
-        try
+        if (!m_topic)
         {
-            if (!m_topic)
-            {
-                throw std::runtime_error(std::string("Failed to create topic \"") + topicInfo->topicName() + "\"");
-            }
-        }
-        catch (const std::runtime_error &e)
-        {
-            std::cerr << "Error creating topic: " << e.what() << std::endl;
+            std::cerr << "Failed to create topic " << topicInfo->topicName() << std::endl;
             return;
         }
 
