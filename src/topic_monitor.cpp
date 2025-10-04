@@ -11,6 +11,7 @@
 #include <dds/DCPS/XTypes/DynamicTypeSupport.h>
 
 #include <QDateTime>
+#include <QRegExp>
 
 #include <iostream>
 #include <stdexcept>
@@ -281,7 +282,20 @@ void TopicMonitor::on_data_available(DDS::DataReader_ptr dr)
 
     for (unsigned int i = 0; i < messages.length(); ++i) {
         if (infos[i].valid_data) {
-            // TODO: Apply content filtering when it's supported.
+            bool passFilter = true;
+            if (!m_filter.isEmpty()) {
+                try {
+                    passFilter = evaluateDynamicFilter(messages[i].in(), m_filter);
+                }
+                catch (const std::exception &e) {
+                    std::cerr << "Filter evaluation failed for topic " << m_topicName.toStdString() << ": " << e.what() << std::endl;
+                    passFilter = false;
+                }
+                if (!passFilter) {
+                    continue; // Skip this sample
+                }
+            }
+
             QDateTime dataTime = QDateTime::fromMSecsSinceEpoch(
                 (static_cast<unsigned long long>(infos[i].source_timestamp.sec) * 1000) +
                 (static_cast<unsigned long long>(infos[i].source_timestamp.nanosec) * 1e-6));
@@ -303,6 +317,492 @@ void TopicMonitor::pause()
 void TopicMonitor::unpause()
 {
     m_paused = false;
+}
+
+bool TopicMonitor::evaluateDynamicFilter(DDS::DynamicData_ptr data, const QString &filter)
+{
+    try {
+        return evaluateFilterExpression(data, cleanFilter(filter));
+    } catch (const std::exception& e) {
+        std::cerr << "Filter evaluation error: " << e.what() << std::endl;
+        return false;
+    }
+}
+
+QString TopicMonitor::cleanFilter(const QString &filter)
+{
+    QString cleaned = filter.simplified();
+    cleaned.replace(QRegExp("\\s+"), " "); // Replace multiple spaces with a single space
+    cleaned.replace(QRegExp("--.*"), ""); // Remove comments starting with --
+    cleaned.replace(QRegExp("/\\*.*?\\*/", Qt::CaseInsensitive), ""); // Remove C-style comments
+    return cleaned.trimmed();
+}
+
+bool TopicMonitor::evaluateFilterExpression(DDS::DynamicData_ptr data, const QString &expression)
+{
+    QString expr = expression.trimmed();
+    if (expr.isEmpty()) {
+        return true;
+    }
+
+    // parentheses first
+    while (expr.contains('(')) {
+
+        int depth = 0;
+        int start = -1;
+        int end = -1;
+
+        for (int i = 0; i < expr.length(); ++i) {
+            if (expr[i] == '(') {
+                if (depth == 0) start = i;
+                depth++;
+            } else if (expr[i] == ')') {
+                depth--;
+                if (depth == 0) {
+                    end = i;
+                    break;
+                }
+            }
+        }
+
+        if (start == -1 || end == -1) {
+            throw std::runtime_error("Mismatched parentheses in filter expression");
+        }
+
+        QString innerExpr = expr.mid(start + 1, end - start - 1);
+        bool innerResult = evaluateFilterExpression(data, innerExpr);
+
+        // Replace the parenthetical expression with its result
+        expr = expr.left(start) + (innerResult ? "TRUE" : "FALSE") + expr.mid(end + 1);
+    }
+
+    // OR is the lowest precedence
+    QStringList orParts = splitOnOperator(expr, " OR ");
+    if (orParts.size() > 1) {
+        for (const QString &part : orParts) {
+            if (evaluateFilterExpression(data, part)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Higher than OR
+    QStringList andParts = splitOnOperator(expr, " AND ");
+    if (andParts.size() > 1) {
+        for (const QString &part : andParts) {
+            if (!evaluateFilterExpression(data, part)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // Highest precedence
+    if (expr.startsWith("NOT ", Qt::CaseInsensitive)) {
+        QString notExpr = expr.mid(4).trimmed();
+        return !evaluateFilterExpression(data, notExpr);
+    }
+
+        // Handle boolean literals
+    if (expr.compare("TRUE", Qt::CaseInsensitive) == 0) {
+        return true;
+    }
+    if (expr.compare("FALSE", Qt::CaseInsensitive) == 0) {
+        return false;
+    }
+
+    // basic comparison
+    return evaluateSimpleComparison(data, expr);
+}
+
+QStringList TopicMonitor::splitOnOperator(const QString &expression, const QString &op)
+{
+    QStringList parts;
+    int pos = 0;
+    int depth = 0;
+    int lastSplit = 0;
+    
+    while (pos < expression.length()) {
+        if (expression[pos] == '(') {
+            depth++;
+        } else if (expression[pos] == ')') {
+            depth--;
+        } else if (depth == 0 && expression.mid(pos).startsWith(op, Qt::CaseInsensitive)) {
+            parts.append(expression.mid(lastSplit, pos - lastSplit).trimmed());
+            pos += op.length();
+            lastSplit = pos;
+            continue;
+        }
+        pos++;
+    }
+    
+    if (lastSplit < expression.length()) {
+        parts.append(expression.mid(lastSplit).trimmed());
+    }
+    
+    return parts;
+}
+
+bool TopicMonitor::evaluateSimpleComparison(DDS::DynamicData_ptr data, const QString &expression)
+{
+    QString expr = expression.trimmed();
+    
+    QStringList operators = {">=", "<=", "!=", "<>", "=", ">", "<", " LIKE ", " IN ", " NOT IN "};
+    QString op;
+    QString fieldName;
+    QString value;
+
+    for (const QString &testOp : operators) {
+        int pos = expr.indexOf(testOp, 0, Qt::CaseInsensitive);
+        if (pos > 0) {
+            op = testOp.trimmed().toUpper();
+            fieldName = expr.left(pos).trimmed();
+            value = expr.mid(pos + testOp.length()).trimmed();
+            break;
+        }
+    }
+
+    if (op.isEmpty() || fieldName.isEmpty()){
+        std::cerr << "Invalid comparison format: " << expression.toStdString() << std::endl;
+        return false;
+    }
+
+    // Remove quotes if present
+    if (value.startsWith('"') && value.endsWith('"')) {
+        value = value.mid(1, value.length() - 2);
+    }
+
+    else if (value.startsWith('\'') && value.endsWith('\'')) {
+        value = value.mid(1, value.length() - 2);
+    }
+
+        if (op == "<>") {
+        op = "!=";
+    }
+
+    if (op == "IN" || op == "NOT IN") {
+        return evaluateInOperator(data, fieldName, value, op == "NOT IN");
+    }
+
+    if (op == "LIKE") {
+        return evaluateLikeOperator(data, fieldName, value);
+    }
+
+    try {
+        // Get the member ID for the field
+        DDS::DynamicType_var type = data->type();
+        DDS::MemberId memberId = 0;
+
+        // Try to find member by name
+        bool memberFound = false;
+        DDS::UInt32 memberCount = type->get_member_count();
+
+        for (DDS::UInt32 i = 0; i < memberCount; ++i) {
+            DDS::DynamicTypeMember_var member;
+            if (type->get_member_by_index(member, i) == DDS::RETCODE_OK) {
+                DDS::MemberDescriptor_var desc;
+                if (member->get_descriptor(desc) == DDS::RETCODE_OK) {
+                    if (QString(desc->name()) == fieldName) {
+                        memberId = desc->id();
+                        memberFound = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!memberFound) {
+            std::cerr << "Field '" << fieldName.toStdString() << "' not found in type" << std::endl;
+            return false;
+        }
+
+        // Get the field value based on type
+        DDS::TypeKind kind = type->get_kind();
+        DDS::DynamicTypeMember_var member;
+        type->get_member(member, memberId);
+        DDS::MemberDescriptor_var desc;
+        member->get_descriptor(desc);
+        DDS::TypeKind memberKind = desc->type()->get_kind();
+
+        // Handle different data types using OpenDDS::XTypes constants
+        using namespace OpenDDS::XTypes;
+
+        switch (memberKind) {
+        case TK_INT32: {
+            DDS::Int32 fieldValue;
+            if (data->get_int32_value(fieldValue, memberId) == DDS::RETCODE_OK) {
+                int filterValue = value.toInt();
+                return compareValues(fieldValue, filterValue, op);
+            }
+            break;
+        }
+        case TK_UINT32: {
+            DDS::UInt32 fieldValue;
+            if (data->get_uint32_value(fieldValue, memberId) == DDS::RETCODE_OK)
+            {
+                unsigned int filterValue = value.toUInt();
+                return compareValues(fieldValue, filterValue, op);
+            }
+            break;
+        }
+        case TK_INT16: {
+            DDS::Int16 fieldValue;
+            if (data->get_int16_value(fieldValue, memberId) == DDS::RETCODE_OK)
+            {
+                short filterValue = value.toShort();
+                return compareValues(fieldValue, filterValue, op);
+            }
+            break;
+        }
+        case TK_UINT16: {
+            DDS::UInt16 fieldValue;
+            if (data->get_uint16_value(fieldValue, memberId) == DDS::RETCODE_OK)
+            {
+                unsigned short filterValue = value.toUShort();
+                return compareValues(fieldValue, filterValue, op);
+            }
+            break;
+        }
+                case TK_INT8:
+        {
+            DDS::Int8 fieldValue;
+            if (data->get_int8_value(fieldValue, memberId) == DDS::RETCODE_OK)
+            {
+                int filterValue = value.toInt();
+                return compareValues(static_cast<int>(fieldValue), filterValue, op);
+            }
+            break;
+        }
+        case TK_UINT8:
+        {
+            DDS::UInt8 fieldValue;
+            if (data->get_uint8_value(fieldValue, memberId) == DDS::RETCODE_OK)
+            {
+                unsigned int filterValue = value.toUInt();
+                return compareValues(static_cast<unsigned int>(fieldValue), filterValue, op);
+            }
+            break;
+        }
+        case TK_INT64:
+        {
+            DDS::Int64 fieldValue;
+            if (data->get_int64_value(fieldValue, memberId) == DDS::RETCODE_OK)
+            {
+                DDS::Int64 filterValue = static_cast<DDS::Int64>(value.toLongLong());
+                return compareValues(fieldValue, filterValue, op);
+            }
+            break;
+        }
+        case TK_UINT64:
+        {
+            DDS::UInt64 fieldValue;
+            if (data->get_uint64_value(fieldValue, memberId) == DDS::RETCODE_OK)
+            {
+                DDS::UInt64 filterValue = static_cast<DDS::UInt64>(value.toULongLong());
+                return compareValues(fieldValue, filterValue, op);
+            }
+            break;
+        }
+        case TK_FLOAT32: {
+            DDS::Float32 fieldValue;
+            if (data->get_float32_value(fieldValue, memberId) == DDS::RETCODE_OK) {
+                float filterValue = value.toFloat();
+                return compareValues(fieldValue, filterValue, op);
+            }
+            break;
+        }
+        case TK_FLOAT64: {
+            DDS::Float64 fieldValue;
+            if (data->get_float64_value(fieldValue, memberId) == DDS::RETCODE_OK) {
+                double filterValue = value.toDouble();
+                return compareValues(fieldValue, filterValue, op);
+            }
+            break;
+        }
+        case TK_STRING8: {
+            DDS::String8_var fieldValue;
+            if (data->get_string_value(fieldValue, memberId) == DDS::RETCODE_OK) {
+                QString fieldStr = QString::fromUtf8(fieldValue);
+                return compareStrings(fieldStr, value, op);
+            }
+            break;
+        }
+        case TK_BOOLEAN: {
+            DDS::Boolean fieldValue;
+            if (data->get_boolean_value(fieldValue, memberId) == DDS::RETCODE_OK) {
+                bool filterValue = (value.toLower() == "true" || value == "1");
+                if (op == "=")
+                    return fieldValue == filterValue;
+                if (op == "!=")
+                    return fieldValue != filterValue;
+            }
+            break;
+        }
+        case TK_CHAR8:
+        {
+            DDS::Char8 fieldValue;
+            if (data->get_char8_value(fieldValue, memberId) == DDS::RETCODE_OK)
+            {
+                char filterValue = value.isEmpty() ? '\0' : value[0].toLatin1();
+                return compareValues(fieldValue, filterValue, op);
+            }
+            break;
+        }
+        default:
+            std::cerr << "Unsupported field type for filtering: " << memberKind << std::endl;
+            return false;
+        }
+    }
+    catch (const std::exception &e) {
+        std::cerr << "Exception in simple comparison evaluation: " << e.what() << std::endl;
+        return false;
+    }
+    return false;
+}
+
+bool TopicMonitor::evaluateInOperator(DDS::DynamicData_ptr data, const QString &fieldName, const QString &valueList, bool isNotIn)
+{
+    // Parse the value list (e.g., "(1, 2, 3)" or "('a', 'b', 'c')")
+    QString cleanList = valueList.trimmed();
+    if (cleanList.startsWith('(') && cleanList.endsWith(')')) {
+        cleanList = cleanList.mid(1, cleanList.length() - 2);
+    }
+
+    QStringList values = cleanList.split(',');
+    for (QString &val : values) {
+        val = val.trimmed();
+        if (val.startsWith('"') && val.endsWith('"')) {
+            val = val.mid(1, val.length() - 2);
+        } else if (val.startsWith('\'') && val.endsWith('\'')) {
+            val = val.mid(1, val.length() - 2);
+        }
+    }
+
+    // Check if field value matches any of the values in the list
+    for (const QString &val : values) {
+        QString comparison = fieldName + " = " + val;
+        if (evaluateSimpleComparison(data, comparison)) {
+            return !isNotIn;
+        }
+    }
+    
+    return isNotIn;
+}
+
+bool TopicMonitor::evaluateLikeOperator(DDS::DynamicData_ptr data, const QString &fieldName, const QString &pattern)
+{
+    try {
+        DDS::DynamicType_var type = data->type();
+        DDS::MemberId memberId = 0;
+        bool memberFound = false;
+        DDS::UInt32 memberCount = type->get_member_count();
+
+        for (DDS::UInt32 i = 0; i < memberCount; ++i) {
+            DDS::DynamicTypeMember_var member;
+            if (type->get_member_by_index(member, i) == DDS::RETCODE_OK) {
+                DDS::MemberDescriptor_var desc;
+                if (member->get_descriptor(desc) == DDS::RETCODE_OK) {
+                    if (QString(desc->name()) == fieldName) {
+                        memberId = desc->id();
+                        memberFound = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!memberFound) {
+            std::cerr << "Field '" << fieldName.toStdString() << "' not found for LIKE operation" << std::endl;
+            return false;
+        }
+
+        DDS::DynamicTypeMember_var member;
+        type->get_member(member, memberId);
+        DDS::MemberDescriptor_var desc;
+        member->get_descriptor(desc);
+        DDS::TypeKind memberKind = desc->type()->get_kind();
+
+        QString fieldValue;
+        
+        if (memberKind == OpenDDS::XTypes::TK_STRING8) {
+            DDS::String8_var stringValue;
+            if (data->get_string_value(stringValue, memberId) == DDS::RETCODE_OK) {
+                fieldValue = QString::fromUtf8(stringValue);
+            }
+        } else {
+            std::cerr << "LIKE operator only supported for string fields" << std::endl;
+            return false;
+        }
+
+        // Convert to regex
+        QString regexPattern = sqlLikeToRegex(pattern);
+        QRegExp regex(regexPattern, Qt::CaseInsensitive);
+        return regex.exactMatch(fieldValue);
+        
+    } catch (const std::exception &e) {
+        std::cerr << "Exception in LIKE evaluation: " << e.what() << std::endl;
+        return false;
+    }
+}
+
+QString TopicMonitor::sqlLikeToRegex(const QString &likePattern)
+{
+    QString regex = likePattern;
+    
+    regex.replace("\\", "\\\\");
+    regex.replace(".", "\\.");
+    regex.replace("^", "\\^");
+    regex.replace("$", "\\$");
+    regex.replace("+", "\\+");
+    regex.replace("?", "\\?");
+    regex.replace("*", "\\*");
+    regex.replace("[", "\\[");
+    regex.replace("]", "\\]");
+    regex.replace("{", "\\{");
+    regex.replace("}", "\\}");
+    regex.replace("(", "\\(");
+    regex.replace(")", "\\)");
+    regex.replace("|", "\\|");
+    
+    regex.replace("%", ".*");
+    regex.replace("_", ".");
+    
+    return regex;
+}
+
+template <typename T> bool TopicMonitor::compareValues(const T &fieldValue, const T &filterValue, const QString &op)
+{
+    if (op == "=")
+        return fieldValue == filterValue;
+    if (op == "!=")
+        return fieldValue != filterValue;
+    if (op == ">")
+        return fieldValue > filterValue;
+    if (op == "<")
+        return fieldValue < filterValue;
+    if (op == ">=")
+        return fieldValue >= filterValue;
+    if (op == "<=")
+        return fieldValue <= filterValue;
+    return false;
+}
+
+bool TopicMonitor::compareStrings(const QString &fieldValue, const QString &filterValue, const QString &op)
+{
+    if (op == "=")
+        return fieldValue == filterValue;
+    if (op == "!=")
+        return fieldValue != filterValue;
+    if (op == ">")
+        return fieldValue > filterValue;
+    if (op == "<")
+        return fieldValue < filterValue;
+    if (op == ">=")
+        return fieldValue >= filterValue;
+    if (op == "<=")
+        return fieldValue <= filterValue;
+    return false;
 }
 
 
