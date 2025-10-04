@@ -177,9 +177,22 @@ QVariant TopicTableModel::headerData(int section,
 //------------------------------------------------------------------------------
 Qt::ItemFlags TopicTableModel::flags(const QModelIndex &index) const
 {
+    const int row = index.row();
+
+    // Make sure the data row is valid
+    if (row < 0 || static_cast<size_t>(row) >= m_data.size() || !m_data.at(row)) {
+        return Qt::NoItemFlags;
+    }
+
+    const DataRow *const member = m_data.at(row);
+
     // Is this data editable?
     if (index.column() == VALUE_COLUMN)
     {
+        // Non-present fields are not editable
+        if (member->getNotPresent()) {
+            return Qt::ItemIsEnabled;
+        }
         return Qt::ItemIsEnabled | Qt::ItemIsEditable;
     }
 
@@ -207,6 +220,21 @@ QVariant TopicTableModel::data(const QModelIndex &index, int role) const
     }
 
     const DataRow* const member = m_data.at(row);
+
+    // Handle styling for non-present fields
+    if (column == VALUE_COLUMN && member->getNotPresent()) {
+        if (role == Qt::DisplayRole) {
+            return QString("(not present)");
+        }
+        else if (role == Qt::ForegroundRole) {
+            // Make text greyed out
+            return QColor(Qt::gray);
+        }
+        else if (role == Qt::BackgroundRole) {
+            // Use default background
+            return QVariant();
+        }
+    }
 
     if (column == VALUE_COLUMN && member->getEdited() == true)
     {
@@ -277,6 +305,11 @@ bool TopicTableModel::setData(const QModelIndex &index,
     DataRow* const data = m_data.at(row);
     if (!data)
     {
+        return false;
+    }
+
+    // Don't allow editing of non-present fields
+    if (data->getNotPresent()) {
         return false;
     }
 
@@ -589,108 +622,113 @@ void TopicTableModel::setDataRow(DataRow* const data_row,
                                  const DDS::DynamicData_var& data,
                                  DDS::MemberId id)
 {
+    auto setValueOrNotPresent = [&](DDS::ReturnCode_t ret, auto value, const char *errorMsg) -> bool {
+        if (ret == DDS::RETCODE_NO_DATA && data_row->getIsOptional()) {
+            data_row->setNotPresent(true);
+            return true;
+        } else if (check_rc(ret, errorMsg)) {
+            data_row->setValue(value);
+            data_row->setNotPresent(false);
+            return true;
+        }
+        return false;
+    };
+
     switch (data_row->getType()) {
     case CORBA::tk_long: {
         CORBA::Long value;
-        if (check_rc(data->get_int32_value(value, id), "get_int32_value failed")) {
-            data_row->setValue(static_cast<int32_t>(value));
-        }
+        DDS::ReturnCode_t ret = data->get_int32_value(value, id);
+        setValueOrNotPresent(ret, static_cast<int32_t>(value), "get_int32_value failed");
         break;
     }
     case CORBA::tk_short: {
         CORBA::Short value;
         DDS::ReturnCode_t ret = data->get_int16_value(value, id);
-        if (ret != DDS::RETCODE_OK) {
-          ACE_INT8 tmp;
-          ret = data->get_int8_value(tmp, id);
-          value = static_cast<CORBA::Short>(tmp);
-        }
-        if (check_rc(ret, "get_int16_value failed")) {
+        if (ret == DDS::RETCODE_NO_DATA && data_row->getIsOptional()) {
+            data_row->setNotPresent(true);
+        } else if (ret != DDS::RETCODE_OK) {
+            ACE_INT8 tmp;
+            ret = data->get_int8_value(tmp, id);
+            setValueOrNotPresent(ret, static_cast<int16_t>(static_cast<CORBA::Short>(tmp)), "get_int8_value failed");
+        } else if (check_rc(ret, "get_int16_value failed")) {
             data_row->setValue(static_cast<int16_t>(value));
+            data_row->setNotPresent(false);
         }
         break;
     }
     case CORBA::tk_ushort: {
         CORBA::UShort value;
         DDS::ReturnCode_t ret = data->get_uint16_value(value, id);
-        if (ret != DDS::RETCODE_OK) {
-          ACE_UINT8 tmp;
-          ret = data->get_uint8_value(tmp, id);
-          value = static_cast<CORBA::UShort>(tmp);
-        }
-        if (check_rc(ret, "get_uint16_value failed")) {
+        if (ret == DDS::RETCODE_NO_DATA && data_row->getIsOptional()) {
+            data_row->setNotPresent(true);
+        } else if (ret != DDS::RETCODE_OK) {
+            ACE_UINT8 tmp;
+            ret = data->get_uint8_value(tmp, id);
+            setValueOrNotPresent(ret, static_cast<uint16_t>(static_cast<CORBA::UShort>(tmp)), "get_uint8_value failed");
+        } else if (check_rc(ret, "get_uint16_value failed")) {
             data_row->setValue(static_cast<uint16_t>(value));
+            data_row->setNotPresent(false);
         }
         break;
     }
     case CORBA::tk_ulong: {
         CORBA::ULong value;
-        if (check_rc(data->get_uint32_value(value, id), "get_uint32_value failed")) {
-            data_row->setValue(static_cast<uint32_t>(value));
-        }
+        DDS::ReturnCode_t ret = data->get_uint32_value(value, id);
+        setValueOrNotPresent(ret, static_cast<uint32_t>(value), "get_uint32_value failed");
         break;
     }
     case CORBA::tk_float: {
         CORBA::Float value;
-        if (check_rc(data->get_float32_value(value, id), "get_float32_value failed")) {
-            data_row->setValue(static_cast<float>(value));
-        }
+        DDS::ReturnCode_t ret = data->get_float32_value(value, id);
+        setValueOrNotPresent(ret, static_cast<float>(value), "get_float32_value failed");
         break;
     }
     case CORBA::tk_double: {
         CORBA::Double value;
-        if (check_rc(data->get_float64_value(value, id), "get_float64_value failed")) {
-            data_row->setValue(static_cast<double>(value));
-        }
+        DDS::ReturnCode_t ret = data->get_float64_value(value, id);
+        setValueOrNotPresent(ret, static_cast<double>(value), "get_float64_value failed");
         break;
     }
     case CORBA::tk_boolean: {
         CORBA::Boolean value;
-        if (check_rc(data->get_boolean_value(value, id), "get_boolean_value failed")) {
-            data_row->setValue(static_cast<uint32_t>(value));
-        }
+        DDS::ReturnCode_t ret = data->get_boolean_value(value, id);
+        setValueOrNotPresent(ret, static_cast<bool>(value), "get_boolean_value failed");
         break;
     }
     case CORBA::tk_char: {
         char tmp;
-        if (check_rc(data->get_char8_value(tmp, id), "get_char8_value failed")) {
-            data_row->setValue(tmp);
-        }
+        DDS::ReturnCode_t ret = data->get_char8_value(tmp, id);
+        setValueOrNotPresent(ret, tmp, "get_char8_value failed");
         break;
     }
     case CORBA::tk_wchar: {
         CORBA::WChar value[2] = { 0, 0 };
-        if (check_rc(data->get_char16_value(value[0], id), "get_char16_value failed")) {
-            data_row->setValue(QString(ACE_Wide_To_Ascii(value).char_rep()));
-        }
+        DDS::ReturnCode_t ret = data->get_char16_value(value[0], id);
+        setValueOrNotPresent(ret, QString(ACE_Wide_To_Ascii(value).char_rep()), "get_char16_value failed");
         break;
     }
     case CORBA::tk_octet: {
         CORBA::Octet value;
-        if (check_rc(data->get_byte_value(value, id), "get_byte_value failed")) {
-            data_row->setValue(static_cast<uint8_t>(value));
-        }
+        DDS::ReturnCode_t ret = data->get_byte_value(value, id);
+        setValueOrNotPresent(ret, static_cast<uint8_t>(value), "get_byte_value failed");
         break;
     }
     case CORBA::tk_longlong: {
         CORBA::LongLong value;
-        if (check_rc(data->get_int64_value(value, id), "get_int64_value failed")) {
-            data_row->setValue(static_cast<qint64>(value));
-        }
+        DDS::ReturnCode_t ret = data->get_int64_value(value, id);
+        setValueOrNotPresent(ret, static_cast<qint64>(value), "get_int64_value failed");
         break;
     }
     case CORBA::tk_ulonglong: {
         CORBA::ULongLong value;
-        if (check_rc(data->get_uint64_value(value, id), "get_uint64_value failed")) {
-            data_row->setValue(static_cast<quint64>(value));
-        }
+        DDS::ReturnCode_t ret = data->get_uint64_value(value, id);
+        setValueOrNotPresent(ret, static_cast<quint64>(value), "get_uint64_value failed");
         break;
     }
     case CORBA::tk_string: {
         CORBA::String_var value;
-        if (check_rc(data->get_string_value(value, id), "get_string_value failed")) {
-            data_row->setValue(value.in());
-        }
+        DDS::ReturnCode_t ret = data->get_string_value(value, id);
+        setValueOrNotPresent(ret, value.in(), "get_string_value failed");
         break;
     }
     case CORBA::tk_enum: {
@@ -809,8 +847,8 @@ void TopicTableModel::parseCollection(const DDS::DynamicData_var& data, const st
 void TopicTableModel::parseAggregated(const DDS::DynamicData_var& data, const std::string& namePrefix)
 {
     DDS::DynamicType_var type = data->type();
-    const unsigned int count = data->get_item_count();
-    for (unsigned int i = 0; i < count; ++i) {
+    const CORBA::ULong total_member_count = type->get_member_count();
+    for (CORBA::ULong i = 0; i < total_member_count; ++i) {
         DDS::MemberId id = data->get_member_id_at_index(i);
         if (id == OpenDDS::XTypes::MEMBER_ID_INVALID) {
             std::cerr << "Failed to get MemberId at index " << i << std::endl;
@@ -1067,6 +1105,7 @@ TopicTableModel::DataRow::DataRow(TopicTableModel* parent, QString name,
     , m_isKey(isKey)
     , m_isOptional(isOptional)
     , m_edited(false)
+    , m_notPresent(false)
 {}
 
 
@@ -1081,10 +1120,10 @@ bool TopicTableModel::DataRow::setValue(const QVariant& newValue)
     QVariant origValue = newValue, dispValue;
     bool pass = false;
 
-    switch (m_type)
-    {
-    case CORBA::tk_long:
-    {
+    // Reset the not present flag when setting a new value
+    m_notPresent = false;
+    switch (m_type) {
+    case CORBA::tk_long: {
         const int intVal = newValue.toInt(&pass);
         if (pass)
         {
@@ -1093,24 +1132,18 @@ bool TopicTableModel::DataRow::setValue(const QVariant& newValue)
         }
         break;
     }
-    case CORBA::tk_short:
-    {
+    case CORBA::tk_short: {
         const int intVal = newValue.toInt(&pass);
-        if (pass)
-        {
-            // Truncate the input value to fit the type of the member.
+        if (pass) {
             const qint16 shortVal = static_cast<qint16>(intVal);
             origValue = shortVal;
             dispValue = m_parent->type_to_qvariant(shortVal);
         }
         break;
     }
-    case CORBA::tk_enum:
-    {
-        // Make sure the input value matches one of the enumerators.
+    case CORBA::tk_enum: {
         const QString strVal = newValue.toString();
-        if (strVal.isEmpty())
-        {
+        if (strVal.isEmpty()) {
             break;
         }
         origValue = strVal;
@@ -1121,44 +1154,36 @@ bool TopicTableModel::DataRow::setValue(const QVariant& newValue)
             return false;
         }
 
-        if (topicInfo->typeMode() == TypeDiscoveryMode::TypeCode)
-        {
+        if (topicInfo->typeMode() == TypeDiscoveryMode::TypeCode) {
             CORBA::TypeCode_var enumTypeCode = m_parent->m_sample->getTypeCode();
             const CORBA::ULong memberCount = enumTypeCode->member_count();
-            for (CORBA::ULong i = 0; i < memberCount; ++i)
-            {
-                if (origValue == enumTypeCode->member_name(i))
-                {
+            for (CORBA::ULong i = 0; i < memberCount; ++i) {
+                if (origValue == enumTypeCode->member_name(i)) {
                     pass = true;
                     dispValue = origValue;
                     break;
                 }
             }
         }
-        else
-        {
+        else {
             // TODO: Verify that the input string matches one of the enumerators.
             pass = true;
             dispValue = origValue;
         }
         break;
     }
-    case CORBA::tk_ushort:
-    {
+    case CORBA::tk_ushort: {
         const unsigned int uintVal = newValue.toUInt(&pass);
-        if (pass)
-        {
+        if (pass) {
             const quint16 ushortVal = static_cast<quint16>(uintVal);
             origValue = ushortVal;
             dispValue = m_parent->type_to_qvariant(ushortVal);
         }
         break;
     }
-    case CORBA::tk_ulong:
-    {
+    case CORBA::tk_ulong: {
         const unsigned int uintVal = newValue.toUInt(&pass);
-        if (pass)
-        {
+        if (pass) {
             origValue = uintVal;
             dispValue = m_parent->type_to_qvariant(uintVal);
         }
@@ -1210,8 +1235,7 @@ bool TopicTableModel::DataRow::setValue(const QVariant& newValue)
     case CORBA::tk_ulonglong:
     {
         const qulonglong ullVal = newValue.toULongLong(&pass);
-        if (pass)
-        {
+        if (pass) {
             origValue = ullVal;
             dispValue = m_parent->type_to_qvariant(ullVal);
         }
@@ -1219,8 +1243,7 @@ bool TopicTableModel::DataRow::setValue(const QVariant& newValue)
     }
     case CORBA::tk_string:
         pass = newValue.canConvert<QString>();
-        if (pass)
-        {
+        if (pass) {
             origValue = newValue.toString();
             dispValue = origValue;
         }
