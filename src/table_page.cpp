@@ -12,6 +12,9 @@
 
 #include <QMessageBox>
 
+#include <QDir>
+#include <QStandardPaths>
+
 #include <iostream>
 #include <exception>
 
@@ -72,10 +75,13 @@ void TablePage::on_clearSamplesButton_clicked()
     }
     else
     {
-        QMessageBox msgBox;
-        msgBox.setIcon(QMessageBox::Warning);
-        msgBox.setText("TablePage::on_clearSamplesButton_clicked: Not supported for dynamic type");
-        msgBox.exec();
+        m_refreshTimer.stop();
+        CommonData::flushSamples(m_topicName);
+        m_topicMonitor->setFilter("");
+        m_refreshTimer.start(REFRESH_TIMEOUT);
+
+        freezeButton->show();
+        unfreezeButton->hide();
     }
 
     refreshPage();
@@ -276,6 +282,225 @@ void TablePage::on_iniButton_clicked()
     }
 
     iniFile.close();
+}
+
+//------------------------------------------------------------------------------
+void TablePage::on_batchButton_clicked()
+{
+    // Prompt the user about save options (dropdown option csv, single file, export to folder)
+
+    QStringList options;
+    options << "CSV (single file)" << "Single file" << "Export to folder";
+
+    bool ok = false;
+    QString choice = QInputDialog::getItem(
+        this,
+        "Batch Export Options",
+        "Choose export format:",
+        options,
+        0,
+        false,
+        &ok);
+
+    if (!ok || choice.isEmpty())
+    {
+        return;
+    }
+
+    switch (choice.toStdString()[0])
+    {
+    case 'C':
+        export_batch_csv();
+        break;
+    case 'S':
+        export_batch_single();
+        break;
+    case 'E':
+        export_batch_folder();
+        break;
+    default:
+        break;
+    }
+}
+
+void TablePage::export_batch_csv(){
+    QString exportDir = QDir::currentPath() + "/Export";
+    QDir dir;
+    if (!dir.exists(exportDir))
+    {
+        if (!dir.mkpath(exportDir))
+        {
+            QMessageBox::warning(this, "Export Error", "Could not create Export directory.");
+            return;
+        }
+    }
+
+    QString fileName = QFileDialog::getSaveFileName(
+        this,
+        "Export to CSV",
+        exportDir + "/export.csv",
+        "CSV Files (*.csv);;All Files (*)");
+    if (fileName.isEmpty())
+    {
+        return;
+    }
+
+    if (!fileName.endsWith(".csv"))
+    {
+        fileName += ".csv";
+    }
+
+    QFile file(fileName);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+    {
+        QMessageBox::warning(this, "Export Error", "Could not open file for writing.");
+        return;
+    }
+
+    QTextStream out(&file);
+    out.setCodec("UTF-8");
+    out << "Sample Name,";
+    for (int i = 0; i < m_tableModel->rowCount(); ++i)
+    {
+        QModelIndex nameIndex = m_tableModel->index(i, TopicTableModel::NAME_COLUMN);
+        out << m_tableModel->data(nameIndex).toString() << ",";
+    }
+    out << "\n";
+    for (int j = 0; j < historyTable->rowCount(); ++j)
+    {
+        QTableWidgetItem *item = historyTable->item(j, 0);
+        if (item)
+        {
+            out << item->text() << ",";
+            for (int i = 0; i < m_tableModel->rowCount(); ++i)
+            {
+                QModelIndex nameIndex = m_tableModel->index(i, TopicTableModel::NAME_COLUMN);
+                QString memberName = m_tableModel->data(nameIndex).toString();
+                QVariant memberValue = CommonData::readValue(m_topicName, memberName, j);
+                out << memberValue.toString() << ",";
+            }
+            out << "\n";
+        }
+    }
+    file.close();
+    QMessageBox::information(this, "Export Complete", "Data has been exported to: " + fileName);
+}
+
+void TablePage::export_batch_single()
+{
+    QString exportDir = QDir::currentPath() + "/Export";
+    QDir dir;
+    if (!dir.exists(exportDir))
+    {
+        if (!dir.mkpath(exportDir))
+        {
+            QMessageBox::warning(this, "Export Error", "Could not create Export directory.");
+            return;
+        }
+    }
+
+    QString fileName = QFileDialog::getSaveFileName(
+        this,
+        "Export Sample",
+        exportDir + "/export.txt",
+        "All Files (*)");
+
+    if (!fileName.isEmpty()) {
+        QFileInfo fi(fileName);
+        if (fi.suffix().isEmpty()) {
+            fileName += ".txt";
+        }
+    }
+
+    if (fileName.isEmpty())
+    {
+        return;
+    }
+
+    QFile file(fileName);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+    {
+        QMessageBox::warning(this, "Export Error", "Could not open file for writing.");
+        return;
+    }
+    QTextStream out(&file);
+    out.setCodec("UTF-8");
+
+    for (int i = 0; i < historyTable->rowCount(); ++i)
+    {
+        QTableWidgetItem *item = historyTable->item(i, 0);
+        if (item)
+        {
+            QString sampleName = item->text();
+            out << "Sample: " << sampleName << "\n";
+
+            for (int j = 0; j < m_tableModel->rowCount(); ++j)
+            {
+                QModelIndex nameIndex = m_tableModel->index(j, TopicTableModel::NAME_COLUMN);
+                QString memberName = m_tableModel->data(nameIndex).toString();
+                QVariant memberValue = CommonData::readValue(m_topicName, memberName, i);
+                out << memberName << ": " << memberValue.toString() << "\n";
+            }
+            out << "\n";
+        }
+    }
+
+    file.close();
+    QMessageBox::information(this, "Export Complete", "Sample has been exported to: " + fileName);
+}
+
+void TablePage::export_batch_folder(){
+    QString exportDir = QDir::currentPath() + "/Export";
+    QDir dir;
+    if (!dir.exists(exportDir))
+    {
+        if (!dir.mkpath(exportDir))
+        {
+            QMessageBox::warning(this, "Export Error", "Could not create Export directory.");
+            return;
+        }
+    }
+
+    QString folderPath = QFileDialog::getExistingDirectory(
+        this,
+        "Select Export Folder",
+        exportDir,
+        QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+    if (folderPath.isEmpty())
+    {
+        return;
+    }
+
+    for (int i = 0; i < historyTable->rowCount(); ++i)
+    {
+        QTableWidgetItem *item = historyTable->item(i, 0);
+        if (item)
+        {
+            QString sampleName = item->text();
+            QString fileName = folderPath + "/" + sampleName + ".txt";
+
+            QFile file(fileName);
+            if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+            {
+                QMessageBox::warning(this, "Export Error", "Could not open file for writing: " + fileName);
+                continue;
+            }
+            QTextStream out(&file);
+            out.setCodec("UTF-8");
+
+            out << "Sample: " << sampleName << "\n";
+
+            for (int j = 0; j < m_tableModel->rowCount(); ++j)
+            {
+                QModelIndex nameIndex = m_tableModel->index(j, TopicTableModel::NAME_COLUMN);
+                QString memberName = m_tableModel->data(nameIndex).toString();
+                QVariant memberValue = CommonData::readValue(m_topicName, memberName, i);
+                out << memberName << ": " << memberValue.toString() << "\n";
+            }
+            file.close();
+        }
+    }
+    QMessageBox::information(this, "Export Complete", "All samples have been exported to: " + folderPath);
 }
 
 

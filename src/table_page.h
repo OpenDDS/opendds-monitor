@@ -69,6 +69,26 @@ private slots:
     void on_iniButton_clicked();
 
     /**
+     * @brief Export a batch file for all samples in the history table.
+     */
+    void on_batchButton_clicked();
+
+    /**
+     * @brief Export a single sample to a batch file.
+     */
+    void export_batch_single();
+
+    /**
+     * @brief Export a batch file for all samples in the history table to a folder.
+     */
+    void export_batch_folder();
+
+    /**
+     * @brief Export the current sample to a csv file.
+     */
+    void export_batch_csv();
+
+    /**
      * @brief Revert any edit operations to the original sample.
      */
     void on_revertButton_clicked();
