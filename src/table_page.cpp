@@ -258,7 +258,15 @@ void TablePage::on_iniButton_clicked()
 
 
     QFile iniFile(iniPath);
-    iniFile.open(QIODevice::WriteOnly | QIODevice::Text);
+
+    if (!iniFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox msgBox;
+        msgBox.setIcon(QMessageBox::Warning);
+        msgBox.setText(QString("TablePage::on_iniButton_clicked: Unable to open file '%1' for writing").arg(iniPath));
+        msgBox.exec();
+        return;
+    }
+
     QTextStream out(&iniFile);
 
     out << "[" << m_topicName << "]\n";
