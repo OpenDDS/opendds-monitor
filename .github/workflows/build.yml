@@ -63,23 +63,23 @@ jobs:
           submodules: true
 
       # Get 3rd-party Dependencies
-      - name: 'Install openssl, xerces, qt5, and qwt (Linux)'
+      - name: 'Install openssl, xerces, qt6, and qwt (Linux)'
         if: runner.os == 'Linux'
         run: |-
           sudo apt-get update
-          sudo apt-get -y install libssl-dev libxerces-c-dev qtbase5-dev libqt5svg5-dev libqwt-qt5-dev
-      - name: 'Install xerces, qt5, and qwt (macOS)'
+          sudo apt-get -y install libssl-dev libxerces-c-dev qtbase6-dev libqt6svg5-dev libqwt-qt6-dev
+      - name: 'Install xerces, qt6, and qwt (macOS)'
         if: runner.os == 'macOS'
         run: |-
-          brew install xerces-c qt@5 qwt-qt5
+          brew install xerces-c qt@6 qwt-qt6
       - name: setup for run-vcpkg
         if: runner.os == 'Windows'
         shell: cmd
         run: |
-          echo { "name": "opendds", "version-string": "github-actions", "dependencies": [ "qt5-base", "qt5-svg", "openssl", "xerces-c" ] } > vcpkg.json
+          echo { "name": "opendds", "version-string": "github-actions", "dependencies": [ "qt6-base", "qt6-svg", "openssl", "xerces-c" ] } > vcpkg.json
           echo VCPKG_DEFAULT_TRIPLET=x64-windows>> %GITHUB_ENV%
           echo VCPKG_INSTALLED_DIR=${{ github.workspace }}\vcpkg\installed>> %GITHUB_ENV%
-      - name: 'Install openssl, xerces, and qt5 (Windows)'
+      - name: 'Install openssl, xerces, and qt6 (Windows)'
         if: runner.os == 'Windows'
         uses: lukka/run-vcpkg@v11
         with:
@@ -241,8 +241,8 @@ jobs:
           cd build
           CMAKE_ARGS=""
           if [ '${{ runner.os }}' == 'macOS' ]; then
-            export QWT_DIR=$(brew --prefix qwt-qt5)
-            CMAKE_ARGS+=" -DCMAKE_PREFIX_PATH=$(brew --prefix qt@5)"
+            export QWT_DIR=$(brew --prefix qwt-qt6)
+            CMAKE_ARGS+=" -DCMAKE_PREFIX_PATH=$(brew --prefix qt@6)"
           fi
           cmake $CMAKE_ARGS ..
           cmake --build . -t all -t managed_testapp -t unmanaged_testapp
