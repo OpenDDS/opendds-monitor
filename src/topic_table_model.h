@@ -262,6 +262,11 @@ private:
             return m_edited;
         }
 
+        bool getNotPresent() const
+        {
+            return m_notPresent;
+        }
+
         /**
          * @brief Set the value of the data row to a new value.
          * @param[in] newValue Attempt to set the value to this value.
@@ -272,6 +277,11 @@ private:
         void setEdited(bool edited)
         {
             m_edited = edited;
+        }
+
+        void setNotPresent(bool notPresent)
+        {
+            m_notPresent = notPresent;
         }
 
         void updateDisplayedValue();
@@ -303,6 +313,9 @@ private:
 
         /// The topic member edited flag.
         bool m_edited;
+
+        /// Flag indicating if this optional field has no value (not present).
+        bool m_notPresent;
     };
 
     /**
