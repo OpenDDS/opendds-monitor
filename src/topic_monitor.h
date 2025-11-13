@@ -154,6 +154,37 @@ private:
     /// The topic extensibility
     OpenDDS::DCPS::Extensibility m_extensibility;
 
+    // Evaluate a filter on a dynamic data sample.
+    bool evaluateDynamicFilter(DDS::DynamicData_ptr data, const QString &filter);
+
+    // Clean up the filter string by removing whitespace, comment, double spaces, enters, etc.
+    QString cleanFilter(const QString &filter);
+
+    // Evaluate a complex filter expression with AND, OR, NOT operators
+    bool evaluateFilterExpression(DDS::DynamicData_ptr data, const QString &expression);
+
+    // Split expression on a given operator while respecting parentheses
+    QStringList splitOnOperator(const QString &expression, const QString &op);
+
+    // Evaluate a simple comparison (field op value)
+    bool evaluateSimpleComparison(DDS::DynamicData_ptr data, const QString &expression);
+
+    // Evaluate IN and NOT IN operators
+    bool evaluateInOperator(DDS::DynamicData_ptr data, const QString &fieldName, const QString &valueList, bool isNotIn);
+
+    // Evaluate LIKE operator for pattern matching
+    bool evaluateLikeOperator(DDS::DynamicData_ptr data, const QString &fieldName, const QString &pattern);
+
+    // Convert SQL LIKE pattern to regex
+    QString sqlLikeToRegex(const QString &likePattern);
+
+    // Compare the values of a field with the filter value.
+    template <typename T>
+    bool compareValues(const T &fieldValue, const T &filterValue, const QString &op);
+
+    // Compare string values with the filter value.
+    bool compareStrings(const QString &fieldValue, const QString &filterValue, const QString &op);
+
 #if OPENDDS_MAJOR_VERSION == 3 && OPENDDS_MINOR_VERSION >= 24
     struct FilterTypeSupport : OpenDDS::DCPS::TypeSupportImpl {
       FilterTypeSupport(const DynamicMetaStruct& metastruct, OpenDDS::DCPS::Extensibility exten);
