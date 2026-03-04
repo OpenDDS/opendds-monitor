@@ -30,7 +30,7 @@ jobs:
           - ubuntu-22.04
           - ubuntu-24.04
           - macos-14
-          - macos-13
+          - macos-15
 
     runs-on: ${{ matrix.runner }}
 
