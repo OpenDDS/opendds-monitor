@@ -107,14 +107,13 @@ DDSMonitorMainWindow::DDSMonitorMainWindow() :
 //------------------------------------------------------------------------------
 DDSMonitorMainWindow::~DDSMonitorMainWindow()
 {
-    for (int i = 0; i < mainTabWidget->count(); i++)
+    while (mainTabWidget->count() > 0)
     {
-        QWidget* removedTab = mainTabWidget->widget(i);
-        mainTabWidget->removeTab(i);
+        QWidget* removedTab = mainTabWidget->widget(0);
+        mainTabWidget->removeTab(0);
         removedTab->close();
         delete removedTab;
     }
-    mainTabWidget->clear();
 
     CommonData::cleanup();
     ShutdownDDS();
