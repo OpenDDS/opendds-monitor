@@ -12,6 +12,106 @@
 
 #include <iostream>
 
+namespace {
+DDS::ReturnCode_t find_dynamic_member_by_name(DDS::DynamicData_ptr data,
+                                              const QString& memberName,
+                                              DDS::MemberId& id,
+                                              DDS::MemberDescriptor_var& md)
+{
+    if (!data || memberName.isEmpty()) {
+        return DDS::RETCODE_BAD_PARAMETER;
+    }
+
+    DDS::DynamicType_var type = OpenDDS::XTypes::get_base_type(data->type());
+    if (!type) {
+        return DDS::RETCODE_BAD_PARAMETER;
+    }
+
+    const CORBA::ULong count = data->get_item_count();
+    for (CORBA::ULong i = 0; i < count; ++i) {
+        const DDS::MemberId candidate_id = data->get_member_id_at_index(i);
+        if (candidate_id == OpenDDS::XTypes::MEMBER_ID_INVALID) {
+            continue;
+        }
+
+        DDS::DynamicTypeMember_var dtm;
+        DDS::ReturnCode_t rc = type->get_member(dtm, candidate_id);
+        if (rc != DDS::RETCODE_OK) {
+            continue;
+        }
+
+        DDS::MemberDescriptor_var candidate_md;
+        rc = dtm->get_descriptor(candidate_md);
+        if (rc != DDS::RETCODE_OK) {
+            continue;
+        }
+
+        if (memberName == QString::fromUtf8(candidate_md->name())) {
+            id = candidate_id;
+            md = candidate_md;
+            return DDS::RETCODE_OK;
+        }
+    }
+
+    return DDS::RETCODE_ERROR;
+}
+
+DDS::ReturnCode_t resolve_dynamic_member_display_path(DDS::DynamicData_ptr sample,
+                                                      const QString& memberName,
+                                                      DDS::DynamicData_var& parent_data,
+                                                      DDS::MemberId& id,
+                                                      DDS::MemberDescriptor_var& md)
+{
+    parent_data = 0;
+
+    const QStringList parts = memberName.split('.', Qt::SkipEmptyParts);
+    if (parts.isEmpty()) {
+        return DDS::RETCODE_BAD_PARAMETER;
+    }
+
+    DDS::DynamicData_var current = DDS::DynamicData::_duplicate(sample);
+    for (int i = 0; i < parts.size(); ++i) {
+        if (parts.at(i).contains('[')) {
+            return DDS::RETCODE_UNSUPPORTED;
+        }
+
+        DDS::ReturnCode_t rc = find_dynamic_member_by_name(current, parts.at(i), id, md);
+        if (rc != DDS::RETCODE_OK) {
+            return rc;
+        }
+
+        if (i == parts.size() - 1) {
+            parent_data = current;
+            return DDS::RETCODE_OK;
+        }
+
+        DDS::DynamicType_var base_type = OpenDDS::XTypes::get_base_type(md->type());
+        if (!base_type) {
+            return DDS::RETCODE_BAD_PARAMETER;
+        }
+
+        switch (base_type->get_kind()) {
+        case OpenDDS::XTypes::TK_SEQUENCE:
+        case OpenDDS::XTypes::TK_ARRAY:
+        case OpenDDS::XTypes::TK_STRUCTURE:
+        case OpenDDS::XTypes::TK_UNION:
+            break;
+        default:
+            return DDS::RETCODE_BAD_PARAMETER;
+        }
+
+        DDS::DynamicData_var next;
+        rc = current->get_complex_value(next, id);
+        if (rc != DDS::RETCODE_OK) {
+            return rc;
+        }
+        current = next;
+    }
+
+    return DDS::RETCODE_ERROR;
+}
+}
+
 std::unique_ptr<DDSManager> CommonData::m_ddsManager;
 QMap<QString, QList<std::shared_ptr<OpenDynamicData> > > CommonData::m_samples;
 QMap<QString, QStringList> CommonData::m_sampleTimes;
@@ -208,33 +308,42 @@ QVariant CommonData::readDynamicMember(const QString& topicName,
     DDS::DynamicData_var sample = sampleList.at(index);
     DDS::DynamicType_var topic_type = sample->type();
     OpenDDS::XTypes::MemberPath member_path;
-    if (member_path.resolve_string_path(topic_type, memberName.toStdString()) != DDS::RETCODE_OK) {
-        return error;
-    }
-
+    DDS::ReturnCode_t rc = member_path.resolve_string_path(topic_type, memberName.toStdString());
     // The direct parent dynamic data of this member
     DDS::DynamicData_var parent_data;
 
     // The Id of this member within the direct parent type
     DDS::MemberId id;
 
-    if (member_path.get_member_from_data(sample, parent_data, id) != DDS::RETCODE_OK) {
-        return error;
-    }
-
-    DDS::DynamicType_var parent_type = parent_data->type();
-    DDS::DynamicTypeMember_var dtm;
-    if (parent_type->get_member(dtm, id) != DDS::RETCODE_OK) {
-        return error;
-    }
-
     DDS::MemberDescriptor_var md;
-    if (dtm->get_descriptor(md) != DDS::RETCODE_OK) {
+
+    if (rc == DDS::RETCODE_OK) {
+        rc = member_path.get_member_from_data(sample, parent_data, id);
+        if (rc != DDS::RETCODE_OK) {
+            return error;
+        }
+
+        DDS::DynamicType_var parent_type = parent_data->type();
+        DDS::DynamicTypeMember_var dtm;
+        rc = parent_type->get_member(dtm, id);
+        if (rc != DDS::RETCODE_OK) {
+            return error;
+        }
+
+        rc = dtm->get_descriptor(md);
+    } else {
+        rc = resolve_dynamic_member_display_path(sample, memberName, parent_data, id, md);
+        if (rc != DDS::RETCODE_OK) {
+            return error;
+        }
+    }
+
+    if (rc != DDS::RETCODE_OK) {
         return error;
     }
 
     const DDS::TypeKind member_tk = md->type()->get_kind();
-    DDS::ReturnCode_t rc = DDS::RETCODE_OK;
+    rc = DDS::RETCODE_OK;
 
     switch (member_tk) {
     case OpenDDS::XTypes::TK_BOOLEAN:
@@ -252,6 +361,24 @@ QVariant CommonData::readDynamicMember(const QString& topicName,
           rc = parent_data->get_byte_value(tmp, id);
           if (rc == DDS::RETCODE_OK) {
               return tmp;
+          }
+          break;
+      }
+    case OpenDDS::XTypes::TK_INT8:
+      {
+          ACE_INT8 tmp;
+          rc = parent_data->get_int8_value(tmp, id);
+          if (rc == DDS::RETCODE_OK) {
+              return static_cast<qint8>(tmp);
+          }
+          break;
+      }
+    case OpenDDS::XTypes::TK_UINT8:
+      {
+          ACE_UINT8 tmp;
+          rc = parent_data->get_uint8_value(tmp, id);
+          if (rc == DDS::RETCODE_OK) {
+              return static_cast<quint8>(tmp);
           }
           break;
       }
