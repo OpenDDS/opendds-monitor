@@ -25,12 +25,28 @@ jobs:
           - master
           - latest-release
         runner:
-          - windows-2022
-          - windows-2025
-          - ubuntu-22.04
           - ubuntu-24.04
-          - macos-14
-          - macos-15
+          - macos-15-intel
+          - windows-2025
+        qt_version:
+          - 5.15.2
+          - 6.8.3
+          - 6.11.1
+        exclude:
+          # As of 2026-06-09, Qt's public online repository lists Windows 6.11.x
+          # versions but the package metadata for win64_msvc2022_64 returns 404.
+          - runner: windows-2025
+            qt_version: 6.11.1
+        include:
+          - qt_version: 5.15.2
+            qt_major: 5
+            windows_qt_arch: win64_msvc2019_64
+          - qt_version: 6.8.3
+            qt_major: 6
+            windows_qt_arch: win64_msvc2022_64
+          - qt_version: 6.11.1
+            qt_major: 6
+            windows_qt_arch: win64_msvc2022_64
 
     runs-on: ${{ matrix.runner }}
 
@@ -63,28 +79,55 @@ jobs:
           submodules: true
 
       # Get 3rd-party Dependencies
-      - name: 'Install openssl, xerces, qt5, and qwt (Linux)'
+      - name: 'Install system dependencies (Linux)'
         if: runner.os == 'Linux'
         run: |-
           sudo apt-get update
-          sudo apt-get -y install libssl-dev libxerces-c-dev qtbase5-dev libqt5svg5-dev libqwt-qt5-dev
-      - name: 'Install xerces, qt5, and qwt (macOS)'
+          sudo apt-get -y install libgl1-mesa-dev libssl-dev libxerces-c-dev
+      - name: 'Install system dependencies (macOS)'
         if: runner.os == 'macOS'
         run: |-
-          brew install xerces-c qt@5 qwt-qt5
+          brew install openssl xerces-c
+      - name: 'Install Qt (Linux)'
+        if: runner.os == 'Linux'
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ matrix.qt_version }}
+          target: desktop
+          archives: qtbase qtsvg icu
+          cache: true
+          cache-key-prefix: opendds-monitor-qt-c02
+      - name: 'Install Qt (macOS)'
+        if: runner.os == 'macOS'
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ matrix.qt_version }}
+          target: desktop
+          archives: qtbase qtsvg
+          cache: true
+          cache-key-prefix: opendds-monitor-qt-c02
+      - name: 'Install Qt (Windows)'
+        if: runner.os == 'Windows'
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ matrix.qt_version }}
+          target: desktop
+          arch: ${{ matrix.windows_qt_arch }}
+          archives: qtbase qtsvg
+          cache: true
+          cache-key-prefix: opendds-monitor-qt-c02
       - name: setup for run-vcpkg
         if: runner.os == 'Windows'
         shell: cmd
         run: |
-          echo { "name": "opendds", "version-string": "github-actions", "dependencies": [ "qt5-base", "qt5-svg", "openssl", "xerces-c" ] } > vcpkg.json
+          echo { "name": "opendds-monitor-ci", "version-string": "github-actions", "builtin-baseline": "75672db6bd812b060482b0f00b5a16b18a0c0f07", "dependencies": [ "openssl", "xerces-c" ] } > vcpkg.json
           echo VCPKG_DEFAULT_TRIPLET=x64-windows>> %GITHUB_ENV%
           echo VCPKG_INSTALLED_DIR=${{ github.workspace }}\vcpkg\installed>> %GITHUB_ENV%
-      - name: 'Install openssl, xerces, and qt5 (Windows)'
+      - name: 'Install openssl and xerces (Windows)'
         if: runner.os == 'Windows'
         uses: lukka/run-vcpkg@v11
         with:
           vcpkgDirectory: '${{ github.workspace }}/vcpkg'
-          vcpkgGitCommitId: 74e6536215718009aae747d86d84b78376bf9e09
           runVcpkgInstall: true
 
       # Set Up Build Environments
@@ -99,14 +142,11 @@ jobs:
           echo "TAO_ROOT=$GITHUB_WORKSPACE/ACE_TAO/TAO" >> $GITHUB_ENV
           echo "DDS_ROOT=$GITHUB_WORKSPACE/OpenDDS" >> $GITHUB_ENV
           echo "MPC_ROOT=$GITHUB_WORKSPACE/MPC" >> $GITHUB_ENV
-          echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/ACE_TAO/ACE/lib:$GITHUB_WORKSPACE/OpenDDS/lib" >> $GITHUB_ENV
+          echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/ACE_TAO/ACE/lib:$GITHUB_WORKSPACE/OpenDDS/lib:$GITHUB_WORKSPACE/qwt/lib" >> $GITHUB_ENV
           CONFIG_OPTIONS+=" --no-tests --std=c++17 --ipv6 --security"
           if [ '${{ runner.os }}' == 'macOS' ]; then
-            if [ '${{ matrix.runner }}' == 'macos-13' ]; then
-              CONFIG_OPTIONS+=" --xerces3=$(brew --prefix xerces-c) --openssl=/usr/local/opt/openssl@1.1"
-            else
-              CONFIG_OPTIONS+=" --xerces3=$(brew --prefix xerces-c) --openssl=$(brew --prefix openssl)"
-            fi
+            CONFIG_OPTIONS+=" --xerces3=$(brew --prefix xerces-c) --openssl=$(brew --prefix openssl)"
+            echo "DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:$GITHUB_WORKSPACE/ACE_TAO/ACE/lib:$GITHUB_WORKSPACE/OpenDDS/lib:$GITHUB_WORKSPACE/qwt/lib" >> $GITHUB_ENV
           fi
           echo "CONFIG_OPTIONS=$CONFIG_OPTIONS" >> $GITHUB_ENV
           export COMPILER_VERSION=$(c++ --version 2>&1 | head -n 1)
@@ -159,7 +199,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ${{ env.MATRIX_MD5 }}.tar.xz
-          key: c01_${{ env.MATRIX_MD5 }}_${{ env.COMPILER_MD5 }}_${{ env.ACE_COMMIT }}_${{ env.DDS_COMMIT }}_${{ env.CONFIG_MD5 }}
+          key: c02_${{ env.MATRIX_MD5 }}_${{ env.COMPILER_MD5 }}_${{ env.ACE_COMMIT }}_${{ env.DDS_COMMIT }}_${{ env.CONFIG_MD5 }}
       - name: 'Extract Build Cache'
         if: steps.cache-build.outputs.cache-hit == 'true'
         shell: bash
@@ -167,7 +207,7 @@ jobs:
           tar xvfJ ${{ env.MATRIX_MD5 }}.tar.xz
           cd OpenDDS
           git submodule init && git submodule update
-      - name: 'Configure & Build OpenDDS (Linux / macOS)'
+      - name: 'Configure OpenDDS (Linux / macOS)'
         if: steps.cache-build.outputs.cache-hit != 'true' && (runner.os == 'Linux' || runner.os == 'macOS')
         shell: bash
         run: |-
@@ -214,12 +254,23 @@ jobs:
           cd OpenDDS
           perl tools/scripts/show_build_config.pl
 
-      # Build Qwt (Windows Only)
+      # Build Qwt against the matrix Qt version.
+      - name: 'Check Qwt Cache'
+        id: cache-qwt
+        uses: actions/cache@v5
+        with:
+          path: qwt
+          key: qwt-6.2-c01-${{ matrix.runner }}-${{ matrix.qt_version }}
+      - name: 'Build Qwt (Linux / macOS)'
+        if: steps.cache-qwt.outputs.cache-hit != 'true' && (runner.os == 'Linux' || runner.os == 'macOS')
+        shell: bash
+        run: |-
+          cmake -DQT_VERSION_MAJOR=${{ matrix.qt_major }} -DQMAKE_EXECUTABLE="$QT_ROOT_DIR/bin/qmake" -P BuildQwt.cmake
       - name: 'Build Qwt (Windows)'
-        if: runner.os == 'Windows'
+        if: steps.cache-qwt.outputs.cache-hit != 'true' && runner.os == 'Windows'
         shell: cmd
         run: |-
-          cmake -DBUILD_TYPE=debug -DVCPKG_INSTALLED_DIR=%VCPKG_INSTALLED_DIR% -DVCPKG_DEFAULT_TRIPLET=%VCPKG_DEFAULT_TRIPLET% -P BuildQwt.cmake
+          cmake -DQT_VERSION_MAJOR=${{ matrix.qt_major }} -DQMAKE_EXECUTABLE="%QT_ROOT_DIR%\bin\qmake.exe" -DBUILD_TYPE=debug -P BuildQwt.cmake
 
       # Set up problem matchers
       - name: 'Set Up Problem Matcher (Linux / macOS)'
@@ -237,15 +288,8 @@ jobs:
           cd OpenDDS
           . setenv.sh
           cd ..
-          mkdir build
-          cd build
-          CMAKE_ARGS=""
-          if [ '${{ runner.os }}' == 'macOS' ]; then
-            export QWT_DIR=$(brew --prefix qwt-qt5)
-            CMAKE_ARGS+=" -DCMAKE_PREFIX_PATH=$(brew --prefix qt@5)"
-          fi
-          cmake $CMAKE_ARGS ..
-          cmake --build . -t all -t managed_testapp -t unmanaged_testapp
+          cmake -S . -B build -DQWT_IS_LOCAL=ON -DQT_VERSION_MAJOR=${{ matrix.qt_major }} -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR"
+          cmake --build build -t all -t managed_testapp -t unmanaged_testapp
       - name: 'Build opendds-monitor (Windows)'
         if: runner.os == 'Windows'
         shell: cmd
@@ -253,7 +297,5 @@ jobs:
           cd OpenDDS
           call setenv.cmd
           cd ..
-          mkdir build
-          cd build
-          cmake -DQWT_IS_LOCAL=ON -DCMAKE_PREFIX_PATH=%VCPKG_INSTALLED_DIR%\x64-windows ..
-          cmake --build . && cmake --build test -t managed_testapp -t unmanaged_testapp
+          cmake -S . -B build -DQWT_IS_LOCAL=ON -DQT_VERSION_MAJOR=${{ matrix.qt_major }} -DCMAKE_PREFIX_PATH="%QT_ROOT_DIR%;%VCPKG_INSTALLED_DIR%\x64-windows"
+          cmake --build build && cmake --build build\test -t managed_testapp -t unmanaged_testapp

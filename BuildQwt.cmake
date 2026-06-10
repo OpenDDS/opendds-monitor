@@ -1,19 +1,14 @@
-# Download and build the Qwt library from source
-
+# Download and build Qwt from source against the Qt version installed in CI.
+#
 # Run this as a CMake script:
 # cmake [-D name=value]... -P BuildQwt.cmake
 
-# Requires these programs on the PATH: git
-# Assumes the Visual C++ build environment (cl, nmake, etc.) from vcvars64
-
-# Requires these CMake variables (use -D):
-# VCPKG_INSTALLED_DIR: the "installed" directory of vcpkg containing qt5
-# VCPKG_DEFAULT_TRIPLET: vcpkg's name for the platform, like x64-windows
-# BUILD_TYPE: "debug" or "release"
-
 set(GIT_URL "https://git.code.sf.net/p/qwt/git")
 set(GIT_BRANCH "qwt-6.2")
-set(VCPKG_INST "${VCPKG_INSTALLED_DIR}/${VCPKG_DEFAULT_TRIPLET}")
+
+if(NOT DEFINED BUILD_TYPE)
+  set(BUILD_TYPE "release")
+endif()
 
 if(NOT IS_DIRECTORY "qwt")
   execute_process(COMMAND git clone --depth 1 -b ${GIT_BRANCH} ${GIT_URL} qwt
@@ -21,21 +16,48 @@ if(NOT IS_DIRECTORY "qwt")
                   COMMAND_ERROR_IS_FATAL ANY)
 endif()
 
-# vcpkg's conf files use this variable, which must use forward slashes
-file(TO_CMAKE_PATH "${VCPKG_INST}" CURRENT_INSTALLED_DIR)
-configure_file("${VCPKG_INST}/tools/qt5/qt_${BUILD_TYPE}.conf" "qwt/qt.conf")
+set(_qmake_hints "$ENV{QT_ROOT_DIR}/bin")
+if(QT_VERSION_MAJOR)
+  set(_qt_dir_env "Qt${QT_VERSION_MAJOR}_DIR")
+  list(APPEND _qmake_hints
+    "$ENV{${_qt_dir_env}}/bin"
+    "$ENV{${_qt_dir_env}}/../.."
+    "$ENV{${_qt_dir_env}}/../../bin"
+    "$ENV{${_qt_dir_env}}/../../../bin"
+  )
+endif()
 
-execute_process(COMMAND ${VCPKG_INST}/tools/qt5/bin/qmake -qtconf qt.conf qwt.pro
+find_program(QMAKE_EXECUTABLE
+  NAMES qmake qmake6 qmake-qt6 qmake-qt5
+  HINTS ${_qmake_hints}
+)
+
+if(NOT QMAKE_EXECUTABLE)
+  message(FATAL_ERROR "Could not find qmake for Qt ${QT_VERSION_MAJOR}")
+endif()
+
+execute_process(COMMAND "${QMAKE_EXECUTABLE}" qwt.pro
                 WORKING_DIRECTORY "qwt"
                 COMMAND_ECHO STDOUT
                 COMMAND_ERROR_IS_FATAL ANY)
 
-execute_process(COMMAND nmake sub-src-qmake_all
+if(WIN32)
+  set(MAKE_PROGRAM nmake)
+  set(MAKE_TARGET ${BUILD_TYPE})
+else()
+  find_program(MAKE_PROGRAM NAMES make gmake)
+  if(NOT MAKE_PROGRAM)
+    message(FATAL_ERROR "Could not find make")
+  endif()
+  set(MAKE_TARGET)
+endif()
+
+execute_process(COMMAND "${MAKE_PROGRAM}" sub-src-qmake_all
                 WORKING_DIRECTORY "qwt"
                 COMMAND_ECHO STDOUT
                 COMMAND_ERROR_IS_FATAL ANY)
 
-execute_process(COMMAND nmake ${BUILD_TYPE}
+execute_process(COMMAND "${MAKE_PROGRAM}" ${MAKE_TARGET}
                 WORKING_DIRECTORY "qwt/src"
                 COMMAND_ECHO STDOUT
                 COMMAND_ERROR_IS_FATAL ANY)
