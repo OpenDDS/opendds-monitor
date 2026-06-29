@@ -205,7 +205,7 @@ jobs:
       # Configure and build OpenDDS (using cache)
       - name: 'Check Build Cache'
         id: cache-build
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ${{ env.MATRIX_MD5 }}.tar.xz
           key: c02_${{ env.MATRIX_MD5 }}_${{ env.COMPILER_MD5 }}_${{ env.ACE_COMMIT }}_${{ env.DDS_COMMIT }}_${{ env.CONFIG_MD5 }}
@@ -266,7 +266,7 @@ jobs:
       # Build Qwt against the matrix Qt version.
       - name: 'Check Qwt Cache'
         id: cache-qwt
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: qwt
           key: qwt-6.2-c01-${{ matrix.runner }}-${{ matrix.qt_version }}
