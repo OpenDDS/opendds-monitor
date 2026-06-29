@@ -27,12 +27,21 @@ jobs:
         runner:
           - ubuntu-24.04
           - macos-15-intel
+          - windows-2022
           - windows-2025
         qt_version:
           - 5.15.2
           - 6.8.3
           - 6.11.1
         exclude:
+          # Qt 5.15.2's win64_msvc2019_64 package is not compatible with the
+          # VS2026 toolset currently selected by default on windows-2025.
+          - runner: windows-2025
+            qt_version: 5.15.2
+          - runner: windows-2022
+            qt_version: 6.8.3
+          - runner: windows-2022
+            qt_version: 6.11.1
           # As of 2026-06-09, Qt's public online repository lists Windows 6.11.x
           # versions but the package metadata for win64_msvc2022_64 returns 404.
           - runner: windows-2025
@@ -170,7 +179,7 @@ jobs:
           echo "MPC_ROOT=$GITHUB_WORKSPACE\\MPC" >> $GITHUB_ENV
           CONFIG_OPTIONS+=" --no-tests --std=c++17 --ipv6 --security --xerces3=\"$VCPKG_INSTALLED_DIR\\x64-windows\" --openssl=\"$VCPKG_INSTALLED_DIR\\x64-windows\""
           echo "CONFIG_OPTIONS=$CONFIG_OPTIONS" >> $GITHUB_ENV
-          export COMPILER_VERSION=$("C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -property catalog_productDisplayVersion)
+          export COMPILER_VERSION="$VSCMD_VER $VCToolsVersion"
           echo "COMPILER_VERSION=$COMPILER_VERSION" >> $GITHUB_ENV
           echo "OBJ_EXT=\\.obj" >> $GITHUB_ENV
           TAR_EXE="tar"
