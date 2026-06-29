@@ -134,6 +134,10 @@ jobs:
       - name: 'Set Up MSVC Environment'
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1
+        with:
+          # Qt 5.15.2's win64_msvc2019_64 package is not compatible with the
+          # VS2026 toolset currently selected by default on windows-2025.
+          vsversion: '2022'
       - name: 'Set environment variables (Linux / macOS)'
         if: runner.os == 'Linux' || runner.os == 'macOS'
         shell: bash
@@ -170,7 +174,7 @@ jobs:
           echo "MPC_ROOT=$GITHUB_WORKSPACE\\MPC" >> $GITHUB_ENV
           CONFIG_OPTIONS+=" --no-tests --std=c++17 --ipv6 --security --xerces3=\"$VCPKG_INSTALLED_DIR\\x64-windows\" --openssl=\"$VCPKG_INSTALLED_DIR\\x64-windows\""
           echo "CONFIG_OPTIONS=$CONFIG_OPTIONS" >> $GITHUB_ENV
-          export COMPILER_VERSION=$("C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -property catalog_productDisplayVersion)
+          export COMPILER_VERSION="$VSCMD_VER $VCToolsVersion"
           echo "COMPILER_VERSION=$COMPILER_VERSION" >> $GITHUB_ENV
           echo "OBJ_EXT=\\.obj" >> $GITHUB_ENV
           TAR_EXE="tar"
